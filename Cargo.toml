@@ -2,9 +2,20 @@
 resolver = "3"
 members = [
     "crates/types",
+    "crates/sdk",
 ]
 
 [workspace.dependencies]
 serde = { version = "1.0.219" }
 serde_json = { version = "1.0.143" }
 utoipa = { version = "5.4", features = ["macros"] }
+alloy-primitives = { version = "1.3.1", features = ["serde"] }
+reqwest = { version = "0.12.5", features = ["json"] }
+tokio = { version = "1.38.0", features = ["full"] }
+thiserror = "1.0.61"
+anyhow = "1.0.86"
+cairo-air = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "89ca0d2787166d9d166e5074bd1bb30825b372e2"}
+stwo = { git = "https://github.com/starkware-libs/stwo", rev = "d9176e6e22319370a8501f799829b920c0db2eac", features = [
+    "parallel",
+    "prover",
+], default-features = false }
