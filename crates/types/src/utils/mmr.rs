@@ -28,7 +28,7 @@ pub fn hash_to_leaf(hash: String, hashing_function: &HashingFunctionDto) -> Stri
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_primitives::hex::FromHex;
+    
 
     #[test]
     fn test_hash_to_leaf_keccak() {

@@ -4,14 +4,11 @@ use bankai_types::fetch::evm::execution::HeaderProof;
 use alloy_rpc_types::Header as ExecutionHeader;
 use anyhow::Error;
 
-use crate::verify::bankai::stwo::verify_stwo_proof;
 use crate::verify::bankai::mmr::BankaiMmr;
-use alloy_primitives::{
-    hex::{ToHexExt}
-};
+use crate::verify::bankai::stwo::verify_stwo_proof;
+use alloy_primitives::hex::ToHexExt;
 
 pub struct ExecutionVerifier;
-
 
 impl ExecutionVerifier {
     pub async fn verify_header_proof(proof: &HeaderProof) -> Result<ExecutionHeader, Error> {
@@ -20,10 +17,19 @@ impl ExecutionVerifier {
         // Check the bankai block mmr root matches the mmr proof root
         match proof.mmr_proof.hashing_function {
             HashingFunctionDto::Keccak => {
-                assert_eq!(proof.mmr_proof.root, format!("0x{}", bankai_block.execution.mmr_root_keccak.encode_hex()));
+                assert_eq!(
+                    proof.mmr_proof.root,
+                    format!("0x{}", bankai_block.execution.mmr_root_keccak.encode_hex())
+                );
             }
             HashingFunctionDto::Poseidon => {
-                assert_eq!(proof.mmr_proof.root, format!("0x{}", bankai_block.execution.mmr_root_poseidon.encode_hex()));
+                assert_eq!(
+                    proof.mmr_proof.root,
+                    format!(
+                        "0x{}",
+                        bankai_block.execution.mmr_root_poseidon.encode_hex()
+                    )
+                );
             }
         }
 
@@ -33,8 +39,11 @@ impl ExecutionVerifier {
 
         // Check the header hash matches the mmr proof header hash
         let hash = proof.header.inner.hash_slow();
-        assert_eq!(format!("0x{}", hash.encode_hex()), proof.mmr_proof.header_hash.clone());
-        
+        assert_eq!(
+            format!("0x{}", hash.encode_hex()),
+            proof.mmr_proof.header_hash.clone()
+        );
+
         Ok(proof.header.clone())
     }
 }

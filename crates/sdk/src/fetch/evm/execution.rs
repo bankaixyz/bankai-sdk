@@ -1,9 +1,6 @@
-use alloy_rpc_types::Header;
 pub use alloy_rpc_types::Header as ExecutionHeader;
 use anyhow::Error;
-use bankai_types::api::{HashingFunctionDto, MmrProofDto, MmrProofRequestDto};
-use cairo_air::CairoProof;
-use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
+use bankai_types::api::{HashingFunctionDto, MmrProofRequestDto};
 
 use crate::fetch::{
     bankai,

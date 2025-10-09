@@ -1,6 +1,5 @@
-use alloy_primitives::{Address, FixedBytes};
 use alloy_provider::{Provider, ProviderBuilder};
-use alloy_rpc_types::{EIP1186AccountProofResponse, Header as ExecutionHeader};
+use alloy_rpc_types::Header as ExecutionHeader;
 use anyhow::Error;
 // use eth_trie_proofs::tx_trie::TxsMptHandler;
 use url::Url;
@@ -26,9 +25,7 @@ impl ExecutionFetcher {
         let rpc_url: Url = self.rpc_url.parse()?;
         let provider = ProviderBuilder::new().connect_http(rpc_url);
 
-        let block = provider
-            .get_block_by_number(block_number.into())
-            .await;
+        let block = provider.get_block_by_number(block_number.into()).await;
 
         let block = block.unwrap().unwrap();
 

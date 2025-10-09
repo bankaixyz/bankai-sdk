@@ -9,9 +9,17 @@ async fn main() {
     let bankai_block_number = 11261;
     let exec_block_number = 9241218;
 
-
     let proof_fetcher = ExecutionChainFetcher::new(client, "https://quick-crimson-needle.ethereum-sepolia.quiknode.pro/5da9fed24a0876297c00a0d358d33a324455edcb".to_string(), 1);
-    let header_proof = proof_fetcher.header(exec_block_number, HashingFunctionDto::Keccak, bankai_block_number).await.unwrap();
-    let header = ExecutionVerifier::verify_header_proof(&header_proof).await.unwrap();
-    println!("Header: {:?}", header);
+    let header_proof = proof_fetcher
+        .header(
+            exec_block_number,
+            HashingFunctionDto::Keccak,
+            bankai_block_number,
+        )
+        .await
+        .unwrap();
+    let header = ExecutionVerifier::verify_header_proof(&header_proof)
+        .await
+        .unwrap();
+    println!("Header: {header:?}");
 }

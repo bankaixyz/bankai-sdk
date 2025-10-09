@@ -36,9 +36,7 @@ impl BankaiMmr {
         Ok(mmr)
     }
 
-    pub async fn verify_mmr_proof(
-        proof: MmrProofDto,
-    ) -> Result<bool, Error> {
+    pub async fn verify_mmr_proof(proof: MmrProofDto) -> Result<bool, Error> {
         let mmr = Self::mmr_from_peaks(
             proof.peaks.clone(),
             proof.elements_count as usize,
