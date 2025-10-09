@@ -10,3 +10,4 @@ utoipa.workspace = true
 alloy-primitives.workspace = true
 cairo-air.workspace = true
 stwo.workspace = true
+starknet-crypto.workspace = true

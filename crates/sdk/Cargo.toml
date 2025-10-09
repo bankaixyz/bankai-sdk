@@ -13,3 +13,5 @@ thiserror.workspace = true
 anyhow.workspace = true
 cairo-air.workspace = true
 stwo.workspace = true
+accumulators.workspace = true
+alloy-primitives.workspace = true
