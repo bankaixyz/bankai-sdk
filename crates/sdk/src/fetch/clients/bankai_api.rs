@@ -14,7 +14,10 @@ pub struct ApiClient {
 
 impl ApiClient {
     pub fn new(base_url: String) -> Self {
-        Self { client: reqwest::Client::new(), base_url }
+        Self {
+            client: reqwest::Client::new(),
+            base_url,
+        }
     }
 
     pub async fn get_zk_proof(&self, block_number: u64) -> Result<ZkProofDto, Error> {

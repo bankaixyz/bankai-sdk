@@ -15,3 +15,6 @@ cairo-air.workspace = true
 stwo.workspace = true
 accumulators.workspace = true
 alloy-primitives.workspace = true
+alloy-provider.workspace = true
+alloy-rpc-types.workspace = true
+url.workspace = true

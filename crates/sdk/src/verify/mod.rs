@@ -1,2 +1,2 @@
-pub mod stwo;
-pub mod mmr;
+pub mod bankai;
+pub mod evm;
