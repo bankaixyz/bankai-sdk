@@ -41,13 +41,12 @@ impl ExecutionChainFetcher {
             &self.api_client,
             &MmrProofRequestDto {
                 network_id: self.network_id,
-                block_number,
+                block_number: bankai_block_number,
                 hashing_function,
                 header_hash: header.hash.to_string(),
             },
         )
         .await?;
-
         Ok(HeaderProof {
             header,
             block_proof: stwo_proof,

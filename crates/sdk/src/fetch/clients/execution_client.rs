@@ -28,10 +28,9 @@ impl ExecutionFetcher {
 
         let block = provider
             .get_block_by_number(block_number.into())
-            .await
-            // .map_err(|_| Error::BlockNotFound)?
-            .map_err(|_| anyhow::anyhow!("Block not found"))?
-            .unwrap();
+            .await;
+
+        let block = block.unwrap().unwrap();
 
         Ok(block.header)
     }
