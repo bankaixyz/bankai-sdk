@@ -6,7 +6,7 @@ use crate::fetch::{
     bankai,
     clients::{bankai_api::ApiClient, execution_client::ExecutionFetcher},
 };
-use bankai_types::fetch::evm::execution::HeaderProof;
+use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
 
 pub struct ExecutionChainFetcher {
     api_client: ApiClient,
@@ -28,7 +28,7 @@ impl ExecutionChainFetcher {
         block_number: u64,
         hashing_function: HashingFunctionDto,
         bankai_block_number: u64,
-    ) -> Result<HeaderProof, Error> {
+    ) -> Result<ExecutionHeaderProof, Error> {
         let header = ExecutionFetcher::new(self.rpc_url.clone())
             .fetch_header(block_number)
             .await?;
@@ -44,7 +44,7 @@ impl ExecutionChainFetcher {
             },
         )
         .await?;
-        Ok(HeaderProof {
+        Ok(ExecutionHeaderProof {
             header,
             block_proof: stwo_proof,
             mmr_proof,
