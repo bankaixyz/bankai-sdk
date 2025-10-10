@@ -1,12 +1,14 @@
+use alloy_primitives::Address;
+use alloy_rpc_types::EIP1186AccountProofResponse;
 pub use alloy_rpc_types::Header as ExecutionHeader;
-use anyhow::Error;
-use bankai_types::api::{HashingFunctionDto, MmrProofRequestDto};
+use bankai_types::api::proofs::{HashingFunctionDto, MmrProofRequestDto};
 
 use crate::fetch::{
     bankai,
     clients::{bankai_api::ApiClient, execution_client::ExecutionFetcher},
 };
 use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
+use crate::errors::SdkResult;
 
 pub struct ExecutionChainFetcher {
     api_client: ApiClient,
@@ -28,7 +30,7 @@ impl ExecutionChainFetcher {
         block_number: u64,
         hashing_function: HashingFunctionDto,
         bankai_block_number: u64,
-    ) -> Result<ExecutionHeaderProof, Error> {
+    ) -> SdkResult<ExecutionHeaderProof> {
         let header = ExecutionFetcher::new(self.rpc_url.clone())
             .fetch_header(block_number)
             .await?;
@@ -49,5 +51,18 @@ impl ExecutionChainFetcher {
             block_proof: stwo_proof,
             mmr_proof,
         })
+    }
+
+    pub async fn account(
+        &self,
+        block_number: u64,
+        address: Address,
+        _hashing_function: HashingFunctionDto,
+        _bankai_block_number: u64,
+    ) -> SdkResult<EIP1186AccountProofResponse> {
+        let proof = ExecutionFetcher::new(self.rpc_url.clone())
+            .fetch_account_proof(address, block_number)
+            .await?;
+        Ok(proof)
     }
 }

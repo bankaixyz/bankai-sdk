@@ -1,46 +1,42 @@
-use bankai_sdk::fetch::clients::bankai_api::ApiClient;
-use bankai_sdk::fetch::evm::beacon::BeaconChainFetcher;
-use bankai_sdk::verify::evm::beacon::BeaconVerifier;
-use bankai_types::api::HashingFunctionDto;
+use bankai_sdk::{Bankai, errors::SdkError};
+use bankai_types::api::proofs::HashingFunctionDto;
 use dotenv::from_filename;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), SdkError> {
     from_filename(".env").ok();
-    let client = ApiClient::new("https://sepolia.api.bankai.xyz".to_string());
-    let bankai_block_number = 11261;
-    let exec_block_number = 8292000;
 
-    let exex_rpc = std::env::var("EXECUTION_RPC").expect("EXECUTION_RPC must be set");
-    let beacon_rpc = std::env::var("BEACON_RPC").expect("BEACON_RPC must be set");
+    let exec_rpc = std::env::var("EXECUTION_RPC").ok();
+    let beacon_rpc = std::env::var("BEACON_RPC").ok();
 
-    let proof_fetcher = BeaconChainFetcher::new(client, beacon_rpc, 0);
-    let header_proof = proof_fetcher
-        .header(
-            exec_block_number,
-            HashingFunctionDto::Keccak,
-            bankai_block_number,
-        )
-        .await
-        .unwrap();
-    let beacon_header = BeaconVerifier::verify_header_proof(&header_proof)
-        .await
-        .unwrap();
-    println!("Beacon header: {beacon_header:?}");
-    // let header = ExecutionVerifier::verify_header_proof(&header_proof).await.unwrap();
-    // println!("Header: {:?}", header);
+    let mut builder = Bankai::builder().with_api_base("https://sepolia.api.bankai.xyz".to_string());
+    if let Some(rpc) = exec_rpc.clone() { builder = builder.with_evm_execution(rpc); }
+    if let Some(rpc) = beacon_rpc.clone() { builder = builder.with_evm_beacon(rpc); }
+    let bankai = builder.build();
 
-    // let proof_fetcher = ExecutionChainFetcher::new(client, "https://quick-crimson-needle.ethereum-sepolia.quiknode.pro/5da9fed24a0876297c00a0d358d33a324455edcb".to_string(), 1);
-    // let header_proof = proof_fetcher
-    //     .header(
-    //         exec_block_number,
-    //         HashingFunctionDto::Keccak,
-    //         bankai_block_number,
-    //     )
-    //     .await
-    //     .unwrap();
-    // let header = ExecutionVerifier::verify_header_proof(&header_proof)
-    //     .await
-    //     .unwrap();
-    // println!("Header: {header:?}");
+    let bankai_block_number = 11261u64;
+    let exec_block_number = 8_292_000u64;
+    let beacon_slot = 1_234_567u64;
+
+    if let Some(exec) = bankai.evm.execution.as_ref() {
+        let proof = exec
+            .header(exec_block_number, HashingFunctionDto::Keccak, bankai_block_number)
+            .await?;
+        let _header = bankai.verify.evm_execution_header(&proof).await?;
+        println!("Execution header verified (hash bound via MMR)");
+    } else {
+        println!("EXECUTION_RPC not set; skipping execution proof demo");
+    }
+
+    if let Some(beacon) = bankai.evm.beacon.as_ref() {
+        let proof = beacon
+            .header(beacon_slot, HashingFunctionDto::Keccak, bankai_block_number)
+            .await?;
+        let _header = bankai.verify.evm_beacon_header(&proof).await?;
+        println!("Beacon header verified (slot bound via MMR)");
+    } else {
+        println!("BEACON_RPC not set; skipping beacon proof demo");
+    }
+
+    Ok(())
 }

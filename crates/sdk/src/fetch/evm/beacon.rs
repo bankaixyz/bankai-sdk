@@ -1,14 +1,14 @@
 use alloy_primitives::hex::ToHexExt;
-use anyhow::Error;
-use bankai_types::api::MmrProofRequestDto;
+use bankai_types::api::proofs::MmrProofRequestDto;
 use bankai_types::fetch::evm::beacon::BeaconHeader;
-use bankai_types::{api::HashingFunctionDto, fetch::evm::beacon::BeaconHeaderProof};
+use bankai_types::{api::proofs::HashingFunctionDto, fetch::evm::beacon::BeaconHeaderProof};
 use tree_hash::TreeHash;
 
 use crate::fetch::{
     bankai,
     clients::{bankai_api::ApiClient, beacon_client::BeaconFetcher},
 };
+use crate::errors::SdkResult;
 
 pub struct BeaconChainFetcher {
     pub api_client: ApiClient,
@@ -30,7 +30,7 @@ impl BeaconChainFetcher {
         slot: u64,
         hashing_function: HashingFunctionDto,
         bankai_block_number: u64,
-    ) -> Result<BeaconHeaderProof, Error> {
+    ) -> SdkResult<BeaconHeaderProof> {
         let header_response = self.beacon_client.fetch_header(slot).await?;
         let header: BeaconHeader = header_response.into();
         let header_root = header.tree_hash_root();

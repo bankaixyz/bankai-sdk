@@ -5,7 +5,7 @@ use alloy_primitives::{
 };
 use starknet_crypto::{Felt, poseidon_hash};
 
-use crate::api::HashingFunctionDto;
+use crate::api::proofs::HashingFunctionDto;
 
 pub fn hash_to_leaf(hash: String, hashing_function: &HashingFunctionDto) -> String {
     let hash = B256::from_hex(hash).unwrap();

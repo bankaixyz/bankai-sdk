@@ -1,10 +1,9 @@
+use alloy_primitives::Address;
 use alloy_provider::{Provider, ProviderBuilder};
-use alloy_rpc_types::Header as ExecutionHeader;
-use anyhow::Error;
-// use eth_trie_proofs::tx_trie::TxsMptHandler;
+use alloy_rpc_types::{EIP1186AccountProofResponse, Header as ExecutionHeader};
 use url::Url;
 
-// use crate::error::Error;
+use crate::errors::{SdkError, SdkResult};
 
 pub struct ExecutionFetcher {
     pub rpc_url: String,
@@ -21,33 +20,44 @@ impl ExecutionFetcher {
         Self { rpc_url }
     }
 
-    pub async fn fetch_header(&self, block_number: u64) -> Result<ExecutionHeader, Error> {
-        let rpc_url: Url = self.rpc_url.parse()?;
+    pub async fn fetch_header(&self, block_number: u64) -> SdkResult<ExecutionHeader> {
+        let rpc_url: Url = self
+            .rpc_url
+            .parse()
+            .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
         let provider = ProviderBuilder::new().connect_http(rpc_url);
 
-        let block = provider.get_block_by_number(block_number.into()).await;
+        let block = provider
+            .get_block_by_number(block_number.into())
+            .await
+            .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
 
-        let block = block.unwrap().unwrap();
+        let block = block.ok_or_else(|| SdkError::NotFound(format!(
+            "block {block_number} not found"
+        )))?;
 
         Ok(block.header)
     }
 
-    // pub async fn fetch_account_proof(
-    //     &self,
-    //     address: Address,
-    //     block_number: u64,
-    // ) -> Result<EIP1186AccountProofResponse, Error> {
-    //     let rpc_url: Url = self.base_url.parse()?;
-    //     let provider = ProviderBuilder::new().on_http(rpc_url);
+    pub async fn fetch_account_proof(
+        &self,
+        address: Address,
+        block_number: u64,
+    ) -> SdkResult<EIP1186AccountProofResponse> {
+        let rpc_url: Url = self
+            .rpc_url
+            .parse()
+            .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
+        let provider = ProviderBuilder::new().connect_http(rpc_url);
 
-    //     let proof = provider
-    //         .get_proof(address, vec![])
-    //         .block_id(block_number.into())
-    //         .await
-    //         .map_err(|_| Error::BlockNotFound)?;
+        let proof = provider
+            .get_proof(address, vec![])
+            .block_id(block_number.into())
+            .await
+            .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
 
-    //     Ok(proof)
-    // }
+        Ok(proof)
+    }
 
     // pub async fn fetch_tx_block_number(&self, tx_hash: FixedBytes<32>) -> Result<u64, Error> {
     //     let rpc_url: Url = self.rpc_url.parse()?;

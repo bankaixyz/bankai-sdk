@@ -1,12 +1,12 @@
-use anyhow::Error;
-use bankai_types::api::{MmrProofDto, MmrProofRequestDto};
+use bankai_types::api::proofs::{MmrProofDto, MmrProofRequestDto};
 
 use crate::fetch::clients::bankai_api::ApiClient;
+use crate::errors::SdkResult;
 
 pub async fn fetch_mmr_proof(
     client: &ApiClient,
     request: &MmrProofRequestDto,
-) -> Result<MmrProofDto, Error> {
+) -> SdkResult<MmrProofDto> {
     let proof = client.get_mmr_proof(request).await?;
     Ok(proof)
 }

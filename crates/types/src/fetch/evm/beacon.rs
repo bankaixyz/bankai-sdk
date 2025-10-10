@@ -4,7 +4,7 @@ use cairo_air::CairoProof;
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 use tree_hash_derive::TreeHash;
 
-use crate::api::MmrProofDto;
+use crate::api::proofs::MmrProofDto;
 
 pub struct BeaconHeaderProof {
     pub header: BeaconHeader,

@@ -5,11 +5,11 @@ use accumulators::{
     hasher::{keccak::KeccakHasher, stark_poseidon::StarkPoseidonHasher, Hasher},
     mmr::{Proof, ProofOptions, MMR},
 };
-use anyhow::Error;
 use bankai_types::{
-    api::{HashingFunctionDto, MmrProofDto},
+    api::proofs::{HashingFunctionDto, MmrProofDto},
     utils::mmr::hash_to_leaf,
 };
+use crate::errors::{SdkError, SdkResult};
 
 pub struct BankaiMmr;
 
@@ -18,7 +18,7 @@ impl BankaiMmr {
         peaks_hashes: Vec<String>,
         elements_count: usize,
         hashing_function: HashingFunctionDto,
-    ) -> Result<MMR, anyhow::Error> {
+    ) -> SdkResult<MMR> {
         let hasher: Arc<dyn Hasher> = match hashing_function {
             HashingFunctionDto::Keccak => Arc::new(KeccakHasher::new()),
             HashingFunctionDto::Poseidon => Arc::new(StarkPoseidonHasher::new(Some(true))),
@@ -31,12 +31,13 @@ impl BankaiMmr {
             peaks_hashes,
             elements_count,
         )
-        .await?;
+        .await
+        .map_err(|e| SdkError::Verification(format!("failed to create mmr: {e}")))?;
 
         Ok(mmr)
     }
 
-    pub async fn verify_mmr_proof(proof: MmrProofDto) -> Result<bool, Error> {
+    pub async fn verify_mmr_proof(proof: MmrProofDto) -> SdkResult<bool> {
         let mmr = Self::mmr_from_peaks(
             proof.peaks.clone(),
             proof.elements_count as usize,
@@ -60,6 +61,6 @@ impl BankaiMmr {
 
         mmr.verify_proof(proof_type.clone(), proof_type.element_hash, Some(options))
             .await
-            .map_err(Error::from)
+            .map_err(|e| SdkError::Verification(format!("mmr verify failed: {e}")))
     }
 }
