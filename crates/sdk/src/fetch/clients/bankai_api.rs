@@ -1,5 +1,8 @@
 use bankai_types::api::error::ErrorResponse;
-use bankai_types::api::proofs::{BankaiBlockProofDto, LightClientProofDto, LightClientProofRequestDto, MmrProofDto, MmrProofRequestDto};
+use bankai_types::api::proofs::{
+    BankaiBlockProofDto, LightClientProofDto, LightClientProofRequestDto, MmrProofDto,
+    MmrProofRequestDto,
+};
 
 use crate::errors::{SdkError, SdkResult};
 
@@ -11,10 +14,16 @@ pub struct ApiClient {
 
 impl ApiClient {
     pub fn new(base_url: String) -> Self {
-        Self { client: reqwest::Client::new(), base_url }
+        Self {
+            client: reqwest::Client::new(),
+            base_url,
+        }
     }
 
-    async fn handle_response<T: serde::de::DeserializeOwned>(&self, response: reqwest::Response) -> SdkResult<T> {
+    async fn handle_response<T: serde::de::DeserializeOwned>(
+        &self,
+        response: reqwest::Response,
+    ) -> SdkResult<T> {
         if response.status().is_success() {
             let value = response.json::<T>().await?;
             return Ok(value);
@@ -28,7 +37,10 @@ impl ApiClient {
         Err(SdkError::Api { status, body })
     }
 
-    pub async fn get_light_client_proof(&self, request: &LightClientProofRequestDto) -> SdkResult<LightClientProofDto> {
+    pub async fn get_light_client_proof(
+        &self,
+        request: &LightClientProofRequestDto,
+    ) -> SdkResult<LightClientProofDto> {
         let url = format!("{}/v1/proofs/light-client", self.base_url);
         let response = self.client.post(&url).json(request).send().await?;
         self.handle_response(response).await

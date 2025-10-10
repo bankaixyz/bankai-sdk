@@ -1,6 +1,6 @@
+use crate::api::blocks::{EthereumConsensusSummaryDto, MmrRootsDto};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::api::blocks::{EthereumConsensusSummaryDto, MmrRootsDto};
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct BlockDetailStatsDto {

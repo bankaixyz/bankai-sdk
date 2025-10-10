@@ -26,7 +26,11 @@ pub enum SdkError {
     Api { status: StatusCode, body: String },
 
     #[error("api error response: {code} - {message}")]
-    ApiErrorResponse { code: String, message: String, error_id: String },
+    ApiErrorResponse {
+        code: String,
+        message: String,
+        error_id: String,
+    },
 
     #[error("verification error: {0}")]
     Verification(String),
@@ -42,8 +46,10 @@ pub type SdkResult<T> = Result<T, SdkError>;
 
 impl From<ErrorResponse> for SdkError {
     fn from(e: ErrorResponse) -> Self {
-        SdkError::ApiErrorResponse { code: e.code, message: e.message, error_id: e.error_id }
+        SdkError::ApiErrorResponse {
+            code: e.code,
+            message: e.message,
+            error_id: e.error_id,
+        }
     }
 }
-
-

@@ -1,5 +1,5 @@
-use alloy_rpc_types_beacon::header::HeaderResponse;
 use crate::errors::{SdkError, SdkResult};
+use alloy_rpc_types_beacon::header::HeaderResponse;
 
 pub struct BeaconFetcher {
     pub beacon_rpc: String,
@@ -20,7 +20,9 @@ impl BeaconFetcher {
             .await
             .map_err(SdkError::from)?;
         if response.status() == reqwest::StatusCode::NOT_FOUND {
-            return Err(SdkError::NotFound(format!("beacon header slot {slot} not found")));
+            return Err(SdkError::NotFound(format!(
+                "beacon header slot {slot} not found"
+            )));
         }
 
         let header_response = response

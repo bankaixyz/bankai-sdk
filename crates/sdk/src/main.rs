@@ -1,4 +1,4 @@
-use bankai_sdk::{Bankai, errors::SdkError};
+use bankai_sdk::{errors::SdkError, Bankai};
 use bankai_types::api::proofs::HashingFunctionDto;
 use dotenv::from_filename;
 
@@ -10,8 +10,12 @@ async fn main() -> Result<(), SdkError> {
     let beacon_rpc = std::env::var("BEACON_RPC").ok();
 
     let mut builder = Bankai::builder().with_api_base("https://sepolia.api.bankai.xyz".to_string());
-    if let Some(rpc) = exec_rpc.clone() { builder = builder.with_evm_execution(rpc); }
-    if let Some(rpc) = beacon_rpc.clone() { builder = builder.with_evm_beacon(rpc); }
+    if let Some(rpc) = exec_rpc.clone() {
+        builder = builder.with_evm_execution(rpc);
+    }
+    if let Some(rpc) = beacon_rpc.clone() {
+        builder = builder.with_evm_beacon(rpc);
+    }
     let bankai = builder.build();
 
     let bankai_block_number = 11261u64;
@@ -20,7 +24,11 @@ async fn main() -> Result<(), SdkError> {
 
     if let Some(exec) = bankai.evm.execution.as_ref() {
         let proof = exec
-            .header(exec_block_number, HashingFunctionDto::Keccak, bankai_block_number)
+            .header(
+                exec_block_number,
+                HashingFunctionDto::Keccak,
+                bankai_block_number,
+            )
             .await?;
         let _header = bankai.verify.evm_execution_header(&proof).await?;
         println!("Execution header verified (hash bound via MMR)");

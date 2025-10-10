@@ -1,8 +1,8 @@
 use bankai_types::api::proofs::HashingFunctionDto;
 use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
 
-use alloy_rpc_types::Header as ExecutionHeader;
 use crate::errors::{SdkError, SdkResult};
+use alloy_rpc_types::Header as ExecutionHeader;
 
 use crate::verify::bankai::mmr::BankaiMmr;
 use crate::verify::bankai::stwo::verify_stwo_proof;
@@ -11,9 +11,7 @@ use alloy_primitives::hex::ToHexExt;
 pub struct ExecutionVerifier;
 
 impl ExecutionVerifier {
-    pub async fn verify_header_proof(
-        proof: &ExecutionHeaderProof,
-    ) -> SdkResult<ExecutionHeader> {
+    pub async fn verify_header_proof(proof: &ExecutionHeaderProof) -> SdkResult<ExecutionHeader> {
         let bankai_block = verify_stwo_proof(&proof.block_proof)
             .map_err(|e| SdkError::Verification(format!("stwo verification failed: {e}")))?;
 
@@ -31,7 +29,9 @@ impl ExecutionVerifier {
                     bankai_block.execution.mmr_root_poseidon.encode_hex()
                 );
                 if proof.mmr_proof.root != expected {
-                    return Err(SdkError::Verification("mmr root mismatch (poseidon)".into()));
+                    return Err(SdkError::Verification(
+                        "mmr root mismatch (poseidon)".into(),
+                    ));
                 }
             }
         }

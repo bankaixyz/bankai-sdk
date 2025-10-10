@@ -1,16 +1,16 @@
+use crate::errors::SdkResult;
 use crate::fetch::{
     clients::bankai_api::ApiClient,
     evm::{beacon::BeaconChainFetcher, execution::ExecutionChainFetcher},
 };
-use bankai_types::fetch::evm::{beacon::BeaconHeaderProof, execution::ExecutionHeaderProof};
+use crate::verify::evm::{beacon::BeaconVerifier, execution::ExecutionVerifier};
 use alloy_rpc_types::Header as ExecutionHeader;
 use bankai_types::fetch::evm::beacon::BeaconHeader;
-use crate::errors::SdkResult;
-use crate::verify::evm::{execution::ExecutionVerifier, beacon::BeaconVerifier};
+use bankai_types::fetch::evm::{beacon::BeaconHeaderProof, execution::ExecutionHeaderProof};
 
+pub mod errors;
 pub mod fetch;
 pub mod verify;
-pub mod errors;
 
 pub struct EvmNamespace {
     pub execution: Option<ExecutionChainFetcher>,
@@ -31,9 +31,19 @@ pub struct BankaiBuilder {
     evm_beacon: Option<String>,
 }
 
+impl Default for BankaiBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BankaiBuilder {
     pub fn new() -> Self {
-        Self { api_base: "https://sepolia.api.bankai.xyz".to_string(), evm_execution: None, evm_beacon: None }
+        Self {
+            api_base: "https://sepolia.api.bankai.xyz".to_string(),
+            evm_execution: None,
+            evm_beacon: None,
+        }
     }
 
     pub fn with_api_base(mut self, api_base: String) -> Self {
@@ -69,11 +79,16 @@ impl BankaiBuilder {
 }
 
 impl Bankai {
-    pub fn builder() -> BankaiBuilder { BankaiBuilder::new() }
+    pub fn builder() -> BankaiBuilder {
+        BankaiBuilder::new()
+    }
 }
 
 impl VerifyNamespace {
-    pub async fn evm_execution_header(&self, proof: &ExecutionHeaderProof) -> SdkResult<ExecutionHeader> {
+    pub async fn evm_execution_header(
+        &self,
+        proof: &ExecutionHeaderProof,
+    ) -> SdkResult<ExecutionHeader> {
         ExecutionVerifier::verify_header_proof(proof).await
     }
 

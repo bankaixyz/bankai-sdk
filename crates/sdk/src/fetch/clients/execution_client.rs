@@ -32,9 +32,8 @@ impl ExecutionFetcher {
             .await
             .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
 
-        let block = block.ok_or_else(|| SdkError::NotFound(format!(
-            "block {block_number} not found"
-        )))?;
+        let block =
+            block.ok_or_else(|| SdkError::NotFound(format!("block {block_number} not found")))?;
 
         Ok(block.header)
     }

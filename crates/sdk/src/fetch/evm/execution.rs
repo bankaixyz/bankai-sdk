@@ -3,12 +3,12 @@ use alloy_rpc_types::EIP1186AccountProofResponse;
 pub use alloy_rpc_types::Header as ExecutionHeader;
 use bankai_types::api::proofs::{HashingFunctionDto, MmrProofRequestDto};
 
+use crate::errors::SdkResult;
 use crate::fetch::{
     bankai,
     clients::{bankai_api::ApiClient, execution_client::ExecutionFetcher},
 };
 use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
-use crate::errors::SdkResult;
 
 pub struct ExecutionChainFetcher {
     api_client: ApiClient,

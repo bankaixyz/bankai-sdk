@@ -46,7 +46,7 @@ pub struct LightClientProofDto {
 pub struct LightClientProofRequestDto {
     pub bankai_block_number: Option<u64>,
     pub hashing_function: HashingFunctionDto,
-    pub requested_headers: Vec<HeaderRequestDto>
+    pub requested_headers: Vec<HeaderRequestDto>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

@@ -4,11 +4,11 @@ use bankai_types::fetch::evm::beacon::BeaconHeader;
 use bankai_types::{api::proofs::HashingFunctionDto, fetch::evm::beacon::BeaconHeaderProof};
 use tree_hash::TreeHash;
 
+use crate::errors::SdkResult;
 use crate::fetch::{
     bankai,
     clients::{bankai_api::ApiClient, beacon_client::BeaconFetcher},
 };
-use crate::errors::SdkResult;
 
 pub struct BeaconChainFetcher {
     pub api_client: ApiClient,

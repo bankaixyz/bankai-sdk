@@ -9,5 +9,3 @@ pub struct ErrorResponse {
     #[serde(default)]
     pub details: serde_json::Value,
 }
-
-

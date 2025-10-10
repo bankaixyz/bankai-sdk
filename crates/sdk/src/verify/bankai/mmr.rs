@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::errors::{SdkError, SdkResult};
 use accumulators::store::memory::InMemoryStore;
 use accumulators::{
     hasher::{keccak::KeccakHasher, stark_poseidon::StarkPoseidonHasher, Hasher},
@@ -9,7 +10,6 @@ use bankai_types::{
     api::proofs::{HashingFunctionDto, MmrProofDto},
     utils::mmr::hash_to_leaf,
 };
-use crate::errors::{SdkError, SdkResult};
 
 pub struct BankaiMmr;
 

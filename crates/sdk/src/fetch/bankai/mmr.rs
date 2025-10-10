@@ -1,7 +1,7 @@
 use bankai_types::api::proofs::{MmrProofDto, MmrProofRequestDto};
 
-use crate::fetch::clients::bankai_api::ApiClient;
 use crate::errors::SdkResult;
+use crate::fetch::clients::bankai_api::ApiClient;
 
 pub async fn fetch_mmr_proof(
     client: &ApiClient,

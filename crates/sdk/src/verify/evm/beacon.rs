@@ -25,7 +25,9 @@ impl BeaconVerifier {
             HashingFunctionDto::Poseidon => {
                 let expected = format!("0x{}", bankai_block.beacon.mmr_root_poseidon.encode_hex());
                 if proof.mmr_proof.root != expected {
-                    return Err(SdkError::Verification("mmr root mismatch (poseidon)".into()));
+                    return Err(SdkError::Verification(
+                        "mmr root mismatch (poseidon)".into(),
+                    ));
                 }
             }
         }
