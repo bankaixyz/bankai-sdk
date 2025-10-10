@@ -1,10 +1,9 @@
+use alloy_primitives::hex::ToHexExt;
 use anyhow::Error;
+use bankai_types::api::MmrProofRequestDto;
 use bankai_types::fetch::evm::beacon::BeaconHeader;
 use bankai_types::{api::HashingFunctionDto, fetch::evm::beacon::BeaconHeaderProof};
-use bankai_types::api::{MmrProofRequestDto};
 use tree_hash::TreeHash;
-use alloy_primitives::hex::ToHexExt;
-
 
 use crate::fetch::{
     bankai,
@@ -19,13 +18,19 @@ pub struct BeaconChainFetcher {
 
 impl BeaconChainFetcher {
     pub fn new(api_client: ApiClient, beacon_rpc: String, network_id: u64) -> Self {
-        Self { api_client, beacon_client: BeaconFetcher::new(beacon_rpc), network_id }
+        Self {
+            api_client,
+            beacon_client: BeaconFetcher::new(beacon_rpc),
+            network_id,
+        }
     }
 
-    pub async fn header(&self,
+    pub async fn header(
+        &self,
         slot: u64,
         hashing_function: HashingFunctionDto,
-        bankai_block_number: u64,) -> Result<BeaconHeaderProof, Error> {
+        bankai_block_number: u64,
+    ) -> Result<BeaconHeaderProof, Error> {
         let header_response = self.beacon_client.fetch_header(slot).await?;
         let header: BeaconHeader = header_response.into();
         let header_root = header.tree_hash_root();
@@ -34,11 +39,16 @@ impl BeaconChainFetcher {
             bankai::stwo::fetch_block_proof(&self.api_client, bankai_block_number).await?;
         let mmr_proof = bankai::mmr::fetch_mmr_proof(
             &self.api_client,
-            &MmrProofRequestDto { network_id: self.network_id, block_number: bankai_block_number, hashing_function, header_hash: header_root_string },
+            &MmrProofRequestDto {
+                network_id: self.network_id,
+                block_number: bankai_block_number,
+                hashing_function,
+                header_hash: header_root_string,
+            },
         )
         .await?;
         Ok(BeaconHeaderProof {
-            header: header,
+            header,
             block_proof: stwo_proof,
             mmr_proof,
         })

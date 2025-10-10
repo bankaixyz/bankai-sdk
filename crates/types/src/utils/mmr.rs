@@ -28,7 +28,6 @@ pub fn hash_to_leaf(hash: String, hashing_function: &HashingFunctionDto) -> Stri
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_hash_to_leaf_keccak() {

@@ -11,7 +11,9 @@ use alloy_primitives::hex::ToHexExt;
 pub struct ExecutionVerifier;
 
 impl ExecutionVerifier {
-    pub async fn verify_header_proof(proof: &ExecutionHeaderProof) -> Result<ExecutionHeader, Error> {
+    pub async fn verify_header_proof(
+        proof: &ExecutionHeaderProof,
+    ) -> Result<ExecutionHeader, Error> {
         let bankai_block = verify_stwo_proof(&proof.block_proof)?;
 
         // Check the bankai block mmr root matches the mmr proof root

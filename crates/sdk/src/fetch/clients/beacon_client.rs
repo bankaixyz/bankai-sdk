@@ -1,7 +1,6 @@
 use alloy_rpc_types_beacon::header::HeaderResponse;
 use anyhow::Error;
 
-
 pub struct BeaconFetcher {
     pub beacon_rpc: String,
 }

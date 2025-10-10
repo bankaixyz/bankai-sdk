@@ -1,10 +1,7 @@
-use alloy_rpc_types_beacon::header::BeaconBlockHeader;
+use anyhow::Error;
 use bankai_types::api::HashingFunctionDto;
 use bankai_types::fetch::evm::beacon::{BeaconHeader, BeaconHeaderProof};
-use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
 use tree_hash::TreeHash;
-use alloy_rpc_types::Header as ExecutionHeader;
-use anyhow::Error;
 
 use crate::verify::bankai::mmr::BankaiMmr;
 use crate::verify::bankai::stwo::verify_stwo_proof;
@@ -27,10 +24,7 @@ impl BeaconVerifier {
             HashingFunctionDto::Poseidon => {
                 assert_eq!(
                     proof.mmr_proof.root,
-                    format!(
-                        "0x{}",
-                        bankai_block.beacon.mmr_root_poseidon.encode_hex()
-                    )
+                    format!("0x{}", bankai_block.beacon.mmr_root_poseidon.encode_hex())
                 );
             }
         }
