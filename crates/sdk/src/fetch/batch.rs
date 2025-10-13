@@ -1,10 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use alloy_primitives::FixedBytes;
 use alloy_primitives::{hex::ToHexExt, Address};
 use alloy_rpc_types::{Account as AlloyAccount, Header as ExecutionHeader};
 
 use bankai_types::api::proofs::HashingFunctionDto;
 use bankai_types::api::proofs::{HeaderRequestDto, LightClientProofRequestDto};
+use bankai_types::fetch::evm::execution::TxProof;
+use bankai_types::fetch::evm::TxProofRequest;
 use bankai_types::fetch::evm::{
     beacon::BeaconHeaderProof,
     execution::{AccountProof, ExecutionHeaderProof},
@@ -38,6 +41,7 @@ impl<'a> ProofBatchBuilder<'a> {
                 execution_header: None,
                 beacon_header: None,
                 account: None,
+                tx_proof: None,
             },
         }
     }
@@ -77,6 +81,13 @@ impl<'a> ProofBatchBuilder<'a> {
         self
     }
 
+    pub fn evm_tx(mut self, network_id: u64, tx_hash: FixedBytes<32>) -> Self {
+        let mut v = self.evm.tx_proof.take().unwrap_or_default();
+        v.push(TxProofRequest { network_id, tx_hash });
+        self.evm.tx_proof = Some(v);
+        self
+    }
+
     pub async fn execute(self) -> SdkResult<ProofWrapper> {
         // Build working sets
         let mut exec_headers: BTreeSet<(u64, u64)> = BTreeSet::new(); // (network_id, block_number)
@@ -96,6 +107,29 @@ impl<'a> ProofBatchBuilder<'a> {
             for r in accounts {
                 exec_headers.insert((r.network_id, r.block_number));
             }
+        }
+
+        let mut tx_proofs: Vec<TxProof> = Vec::new();
+        if let Some(txs) = &self.evm.tx_proof {
+            let exec_fetcher: &ExecutionChainFetcher = self
+                .bankai
+                .evm
+                .execution()
+                .map_err(|_| SdkError::NotConfigured("EVM execution fetcher".into()))?;
+            for req in txs {
+                if exec_fetcher.network_id() != req.network_id {
+                    return Err(SdkError::InvalidInput(
+                        "execution network_id mismatch".into(),
+                    ));
+                }
+                let proof = exec_fetcher.tx_proof(req.tx_hash).await?;
+                tx_proofs.push(proof);
+            }
+        };
+
+        // add tx proofs to exec_headers
+        for proof in tx_proofs.clone() {
+            exec_headers.insert((proof.network_id, proof.block_number));
         }
 
         // Fetch headers via RPC only
@@ -255,6 +289,11 @@ impl<'a> ProofBatchBuilder<'a> {
                 None
             } else {
                 Some(account_proofs)
+            },
+            tx_proof: if tx_proofs.is_empty() {
+                None
+            } else {
+                Some(tx_proofs)
             },
         };
 

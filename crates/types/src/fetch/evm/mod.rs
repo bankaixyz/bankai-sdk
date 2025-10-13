@@ -4,7 +4,7 @@ use crate::{
     api::proofs::HashingFunctionDto,
     fetch::evm::{
         beacon::BeaconHeaderProof,
-        execution::{AccountProof, ExecutionHeaderProof},
+        execution::{AccountProof, ExecutionHeaderProof, TxProof},
     },
 };
 
@@ -16,6 +16,7 @@ pub struct EvmProofs {
     pub execution_header_proof: Option<Vec<ExecutionHeaderProof>>,
     pub beacon_header_proof: Option<Vec<BeaconHeaderProof>>,
     pub account_proof: Option<Vec<AccountProof>>,
+    pub tx_proof: Option<Vec<TxProof>>,
 }
 
 #[derive(Debug)]
@@ -23,6 +24,7 @@ pub struct EvmProofsRequest {
     pub execution_header: Option<Vec<ExecutionHeaderProofRequest>>,
     pub beacon_header: Option<Vec<BeaconHeaderProofRequest>>,
     pub account: Option<Vec<AccountProofRequest>>,
+    pub tx_proof: Option<Vec<TxProofRequest>>,
 }
 
 #[derive(Debug)]
@@ -49,7 +51,7 @@ pub struct AccountProofRequest {
 }
 
 #[derive(Debug)]
-pub struct TransactionProofRequest {
+pub struct TxProofRequest {
     pub network_id: u64,
     pub tx_hash: FixedBytes<32>,
 }

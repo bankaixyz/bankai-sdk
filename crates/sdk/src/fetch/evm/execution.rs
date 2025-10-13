@@ -1,4 +1,4 @@
-use alloy_primitives::Address;
+use alloy_primitives::{Address, FixedBytes};
 use alloy_rpc_types::EIP1186AccountProofResponse;
 pub use alloy_rpc_types::Header as ExecutionHeader;
 use bankai_types::api::proofs::{HashingFunctionDto, MmrProofRequestDto};
@@ -8,7 +8,7 @@ use crate::fetch::{
     bankai,
     clients::{bankai_api::ApiClient, execution_client::ExecutionFetcher},
 };
-use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
+use bankai_types::fetch::evm::execution::{ExecutionHeaderProof, TxProof};
 
 pub struct ExecutionChainFetcher {
     api_client: ApiClient,
@@ -31,7 +31,7 @@ impl ExecutionChainFetcher {
         hashing_function: HashingFunctionDto,
         bankai_block_number: u64,
     ) -> SdkResult<ExecutionHeaderProof> {
-        let header = ExecutionFetcher::new(self.rpc_url.clone())
+        let header = ExecutionFetcher::new(self.rpc_url.clone(), self.network_id)
             .fetch_header(block_number)
             .await?;
         let mmr_proof = bankai::mmr::fetch_mmr_proof(
@@ -48,7 +48,7 @@ impl ExecutionChainFetcher {
     }
 
     pub async fn header_only(&self, block_number: u64) -> SdkResult<ExecutionHeader> {
-        let header = ExecutionFetcher::new(self.rpc_url.clone())
+        let header = ExecutionFetcher::new(self.rpc_url.clone(), self.network_id)
             .fetch_header(block_number)
             .await?;
         Ok(header)
@@ -65,9 +65,17 @@ impl ExecutionChainFetcher {
         _hashing_function: HashingFunctionDto,
         _bankai_block_number: u64,
     ) -> SdkResult<EIP1186AccountProofResponse> {
-        let proof = ExecutionFetcher::new(self.rpc_url.clone())
+        let proof = ExecutionFetcher::new(self.rpc_url.clone(), self.network_id)
             .fetch_account_proof(address, block_number)
             .await?;
         Ok(proof)
     }
+    
+    pub async fn tx_proof(&self, tx_hash: FixedBytes<32>) -> SdkResult<TxProof> {
+        let proof = ExecutionFetcher::new(self.rpc_url.clone(), self.network_id)
+            .fetch_tx_proof(tx_hash)
+            .await?;
+        Ok(proof)
+    }
+
 }

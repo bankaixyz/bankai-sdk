@@ -1,7 +1,7 @@
 use crate::errors::{SdkError, SdkResult};
-use bankai_types::fetch::evm::execution::{AccountProof, ExecutionHeaderProof};
-use bankai_types::verify::evm::execution::{Account, ExecutionHeader};
-
+use bankai_types::fetch::evm::execution::{AccountProof, ExecutionHeaderProof, TxProof};
+use bankai_types::verify::evm::execution::{Account, ExecutionHeader, TxEnvelope};
+use alloy_rlp::{Encodable, Decodable};
 use crate::verify::bankai::mmr::BankaiMmr;
 // use crate::verify::bankai::stwo::verify_stwo_proof;
 use alloy_primitives::hex::ToHexExt;
@@ -43,18 +43,18 @@ impl ExecutionVerifier {
 
     pub async fn verify_account_proof(
         account_proof: &AccountProof,
-        headers: &[ExecutionHeaderProof],
+        headers: &Vec<ExecutionHeader>,
     ) -> SdkResult<Account> {
         // Find the matching verified header by block number
         let header = headers
             .iter()
-            .find(|h| h.header.number == account_proof.block_number)
+            .find(|h| h.number == account_proof.block_number)
             .ok_or_else(|| {
                 SdkError::Verification("no matching execution header for account".into())
             })?;
 
         // Confirm the state root matches
-        if header.header.state_root != account_proof.state_root {
+        if header.state_root != account_proof.state_root {
             return Err(SdkError::Verification("state root mismatch".into()));
         }
 
@@ -65,7 +65,7 @@ impl ExecutionVerifier {
 
         // Verify MPT proof against the state root
         mpt_verify(
-            header.header.state_root,
+            header.state_root,
             key,
             Some(expected_value),
             account_proof.mpt_proof.iter(),
@@ -73,5 +73,32 @@ impl ExecutionVerifier {
         .map_err(|e| SdkError::Verification(format!("mpt verify error: {e}")))?;
 
         Ok(account_proof.account)
+    }
+
+    pub async fn verify_tx_proof(
+        proof: &TxProof,
+        headers: &Vec<ExecutionHeader>,
+    ) -> SdkResult<TxEnvelope> {
+        let header = headers
+            .iter()
+            .find(|h| h.number == proof.block_number)
+            .ok_or_else(|| SdkError::Verification("no matching execution header for tx".into()))?;
+
+
+
+        let mut rlp_tx_index = Vec::new();
+        proof.tx_index.encode(&mut rlp_tx_index);
+        let key = Nibbles::unpack(&rlp_tx_index);
+
+        mpt_verify(
+            header.transactions_root,
+            key,
+            Some(proof.encoded_tx.clone()),
+            proof.proof.iter(),
+        ).map_err(|e| SdkError::Verification(format!("mpt verify error: {e}")))?;
+
+        let tx = TxEnvelope::decode(&mut proof.encoded_tx.as_slice()).map_err(|e| SdkError::Verification(format!("rlp decode error: {e}")))?;
+
+        Ok(tx.into())
     }
 }

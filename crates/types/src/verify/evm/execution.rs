@@ -1,1 +1,1 @@
-pub use alloy_consensus::{Account, Header as ExecutionHeader};
+pub use alloy_consensus::{Account, Header as ExecutionHeader, TxEnvelope};

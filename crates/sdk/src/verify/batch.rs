@@ -40,6 +40,7 @@ pub async fn verify_wrapper(wrapper: &ProofWrapper) -> SdkResult<BatchResults> {
             execution_header: Vec::new(),
             beacon_header: Vec::new(),
             account: Vec::new(),
+            tx: Vec::new(),
         },
     };
 
@@ -72,11 +73,20 @@ pub async fn verify_wrapper(wrapper: &ProofWrapper) -> SdkResult<BatchResults> {
                 };
             for account in accounts {
                 let result =
-                    ExecutionVerifier::verify_account_proof(account, exec_headers_slice).await?;
+                    ExecutionVerifier::verify_account_proof(account, &batch_results.evm.execution_header).await?;
                 batch_results.evm.account.push(result);
             }
         }
+   
+        // Verify tx proofs
+        if let Some(tx_proofs) = &evm.tx_proof {
+            for proof in tx_proofs {
+                let result = ExecutionVerifier::verify_tx_proof(proof, &batch_results.evm.execution_header).await?;
+                batch_results.evm.tx.push(result);
+            }
+        }
     }
+
 
     Ok(batch_results)
 }
