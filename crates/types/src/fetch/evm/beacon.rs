@@ -1,6 +1,6 @@
-use crate::{api::proofs::MmrProofDto, verify::evm::beacon::BeaconHeader};
+use crate::{proofs::MmrProofDto, verify::evm::beacon::BeaconHeader};
 
-#[derive(Debug)]
+#[cfg_attr(any(feature = "verifier-types", feature = "std"), derive(Debug, Clone))]
 pub struct BeaconHeaderProof {
     pub header: BeaconHeader,
     pub mmr_proof: MmrProofDto,

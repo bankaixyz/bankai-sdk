@@ -1,34 +1,39 @@
 use alloy_primitives::FixedBytes;
 use cairo_air::utils::VerificationOutput;
+
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BankaiBlock {
     pub block_number: u64,
     pub beacon: BeaconClient,
     pub execution: ExecutionClient,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BeaconClient {
     pub slot_number: u64,
-    pub header_root: FixedBytes<32>, // 2 limbs
+    pub header_root: FixedBytes<32>,
     pub justified_height: u64,
     pub finalized_height: u64,
     pub num_signers: u64,
-    pub mmr_root_keccak: FixedBytes<32>, // 2 limbs
+    pub mmr_root_keccak: FixedBytes<32>,
     pub mmr_root_poseidon: FixedBytes<32>,
-    pub current_committee_hash: FixedBytes<32>, // 2 limbs
-    pub next_committee_hash: FixedBytes<32>,    // 2 limbs
+    pub current_committee_hash: FixedBytes<32>,
+    pub next_committee_hash: FixedBytes<32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ExecutionClient {
     pub block_number: u64,
-    pub header_hash: FixedBytes<32>, // 2 limbs
+    pub header_hash: FixedBytes<32>,
     pub justified_height: u64,
     pub finalized_height: u64,
-    pub mmr_root_keccak: FixedBytes<32>, // 2 limbs
+    pub mmr_root_keccak: FixedBytes<32>,
     pub mmr_root_poseidon: FixedBytes<32>,
 }
 

@@ -1,7 +1,10 @@
+extern crate alloc;
+use alloc::vec::Vec;
+
 use alloy_primitives::{Address, FixedBytes};
 
 use crate::{
-    api::proofs::HashingFunctionDto,
+    proofs::HashingFunctionDto,
     fetch::evm::{
         beacon::BeaconHeaderProof,
         execution::{AccountProof, ExecutionHeaderProof, TxProof},
@@ -11,7 +14,7 @@ use crate::{
 pub mod beacon;
 pub mod execution;
 
-#[derive(Debug)]
+#[cfg_attr(feature = "std", derive(Debug))]
 pub struct EvmProofs {
     pub execution_header_proof: Option<Vec<ExecutionHeaderProof>>,
     pub beacon_header_proof: Option<Vec<BeaconHeaderProof>>,

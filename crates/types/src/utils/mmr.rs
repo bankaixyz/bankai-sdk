@@ -1,3 +1,7 @@
+extern crate alloc;
+use alloc::format;
+use alloc::string::{String, ToString};
+
 use alloy_primitives::{
     B256,
     hex::{FromHex, ToHexExt},
@@ -5,7 +9,7 @@ use alloy_primitives::{
 };
 use starknet_crypto::{Felt, poseidon_hash};
 
-use crate::api::proofs::HashingFunctionDto;
+use crate::proofs::HashingFunctionDto;
 
 pub fn hash_to_leaf(hash: String, hashing_function: &HashingFunctionDto) -> String {
     let hash = B256::from_hex(hash).unwrap();
@@ -20,7 +24,13 @@ pub fn hash_to_leaf(hash: String, hashing_function: &HashingFunctionDto) -> Stri
             let low = Felt::from_bytes_be_slice(&root_bytes[16..32]);
 
             let hashed_root = poseidon_hash(low, high);
-            hashed_root.to_fixed_hex_string()
+            // Remove the leading "0x" from to_string() if present
+            let hex_str = hashed_root.to_string();
+            if hex_str.starts_with("0x") {
+                hex_str
+            } else {
+                format!("0x{}", hex_str)
+            }
         }
     }
 }
