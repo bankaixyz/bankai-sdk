@@ -21,3 +21,5 @@ alloy-rpc-types.workspace = true
 alloy-rpc-types-beacon.workspace = true
 dotenv.workspace = true
 tree_hash.workspace = true
+stwo-cairo-serialize.workspace = true
+starknet-ff = "0.3.7"

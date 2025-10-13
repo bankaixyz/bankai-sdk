@@ -1,4 +1,4 @@
-use crate::errors::SdkResult;
+use crate::errors::{SdkError, SdkResult};
 use crate::fetch::{
     clients::bankai_api::ApiClient,
     evm::{beacon::BeaconChainFetcher, execution::ExecutionChainFetcher},
@@ -13,8 +13,8 @@ pub mod fetch;
 pub mod verify;
 
 pub struct EvmNamespace {
-    pub execution: Option<ExecutionChainFetcher>,
-    pub beacon: Option<BeaconChainFetcher>,
+    execution: Option<ExecutionChainFetcher>,
+    beacon: Option<BeaconChainFetcher>,
 }
 
 pub struct VerifyNamespace;
@@ -25,49 +25,12 @@ pub struct Bankai {
     pub verify: VerifyNamespace,
 }
 
-pub struct BankaiBuilder {
-    api_base: String,
-    evm_execution: Option<String>,
-    evm_beacon: Option<String>,
-}
-
-impl Default for BankaiBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl BankaiBuilder {
-    pub fn new() -> Self {
-        Self {
-            api_base: "https://sepolia.api.bankai.xyz".to_string(),
-            evm_execution: None,
-            evm_beacon: None,
-        }
-    }
-
-    pub fn with_api_base(mut self, api_base: String) -> Self {
-        self.api_base = api_base;
-        self
-    }
-
-    pub fn with_evm_execution(mut self, rpc: String) -> Self {
-        self.evm_execution = Some(rpc);
-        self
-    }
-
-    pub fn with_evm_beacon(mut self, rpc: String) -> Self {
-        self.evm_beacon = Some(rpc);
-        self
-    }
-
-    pub fn build(self) -> Bankai {
-        let api = ApiClient::new(self.api_base);
-        let execution = self
-            .evm_execution
+impl Bankai {
+    pub fn new(evm_execution_rpc: Option<String>, evm_beacon_rpc: Option<String>) -> Self {
+        let api = ApiClient::new();
+        let execution = evm_execution_rpc
             .map(|rpc| ExecutionChainFetcher::new(api.clone(), rpc, 1));
-        let beacon = self
-            .evm_beacon
+        let beacon = evm_beacon_rpc
             .map(|rpc| BeaconChainFetcher::new(api.clone(), rpc, 0));
 
         Bankai {
@@ -78,9 +41,17 @@ impl BankaiBuilder {
     }
 }
 
-impl Bankai {
-    pub fn builder() -> BankaiBuilder {
-        BankaiBuilder::new()
+impl EvmNamespace {
+    pub fn execution(&self) -> SdkResult<&ExecutionChainFetcher> {
+        self.execution
+            .as_ref()
+            .ok_or_else(|| SdkError::NotConfigured("EVM execution fetcher".to_string()))
+    }
+
+    pub fn beacon(&self) -> SdkResult<&BeaconChainFetcher> {
+        self.beacon
+            .as_ref()
+            .ok_or_else(|| SdkError::NotConfigured("EVM beacon fetcher".to_string()))
     }
 }
 

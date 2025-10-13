@@ -13,10 +13,12 @@ pub struct ApiClient {
 }
 
 impl ApiClient {
-    pub fn new(base_url: String) -> Self {
+    const DEFAULT_BASE_URL: &'static str = "https://sepolia.api.bankai.xyz";
+
+    pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
-            base_url,
+            base_url: Self::DEFAULT_BASE_URL.to_string(),
         }
     }
 

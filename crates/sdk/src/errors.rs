@@ -38,6 +38,9 @@ pub enum SdkError {
     #[error("not found: {0}")]
     NotFound(String),
 
+    #[error("not configured: {0}")]
+    NotConfigured(String),
+
     #[error("other error: {0}")]
     Other(String),
 }

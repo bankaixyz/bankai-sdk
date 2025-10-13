@@ -27,6 +27,8 @@ tree_hash_derive = { version = "0.10.0" }
 
 
 cairo-air = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "89ca0d2787166d9d166e5074bd1bb30825b372e2"}
+stwo-cairo-serialize = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "89ca0d2787166d9d166e5074bd1bb30825b372e2" }
+
 stwo = { git = "https://github.com/starkware-libs/stwo", rev = "d9176e6e22319370a8501f799829b920c0db2eac", features = [
     "parallel",
     "prover",
