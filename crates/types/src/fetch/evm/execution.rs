@@ -1,10 +1,29 @@
 use crate::api::proofs::MmrProofDto;
-use alloy_rpc_types::Header as ExecutionHeader;
-use cairo_air::CairoProof;
-use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
+use alloy_primitives::{Address, Bytes, FixedBytes};
+use alloy_rpc_types::{Account, Header as ExecutionHeader};
 
+#[derive(Debug)]
 pub struct ExecutionHeaderProof {
     pub header: ExecutionHeader,
-    pub block_proof: CairoProof<Blake2sMerkleHasher>,
     pub mmr_proof: MmrProofDto,
+}
+
+#[derive(Debug)]
+pub struct AccountProof {
+    pub account: Account,
+    pub address: Address,
+    pub network_id: u64,
+    pub block_number: u64,
+    pub state_root: FixedBytes<32>,
+    pub mpt_proof: Vec<Bytes>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TxProof {
+    pub network_id: u64,
+    pub block_number: u64,
+    pub tx_hash: FixedBytes<32>,
+    pub tx_index: u64,
+    pub proof: Vec<Bytes>,
+    pub encoded_tx: Vec<u8>,
 }

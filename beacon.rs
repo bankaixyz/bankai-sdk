@@ -1,6 +1,6 @@
 use alloy_primitives::hex::ToHexExt;
 use bankai_types::api::proofs::MmrProofRequestDto;
-use bankai_types::verify::evm::beacon::BeaconHeader;
+use bankai_types::fetch::evm::beacon::BeaconHeader;
 use bankai_types::{api::proofs::HashingFunctionDto, fetch::evm::beacon::BeaconHeaderProof};
 use tree_hash::TreeHash;
 
@@ -35,6 +35,8 @@ impl BeaconChainFetcher {
         let header: BeaconHeader = header_response.into();
         let header_root = header.tree_hash_root();
         let header_root_string = format!("0x{}", header_root.encode_hex());
+        let stwo_proof =
+            bankai::stwo::fetch_block_proof(&self.api_client, bankai_block_number).await?;
         let mmr_proof = bankai::mmr::fetch_mmr_proof(
             &self.api_client,
             &MmrProofRequestDto {
@@ -45,16 +47,10 @@ impl BeaconChainFetcher {
             },
         )
         .await?;
-        Ok(BeaconHeaderProof { header, mmr_proof })
-    }
-
-    pub async fn header_only(&self, slot: u64) -> SdkResult<BeaconHeader> {
-        let header_response = self.beacon_client.fetch_header(slot).await?;
-        let header: BeaconHeader = header_response.into();
-        Ok(header)
-    }
-
-    pub fn network_id(&self) -> u64 {
-        self.network_id
+        Ok(BeaconHeaderProof {
+            header,
+            block_proof: stwo_proof,
+            mmr_proof,
+        })
     }
 }

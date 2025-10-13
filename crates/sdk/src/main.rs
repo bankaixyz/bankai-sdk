@@ -1,4 +1,5 @@
-use bankai_sdk::{errors::SdkError, Bankai};
+use alloy_primitives::{hex::FromHex, Address, FixedBytes};
+use bankai_sdk::{errors::SdkError, verify::batch::verify_batch_proof, Bankai};
 use bankai_types::api::proofs::HashingFunctionDto;
 use dotenv::from_filename;
 
@@ -8,43 +9,44 @@ async fn main() -> Result<(), SdkError> {
 
     let exec_rpc = std::env::var("EXECUTION_RPC").ok();
     let beacon_rpc = std::env::var("BEACON_RPC").ok();
+    let bankai = Bankai::new(exec_rpc.clone(), beacon_rpc.clone());
 
-    let mut builder = Bankai::builder().with_api_base("https://sepolia.api.bankai.xyz".to_string());
-    if let Some(rpc) = exec_rpc.clone() {
-        builder = builder.with_evm_execution(rpc);
-    }
-    if let Some(rpc) = beacon_rpc.clone() {
-        builder = builder.with_evm_beacon(rpc);
-    }
-    let bankai = builder.build();
+    let bankai_block_number = 11260u64;
+    let exec_block_number = 9231247u64;
+    let beacon_slot = 8551383u64;
 
-    let bankai_block_number = 11261u64;
-    let exec_block_number = 8_292_000u64;
-    let beacon_slot = 1_234_567u64;
-
-    if let Some(exec) = bankai.evm.execution.as_ref() {
-        let proof = exec
-            .header(
-                exec_block_number,
-                HashingFunctionDto::Keccak,
-                bankai_block_number,
+    // Build a single batch containing: beacon header, execution header, and account proof
+    let proof_batch = bankai
+        .init_batch(bankai_block_number, HashingFunctionDto::Keccak)
+        .evm_beacon_header(0, beacon_slot) // beacon network id 0
+        .evm_execution_header(1, exec_block_number) // execution network id 1
+        .evm_account(1, exec_block_number, Address::ZERO)
+        .evm_tx(
+            1,
+            FixedBytes::from_hex(
+                "0x501b7c72c1e5f14f02e1a58a7264e18f5e26a793d42e4e802544e6629764f58c",
             )
-            .await?;
-        let _header = bankai.verify.evm_execution_header(&proof).await?;
-        println!("Execution header verified (hash bound via MMR)");
-    } else {
-        println!("EXECUTION_RPC not set; skipping execution proof demo");
-    }
+            .unwrap(),
+        )
+        .evm_tx(
+            1,
+            FixedBytes::from_hex(
+                "0xd7e25cbf8ff63e3d9e4fa1e9783afae248a50df836f2cd853f89440f4c76891d",
+            )
+            .unwrap(),
+        )
+        .evm_tx(
+            1,
+            FixedBytes::from_hex(
+                "0x0c859ef15b3f7ee56ae691c285f23650b864267e7813d746f75409a142e03622",
+            )
+            .unwrap(),
+        )
+        .execute()
+        .await?;
 
-    if let Some(beacon) = bankai.evm.beacon.as_ref() {
-        let proof = beacon
-            .header(beacon_slot, HashingFunctionDto::Keccak, bankai_block_number)
-            .await?;
-        let _header = bankai.verify.evm_beacon_header(&proof).await?;
-        println!("Beacon header verified (slot bound via MMR)");
-    } else {
-        println!("BEACON_RPC not set; skipping beacon proof demo");
-    }
+    let valid_data = verify_batch_proof(&proof_batch).await?;
+    println!("valid data: {valid_data:#?}");
 
     Ok(())
 }
