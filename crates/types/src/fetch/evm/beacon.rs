@@ -1,14 +1,12 @@
 use alloy_primitives::FixedBytes;
 use alloy_rpc_types_beacon::header::HeaderResponse;
-use cairo_air::CairoProof;
-use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 use tree_hash_derive::TreeHash;
 
 use crate::api::proofs::MmrProofDto;
 
+#[derive(Debug)]
 pub struct BeaconHeaderProof {
     pub header: BeaconHeader,
-    pub block_proof: CairoProof<Blake2sMerkleHasher>,
     pub mmr_proof: MmrProofDto,
 }
 

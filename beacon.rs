@@ -35,6 +35,8 @@ impl BeaconChainFetcher {
         let header: BeaconHeader = header_response.into();
         let header_root = header.tree_hash_root();
         let header_root_string = format!("0x{}", header_root.encode_hex());
+        let stwo_proof =
+            bankai::stwo::fetch_block_proof(&self.api_client, bankai_block_number).await?;
         let mmr_proof = bankai::mmr::fetch_mmr_proof(
             &self.api_client,
             &MmrProofRequestDto {
@@ -47,6 +49,7 @@ impl BeaconChainFetcher {
         .await?;
         Ok(BeaconHeaderProof {
             header,
+            block_proof: stwo_proof,
             mmr_proof,
         })
     }

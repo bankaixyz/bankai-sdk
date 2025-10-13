@@ -34,8 +34,6 @@ impl ExecutionChainFetcher {
         let header = ExecutionFetcher::new(self.rpc_url.clone())
             .fetch_header(block_number)
             .await?;
-        let stwo_proof =
-            bankai::stwo::fetch_block_proof(&self.api_client, bankai_block_number).await?;
         let mmr_proof = bankai::mmr::fetch_mmr_proof(
             &self.api_client,
             &MmrProofRequestDto {
@@ -48,7 +46,6 @@ impl ExecutionChainFetcher {
         .await?;
         Ok(ExecutionHeaderProof {
             header,
-            block_proof: stwo_proof,
             mmr_proof,
         })
     }

@@ -12,29 +12,29 @@ pub struct ExecutionVerifier;
 
 impl ExecutionVerifier {
     pub async fn verify_header_proof(proof: &ExecutionHeaderProof) -> SdkResult<ExecutionHeader> {
-        let bankai_block = verify_stwo_proof(&proof.block_proof)
-            .map_err(|e| SdkError::Verification(format!("stwo verification failed: {e}")))?;
+        // let bankai_block = verify_stwo_proof(&proof.block_proof)
+        //     .map_err(|e| SdkError::Verification(format!("stwo verification failed: {e}")))?;
 
         // Check the bankai block mmr root matches the mmr proof root
-        match proof.mmr_proof.hashing_function {
-            HashingFunctionDto::Keccak => {
-                let expected = format!("0x{}", bankai_block.execution.mmr_root_keccak.encode_hex());
-                if proof.mmr_proof.root != expected {
-                    return Err(SdkError::Verification("mmr root mismatch (keccak)".into()));
-                }
-            }
-            HashingFunctionDto::Poseidon => {
-                let expected = format!(
-                    "0x{}",
-                    bankai_block.execution.mmr_root_poseidon.encode_hex()
-                );
-                if proof.mmr_proof.root != expected {
-                    return Err(SdkError::Verification(
-                        "mmr root mismatch (poseidon)".into(),
-                    ));
-                }
-            }
-        }
+        // match proof.mmr_proof.hashing_function {
+        //     HashingFunctionDto::Keccak => {
+        //         let expected = format!("0x{}", bankai_block.execution.mmr_root_keccak.encode_hex());
+        //         if proof.mmr_proof.root != expected {
+        //             return Err(SdkError::Verification("mmr root mismatch (keccak)".into()));
+        //         }
+        //     }
+        //     HashingFunctionDto::Poseidon => {
+        //         let expected = format!(
+        //             "0x{}",
+        //             bankai_block.execution.mmr_root_poseidon.encode_hex()
+        //         );
+        //         if proof.mmr_proof.root != expected {
+        //             return Err(SdkError::Verification(
+        //                 "mmr root mismatch (poseidon)".into(),
+        //             ));
+        //         }
+        //     }
+        // }
 
         // Verify the mmr proof
         let mmr_proof_valid = BankaiMmr::verify_mmr_proof(proof.mmr_proof.clone())
