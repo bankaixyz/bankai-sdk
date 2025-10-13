@@ -29,7 +29,7 @@ pub fn hash_to_leaf(hash: String, hashing_function: &HashingFunctionDto) -> Stri
             if hex_str.starts_with("0x") {
                 hex_str
             } else {
-                format!("0x{}", hex_str)
+                format!("0x{hex_str}")
             }
         }
     }

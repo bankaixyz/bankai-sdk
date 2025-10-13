@@ -4,8 +4,8 @@ use alloc::vec::Vec;
 
 use alloy_primitives::hex::ToHexExt;
 
-use bankai_types::proofs::HashingFunctionDto;
 use bankai_types::fetch::ProofWrapper;
+use bankai_types::proofs::HashingFunctionDto;
 use bankai_types::verify::evm::EvmResults;
 use bankai_types::verify::BatchResults;
 
@@ -47,16 +47,14 @@ pub fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, Verify
     if let Some(evm) = &wrapper.evm_proofs {
         if let Some(exec_headers) = &evm.execution_header_proof {
             for proof in exec_headers {
-                let result =
-                    ExecutionVerifier::verify_header_proof(proof, exec_root.clone())?;
+                let result = ExecutionVerifier::verify_header_proof(proof, exec_root.clone())?;
                 batch_results.evm.execution_header.push(result);
             }
         }
 
         if let Some(beacon_headers) = &evm.beacon_header_proof {
             for proof in beacon_headers {
-                let result =
-                    BeaconVerifier::verify_header_proof(proof, beacon_root.clone())?;
+                let result = BeaconVerifier::verify_header_proof(proof, beacon_root.clone())?;
                 batch_results.evm.beacon_header.push(result);
             }
         }

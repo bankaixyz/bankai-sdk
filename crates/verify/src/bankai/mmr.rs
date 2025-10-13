@@ -44,7 +44,7 @@ impl BankaiMmr {
         let mmr = Self::mmr_from_peaks(
             proof.peaks.clone(),
             proof.elements_count as usize,
-            proof.hashing_function.clone(),
+            proof.hashing_function,
         )?;
 
         let element_hash = hash_to_leaf(proof.header_hash, &proof.hashing_function.clone());

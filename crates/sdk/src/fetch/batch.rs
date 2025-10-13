@@ -51,7 +51,7 @@ impl<'a> ProofBatchBuilder<'a> {
         v.push(ExecutionHeaderProofRequest {
             network_id,
             block_number,
-            hashing_function: self.hashing.clone(),
+            hashing_function: self.hashing,
             bankai_block_number: self.bankai_block_number,
         });
         self.evm.execution_header = Some(v);
@@ -63,7 +63,7 @@ impl<'a> ProofBatchBuilder<'a> {
         v.push(BeaconHeaderProofRequest {
             network_id,
             slot,
-            hashing_function: self.hashing.clone(),
+            hashing_function: self.hashing,
             bankai_block_number: self.bankai_block_number,
         });
         self.evm.beacon_header = Some(v);
@@ -193,7 +193,7 @@ impl<'a> ProofBatchBuilder<'a> {
         let api: &ApiClient = &self.bankai.api;
         let lc_req = LightClientProofRequestDto {
             bankai_block_number: Some(self.bankai_block_number),
-            hashing_function: self.hashing.clone(),
+            hashing_function: self.hashing,
             requested_headers,
         };
         let lc_proof = api.get_light_client_proof(&lc_req).await?;
@@ -252,7 +252,7 @@ impl<'a> ProofBatchBuilder<'a> {
                     .account(
                         req.block_number,
                         req.address,
-                        self.hashing.clone(),
+                        self.hashing,
                         self.bankai_block_number,
                     )
                     .await?;
@@ -302,7 +302,7 @@ impl<'a> ProofBatchBuilder<'a> {
 
         let wrapper = ProofWrapper {
             block_proof,
-            hashing_function: self.hashing.clone(),
+            hashing_function: self.hashing,
             evm_proofs: Some(evm_proofs),
         };
         Ok(wrapper)

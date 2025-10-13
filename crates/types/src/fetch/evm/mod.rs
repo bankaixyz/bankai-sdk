@@ -4,11 +4,11 @@ use alloc::vec::Vec;
 use alloy_primitives::{Address, FixedBytes};
 
 use crate::{
-    proofs::HashingFunctionDto,
     fetch::evm::{
         beacon::BeaconHeaderProof,
         execution::{AccountProof, ExecutionHeaderProof, TxProof},
     },
+    proofs::HashingFunctionDto,
 };
 
 pub mod beacon;

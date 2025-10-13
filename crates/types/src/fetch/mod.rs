@@ -2,8 +2,8 @@ use cairo_air::CairoProof;
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 
 use crate::{
-    proofs::HashingFunctionDto,
     fetch::evm::{EvmProofs, EvmProofsRequest},
+    proofs::HashingFunctionDto,
 };
 
 pub mod evm;
