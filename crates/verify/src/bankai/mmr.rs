@@ -1,4 +1,7 @@
-use std::sync::Arc;
+extern crate alloc;
+use alloc::string::String;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 
 use accumulators::store::memory::InMemoryStore;
 use accumulators::{
@@ -6,7 +9,7 @@ use accumulators::{
     mmr::{Proof, ProofOptions, MMR},
 };
 use bankai_types::{
-    api::proofs::{HashingFunctionDto, MmrProofDto},
+    proofs::{HashingFunctionDto, MmrProofDto},
     utils::mmr::hash_to_leaf,
 };
 

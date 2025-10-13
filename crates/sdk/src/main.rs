@@ -2,7 +2,7 @@ use alloy_primitives::{hex::FromHex, Address, FixedBytes};
 use bankai_sdk::{errors::SdkError, Bankai};
 use bankai_verify::batch::verify_batch_proof;
 
-use bankai_types::api::proofs::HashingFunctionDto;
+use bankai_types::proofs::HashingFunctionDto;
 use dotenv::from_filename;
 
 #[tokio::main]

@@ -1,6 +1,10 @@
+extern crate alloc;
+use alloc::format;
+use alloc::vec::Vec;
+
 use alloy_primitives::hex::ToHexExt;
 
-use bankai_types::api::proofs::HashingFunctionDto;
+use bankai_types::proofs::HashingFunctionDto;
 use bankai_types::fetch::ProofWrapper;
 use bankai_types::verify::evm::EvmResults;
 use bankai_types::verify::BatchResults;
@@ -11,7 +15,6 @@ use crate::evm::execution::ExecutionVerifier;
 use crate::VerifyError;
 
 pub async fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, VerifyError> {
-    // Verify the block proof and get the Bankai block commitments
     let bankai_block = verify_stwo_proof(&wrapper.block_proof)?;
 
     let exec_root = match wrapper.hashing_function {
@@ -42,7 +45,6 @@ pub async fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, 
     };
 
     if let Some(evm) = &wrapper.evm_proofs {
-        // Verify execution headers
         if let Some(exec_headers) = &evm.execution_header_proof {
             for proof in exec_headers {
                 let result =
@@ -51,7 +53,6 @@ pub async fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, 
             }
         }
 
-        // Verify beacon headers
         if let Some(beacon_headers) = &evm.beacon_header_proof {
             for proof in beacon_headers {
                 let result =
@@ -60,7 +61,6 @@ pub async fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, 
             }
         }
 
-        // Verify account proofs (requires verified execution headers)
         if let Some(accounts) = &evm.account_proof {
             for account in accounts {
                 let result = ExecutionVerifier::verify_account_proof(
@@ -72,7 +72,6 @@ pub async fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, 
             }
         }
 
-        // Verify tx proofs
         if let Some(tx_proofs) = &evm.tx_proof {
             for proof in tx_proofs {
                 let result =

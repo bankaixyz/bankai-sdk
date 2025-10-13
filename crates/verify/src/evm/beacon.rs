@@ -1,3 +1,7 @@
+extern crate alloc;
+use alloc::format;
+use alloc::string::String;
+
 use bankai_types::fetch::evm::beacon::BeaconHeaderProof;
 use bankai_types::verify::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
@@ -18,12 +22,10 @@ impl BeaconVerifier {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        // Verify the mmr proof
         BankaiMmr::verify_mmr_proof(proof.mmr_proof.clone())
             .await
             .map_err(|_| VerifyError::InvalidMmrProof)?;
 
-        // Check the header hash matches the mmr proof header hash
         let hash = proof.header.tree_hash_root();
         let expected_header_hash = format!("0x{}", hash.encode_hex());
         if expected_header_hash != proof.mmr_proof.header_hash {
