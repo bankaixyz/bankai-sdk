@@ -1,8 +1,8 @@
 use crate::errors::{SdkError, SdkResult};
+use crate::verify::bankai::mmr::BankaiMmr;
+use alloy_rlp::{Decodable, Encodable};
 use bankai_types::fetch::evm::execution::{AccountProof, ExecutionHeaderProof, TxProof};
 use bankai_types::verify::evm::execution::{Account, ExecutionHeader, TxEnvelope};
-use alloy_rlp::{Encodable, Decodable};
-use crate::verify::bankai::mmr::BankaiMmr;
 // use crate::verify::bankai::stwo::verify_stwo_proof;
 use alloy_primitives::hex::ToHexExt;
 use alloy_primitives::keccak256;
@@ -43,7 +43,7 @@ impl ExecutionVerifier {
 
     pub async fn verify_account_proof(
         account_proof: &AccountProof,
-        headers: &Vec<ExecutionHeader>,
+        headers: &[ExecutionHeader],
     ) -> SdkResult<Account> {
         // Find the matching verified header by block number
         let header = headers
@@ -77,14 +77,12 @@ impl ExecutionVerifier {
 
     pub async fn verify_tx_proof(
         proof: &TxProof,
-        headers: &Vec<ExecutionHeader>,
+        headers: &[ExecutionHeader],
     ) -> SdkResult<TxEnvelope> {
         let header = headers
             .iter()
             .find(|h| h.number == proof.block_number)
             .ok_or_else(|| SdkError::Verification("no matching execution header for tx".into()))?;
-
-
 
         let mut rlp_tx_index = Vec::new();
         proof.tx_index.encode(&mut rlp_tx_index);
@@ -95,10 +93,12 @@ impl ExecutionVerifier {
             key,
             Some(proof.encoded_tx.clone()),
             proof.proof.iter(),
-        ).map_err(|e| SdkError::Verification(format!("mpt verify error: {e}")))?;
+        )
+        .map_err(|e| SdkError::Verification(format!("mpt verify error: {e}")))?;
 
-        let tx = TxEnvelope::decode(&mut proof.encoded_tx.as_slice()).map_err(|e| SdkError::Verification(format!("rlp decode error: {e}")))?;
+        let tx = TxEnvelope::decode(&mut proof.encoded_tx.as_slice())
+            .map_err(|e| SdkError::Verification(format!("rlp decode error: {e}")))?;
 
-        Ok(tx.into())
+        Ok(tx)
     }
 }

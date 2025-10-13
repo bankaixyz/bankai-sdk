@@ -1,7 +1,6 @@
 use alloy_primitives::hex::ToHexExt;
 
 use bankai_types::api::proofs::HashingFunctionDto;
-use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
 use bankai_types::fetch::ProofWrapper;
 // types are referenced via `batch_results`; direct imports unnecessary
 use bankai_types::verify::evm::EvmResults;
@@ -12,7 +11,7 @@ use crate::verify::bankai::stwo::verify_stwo_proof;
 use crate::verify::evm::beacon::BeaconVerifier;
 use crate::verify::evm::execution::ExecutionVerifier;
 
-pub async fn verify_wrapper(wrapper: &ProofWrapper) -> SdkResult<BatchResults> {
+pub async fn verify_batch_proof(wrapper: &ProofWrapper) -> SdkResult<BatchResults> {
     // Verify the block proof and get the Bankai block commitments
     let bankai_block = verify_stwo_proof(&wrapper.block_proof)
         .map_err(|e| SdkError::Verification(format!("stwo verification failed: {e}")))?;
@@ -65,28 +64,26 @@ pub async fn verify_wrapper(wrapper: &ProofWrapper) -> SdkResult<BatchResults> {
 
         // Verify account proofs (requires verified execution headers)
         if let Some(accounts) = &evm.account_proof {
-            let exec_headers_slice: &[ExecutionHeaderProof] =
-                if let Some(ref v) = evm.execution_header_proof {
-                    v.as_slice()
-                } else {
-                    &[]
-                };
             for account in accounts {
-                let result =
-                    ExecutionVerifier::verify_account_proof(account, &batch_results.evm.execution_header).await?;
+                let result = ExecutionVerifier::verify_account_proof(
+                    account,
+                    &batch_results.evm.execution_header,
+                )
+                .await?;
                 batch_results.evm.account.push(result);
             }
         }
-   
+
         // Verify tx proofs
         if let Some(tx_proofs) = &evm.tx_proof {
             for proof in tx_proofs {
-                let result = ExecutionVerifier::verify_tx_proof(proof, &batch_results.evm.execution_header).await?;
+                let result =
+                    ExecutionVerifier::verify_tx_proof(proof, &batch_results.evm.execution_header)
+                        .await?;
                 batch_results.evm.tx.push(result);
             }
         }
     }
-
 
     Ok(batch_results)
 }

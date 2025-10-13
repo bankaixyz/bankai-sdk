@@ -70,12 +70,11 @@ impl ExecutionChainFetcher {
             .await?;
         Ok(proof)
     }
-    
+
     pub async fn tx_proof(&self, tx_hash: FixedBytes<32>) -> SdkResult<TxProof> {
         let proof = ExecutionFetcher::new(self.rpc_url.clone(), self.network_id)
             .fetch_tx_proof(tx_hash)
             .await?;
         Ok(proof)
     }
-
 }

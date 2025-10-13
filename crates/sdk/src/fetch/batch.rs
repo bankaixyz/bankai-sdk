@@ -83,7 +83,10 @@ impl<'a> ProofBatchBuilder<'a> {
 
     pub fn evm_tx(mut self, network_id: u64, tx_hash: FixedBytes<32>) -> Self {
         let mut v = self.evm.tx_proof.take().unwrap_or_default();
-        v.push(TxProofRequest { network_id, tx_hash });
+        v.push(TxProofRequest {
+            network_id,
+            tx_hash,
+        });
         self.evm.tx_proof = Some(v);
         self
     }

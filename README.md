@@ -3,7 +3,7 @@
 Ergonomic access to Bankai fetchers and verifiers.
 
 - **Batch builder**: compose multiple proof requests (execution headers, beacon headers, accounts) and fetch in one go.
-- **One-call verification**: verify everything in a wrapper with `verify::batch::verify_wrapper`.
+- **One-call verification**: verify everything in a wrapper with `verify::batch::verify_batch_proof`.
 - **Consistent errors**: all fallible APIs return `SdkResult<T>` with `SdkError`.
 
 ### Install
@@ -20,7 +20,7 @@ bankai-types = { path = "crates/types" }
 
 ```rust
 use bankai_sdk::{Bankai, errors::SdkError};
-use bankai_sdk::verify::batch::verify_wrapper;
+use bankai_sdk::verify::batch::verify_batch_proof;
 use bankai_types::api::proofs::HashingFunctionDto;
 use alloy_primitives::Address;
 
@@ -46,7 +46,7 @@ async fn main() -> Result<(), SdkError> {
         .await?;
 
     // Verify all proofs against the Bankai block commitments
-    let results = verify_wrapper(&wrapper).await?;
+    let results = verify_batch_proof(&wrapper).await?;
     println!("verified execution headers: {}", results.evm.execution_header.len());
     println!("verified beacon headers: {}", results.evm.beacon_header.len());
     println!("verified accounts: {}", results.evm.account.len());
@@ -59,7 +59,7 @@ async fn main() -> Result<(), SdkError> {
 
 ```rust
 use bankai_sdk::{Bankai, errors::SdkError};
-use bankai_sdk::verify::batch::verify_wrapper;
+use bankai_sdk::verify::batch::verify_batch_proof;
 use bankai_types::api::proofs::HashingFunctionDto;
 
 #[tokio::main]
@@ -72,9 +72,34 @@ async fn main() -> Result<(), SdkError> {
         .execute()
         .await?;
 
-    let results = verify_wrapper(&wrapper).await?;
+    let results = verify_batch_proof(&wrapper).await?;
     let header = &results.evm.execution_header[0];
     println!("verified one execution header");
+    Ok(())
+}
+```
+
+### Transaction proofs
+
+```rust
+use bankai_sdk::{Bankai, errors::SdkError};
+use bankai_sdk::verify::batch::verify_batch_proof;
+use bankai_types::api::proofs::HashingFunctionDto;
+use alloy_primitives::{hex::FromHex, FixedBytes};
+
+#[tokio::main]
+async fn main() -> Result<(), SdkError> {
+    let bankai = Bankai::new(std::env::var("EXECUTION_RPC").ok(), std::env::var("BEACON_RPC").ok());
+
+    let wrapper = bankai
+        .init_batch(11260, HashingFunctionDto::Keccak)
+        .evm_tx(1, FixedBytes::from_hex("0x501b7c72c1e5f14f02e1a58a7264e18f5e26a793d42e4e802544e6629764f58c").unwrap())
+        .evm_tx(1, FixedBytes::from_hex("0xd7e25cbf8ff63e3d9e4fa1e9783afae248a50df836f2cd853f89440f4c76891d").unwrap())
+        .execute()
+        .await?;
+
+    let results = verify_batch_proof(&wrapper).await?;
+    println!("verified transactions: {}", results.evm.tx.len());
     Ok(())
 }
 ```
@@ -102,8 +127,8 @@ async fn main() -> Result<(), SdkError> {
 ### API overview
 
 - **Construct**: `let bankai = Bankai::new(exec_rpc: Option<String>, beacon_rpc: Option<String>);`
-- **Batch builder**: `bankai.init_batch(bankai_block_number, hashing)` → `.evm_execution_header(..)`, `.evm_beacon_header(..)`, `.evm_account(..)` → `.execute()` → `ProofWrapper`
-- **Verify**: `verify::batch::verify_wrapper(&ProofWrapper)` → `BatchResults`
+- **Batch builder**: `bankai.init_batch(bankai_block_number, hashing)` → `.evm_execution_header(..)`, `.evm_beacon_header(..)`, `.evm_account(..)`, `.evm_tx(..)` → `.execute()` → `ProofWrapper`
+- **Verify**: `verify::batch::verify_batch_proof(&ProofWrapper)` → `BatchResults`
 - **Direct fetch**: `bankai.evm.execution()?.header_only(..)`, `bankai.evm.beacon()?.header_only(..)`
 
 Notes:
