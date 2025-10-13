@@ -1,7 +1,10 @@
 use cairo_air::CairoProof;
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 
-use crate::{api::proofs::HashingFunctionDto, fetch::evm::{EvmProofs, EvmProofsRequest}};
+use crate::{
+    api::proofs::HashingFunctionDto,
+    fetch::evm::{EvmProofs, EvmProofsRequest},
+};
 
 pub mod evm;
 

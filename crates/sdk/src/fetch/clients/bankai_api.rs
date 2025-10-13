@@ -12,6 +12,12 @@ pub struct ApiClient {
     base_url: String,
 }
 
+impl Default for ApiClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ApiClient {
     const DEFAULT_BASE_URL: &'static str = "https://sepolia.api.bankai.xyz";
 

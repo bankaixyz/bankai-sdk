@@ -18,12 +18,21 @@ pub async fn verify_wrapper(wrapper: &ProofWrapper) -> SdkResult<BatchResults> {
         .map_err(|e| SdkError::Verification(format!("stwo verification failed: {e}")))?;
 
     let exec_root = match wrapper.hashing_function {
-        HashingFunctionDto::Keccak => format!("0x{}", bankai_block.execution.mmr_root_keccak.encode_hex()),
-        HashingFunctionDto::Poseidon => format!("0x{}", bankai_block.execution.mmr_root_poseidon.encode_hex()),
+        HashingFunctionDto::Keccak => {
+            format!("0x{}", bankai_block.execution.mmr_root_keccak.encode_hex())
+        }
+        HashingFunctionDto::Poseidon => format!(
+            "0x{}",
+            bankai_block.execution.mmr_root_poseidon.encode_hex()
+        ),
     };
     let beacon_root = match wrapper.hashing_function {
-        HashingFunctionDto::Keccak => format!("0x{}", bankai_block.beacon.mmr_root_keccak.encode_hex()),
-        HashingFunctionDto::Poseidon => format!("0x{}", bankai_block.beacon.mmr_root_poseidon.encode_hex()),
+        HashingFunctionDto::Keccak => {
+            format!("0x{}", bankai_block.beacon.mmr_root_keccak.encode_hex())
+        }
+        HashingFunctionDto::Poseidon => {
+            format!("0x{}", bankai_block.beacon.mmr_root_poseidon.encode_hex())
+        }
     };
 
     let mut batch_results = BatchResults {
@@ -38,28 +47,32 @@ pub async fn verify_wrapper(wrapper: &ProofWrapper) -> SdkResult<BatchResults> {
         // Verify execution headers
         if let Some(exec_headers) = &evm.execution_header_proof {
             for proof in exec_headers {
-                let result = ExecutionVerifier::verify_header_proof(proof, exec_root.clone()).await?;
+                let result =
+                    ExecutionVerifier::verify_header_proof(proof, exec_root.clone()).await?;
                 batch_results.evm.execution_header.push(result);
             }
         }
 
         // Verify beacon headers
         if let Some(beacon_headers) = &evm.beacon_header_proof {
-            for proof in beacon_headers {   
-                let result = BeaconVerifier::verify_header_proof(proof, beacon_root.clone()).await?;
+            for proof in beacon_headers {
+                let result =
+                    BeaconVerifier::verify_header_proof(proof, beacon_root.clone()).await?;
                 batch_results.evm.beacon_header.push(result);
             }
         }
 
         // Verify account proofs (requires verified execution headers)
         if let Some(accounts) = &evm.account_proof {
-            let exec_headers_slice: &[ExecutionHeaderProof] = if let Some(ref v) = evm.execution_header_proof {
-                v.as_slice()
-            } else {
-                &[]
-            };
+            let exec_headers_slice: &[ExecutionHeaderProof] =
+                if let Some(ref v) = evm.execution_header_proof {
+                    v.as_slice()
+                } else {
+                    &[]
+                };
             for account in accounts {
-                let result = ExecutionVerifier::verify_account_proof(account, exec_headers_slice).await?;
+                let result =
+                    ExecutionVerifier::verify_account_proof(account, exec_headers_slice).await?;
                 batch_results.evm.account.push(result);
             }
         }
@@ -67,5 +80,3 @@ pub async fn verify_wrapper(wrapper: &ProofWrapper) -> SdkResult<BatchResults> {
 
     Ok(batch_results)
 }
-
-

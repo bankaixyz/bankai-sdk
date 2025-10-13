@@ -44,10 +44,7 @@ impl ExecutionChainFetcher {
             },
         )
         .await?;
-        Ok(ExecutionHeaderProof {
-            header,
-            mmr_proof,
-        })
+        Ok(ExecutionHeaderProof { header, mmr_proof })
     }
 
     pub async fn header_only(&self, block_number: u64) -> SdkResult<ExecutionHeader> {

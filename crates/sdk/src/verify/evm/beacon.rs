@@ -1,5 +1,5 @@
 use crate::errors::{SdkError, SdkResult};
-use bankai_types::fetch::evm::beacon::{BeaconHeaderProof};
+use bankai_types::fetch::evm::beacon::BeaconHeaderProof;
 use bankai_types::verify::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
@@ -9,9 +9,15 @@ use alloy_primitives::hex::ToHexExt;
 pub struct BeaconVerifier;
 
 impl BeaconVerifier {
-    pub async fn verify_header_proof(proof: &BeaconHeaderProof, root: String) -> SdkResult<BeaconHeader> {
+    pub async fn verify_header_proof(
+        proof: &BeaconHeaderProof,
+        root: String,
+    ) -> SdkResult<BeaconHeader> {
         if proof.mmr_proof.root != root {
-            return Err(SdkError::Verification(format!("mmr root mismatch! {} != {}", proof.mmr_proof.root, root)));
+            return Err(SdkError::Verification(format!(
+                "mmr root mismatch! {} != {}",
+                proof.mmr_proof.root, root
+            )));
         }
 
         // Verify the mmr proof

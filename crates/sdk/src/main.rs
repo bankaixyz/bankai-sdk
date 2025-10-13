@@ -25,7 +25,7 @@ async fn main() -> Result<(), SdkError> {
         .await?;
 
     let valid_data = verify_wrapper(&proof_wrapper).await?;
-    println!("valid data: {:#?}", valid_data);
+    println!("valid data: {valid_data:#?}");
 
     Ok(())
 }

@@ -4,9 +4,6 @@ use crate::fetch::{
     clients::bankai_api::ApiClient,
     evm::{beacon::BeaconChainFetcher, execution::ExecutionChainFetcher},
 };
-use crate::verify::evm::{beacon::BeaconVerifier, execution::ExecutionVerifier};
-use alloy_rpc_types::Header as ExecutionHeader;
-use bankai_types::fetch::evm::{beacon::BeaconHeaderProof, execution::ExecutionHeaderProof};
 use bankai_types::api::proofs::HashingFunctionDto;
 
 pub use bankai_types::verify::evm::beacon::BeaconHeader;
@@ -31,10 +28,9 @@ pub struct Bankai {
 impl Bankai {
     pub fn new(evm_execution_rpc: Option<String>, evm_beacon_rpc: Option<String>) -> Self {
         let api = ApiClient::new();
-        let execution = evm_execution_rpc
-            .map(|rpc| ExecutionChainFetcher::new(api.clone(), rpc, 1));
-        let beacon = evm_beacon_rpc
-            .map(|rpc| BeaconChainFetcher::new(api.clone(), rpc, 0));
+        let execution =
+            evm_execution_rpc.map(|rpc| ExecutionChainFetcher::new(api.clone(), rpc, 1));
+        let beacon = evm_beacon_rpc.map(|rpc| BeaconChainFetcher::new(api.clone(), rpc, 0));
 
         Bankai {
             api: api.clone(),

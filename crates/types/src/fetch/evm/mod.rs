@@ -1,6 +1,12 @@
 use alloy_primitives::{Address, FixedBytes};
 
-use crate::{api::proofs::HashingFunctionDto, fetch::evm::{beacon::BeaconHeaderProof, execution::{AccountProof, ExecutionHeaderProof}}};
+use crate::{
+    api::proofs::HashingFunctionDto,
+    fetch::evm::{
+        beacon::BeaconHeaderProof,
+        execution::{AccountProof, ExecutionHeaderProof},
+    },
+};
 
 pub mod beacon;
 pub mod execution;

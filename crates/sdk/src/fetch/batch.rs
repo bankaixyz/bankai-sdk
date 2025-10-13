@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use alloy_primitives::{hex::ToHexExt, Address};
 use alloy_rpc_types::{Account as AlloyAccount, Header as ExecutionHeader};
 
+use bankai_types::api::proofs::HashingFunctionDto;
 use bankai_types::api::proofs::{HeaderRequestDto, LightClientProofRequestDto};
-use bankai_types::verify::evm::beacon::BeaconHeader;
 use bankai_types::fetch::evm::{
     beacon::BeaconHeaderProof,
     execution::{AccountProof, ExecutionHeaderProof},
@@ -12,7 +12,7 @@ use bankai_types::fetch::evm::{
     ExecutionHeaderProofRequest,
 };
 use bankai_types::fetch::ProofWrapper;
-use bankai_types::api::proofs::HashingFunctionDto;
+use bankai_types::verify::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
 use crate::errors::{SdkError, SdkResult};
@@ -29,11 +29,7 @@ pub struct ProofBatchBuilder<'a> {
 }
 
 impl<'a> ProofBatchBuilder<'a> {
-    pub fn new(
-        bankai: &'a Bankai,
-        bankai_block_number: u64,
-        hashing: HashingFunctionDto,
-    ) -> Self {
+    pub fn new(bankai: &'a Bankai, bankai_block_number: u64, hashing: HashingFunctionDto) -> Self {
         Self {
             bankai,
             bankai_block_number,
@@ -115,7 +111,8 @@ impl<'a> ProofBatchBuilder<'a> {
             if fetcher.network_id() != *network_id {
                 return Err(SdkError::InvalidInput(format!(
                     "execution network_id mismatch: requested {}, configured {}",
-                    network_id, fetcher.network_id()
+                    network_id,
+                    fetcher.network_id()
                 )));
             }
             let header = fetcher.header_only(*block_number).await?;
@@ -131,7 +128,8 @@ impl<'a> ProofBatchBuilder<'a> {
             if fetcher.network_id() != *network_id {
                 return Err(SdkError::InvalidInput(format!(
                     "beacon network_id mismatch: requested {}, configured {}",
-                    network_id, fetcher.network_id()
+                    network_id,
+                    fetcher.network_id()
                 )));
             }
             let header = fetcher.header_only(*slot).await?;
@@ -177,9 +175,9 @@ impl<'a> ProofBatchBuilder<'a> {
         let mut exec_header_proofs: Vec<ExecutionHeaderProof> = Vec::new();
         for ((network_id, _), header) in exec_header_map.iter() {
             let key = (*network_id, header.hash.to_string());
-            let mmr = mmr_by_key
-                .get(&key)
-                .ok_or_else(|| SdkError::NotFound("missing MMR proof for execution header".into()))?;
+            let mmr = mmr_by_key.get(&key).ok_or_else(|| {
+                SdkError::NotFound("missing MMR proof for execution header".into())
+            })?;
             exec_header_proofs.push(ExecutionHeaderProof {
                 header: header.clone(),
                 mmr_proof: mmr.clone(),
@@ -209,10 +207,17 @@ impl<'a> ProofBatchBuilder<'a> {
                 .map_err(|_| SdkError::NotConfigured("EVM execution fetcher".into()))?;
             for req in accounts {
                 if exec_fetcher.network_id() != req.network_id {
-                    return Err(SdkError::InvalidInput("execution network_id mismatch".into()));
+                    return Err(SdkError::InvalidInput(
+                        "execution network_id mismatch".into(),
+                    ));
                 }
                 let proof = exec_fetcher
-                    .account(req.block_number, req.address, self.hashing.clone(), self.bankai_block_number)
+                    .account(
+                        req.block_number,
+                        req.address,
+                        self.hashing.clone(),
+                        self.bankai_block_number,
+                    )
                     .await?;
                 let header = exec_header_map
                     .get(&(req.network_id, req.block_number))

@@ -1,6 +1,6 @@
+use crate::errors::{SdkError, SdkResult};
 use bankai_types::fetch::evm::execution::{AccountProof, ExecutionHeaderProof};
 use bankai_types::verify::evm::execution::{Account, ExecutionHeader};
-use crate::errors::{SdkError, SdkResult};
 
 use crate::verify::bankai::mmr::BankaiMmr;
 // use crate::verify::bankai::stwo::verify_stwo_proof;
@@ -12,10 +12,15 @@ use alloy_trie::{proof::verify_proof as mpt_verify, Nibbles};
 pub struct ExecutionVerifier;
 
 impl ExecutionVerifier {
-    pub async fn verify_header_proof(proof: &ExecutionHeaderProof, root: String) -> SdkResult<ExecutionHeader> {
-        
+    pub async fn verify_header_proof(
+        proof: &ExecutionHeaderProof,
+        root: String,
+    ) -> SdkResult<ExecutionHeader> {
         if proof.mmr_proof.root != root {
-            return Err(SdkError::Verification(format!("mmr root mismatch! {} != {}", proof.mmr_proof.root, root)));
+            return Err(SdkError::Verification(format!(
+                "mmr root mismatch! {} != {}",
+                proof.mmr_proof.root, root
+            )));
         }
 
         // Verify the mmr proof
@@ -44,7 +49,9 @@ impl ExecutionVerifier {
         let header = headers
             .iter()
             .find(|h| h.header.number == account_proof.block_number)
-            .ok_or_else(|| SdkError::Verification("no matching execution header for account".into()))?;
+            .ok_or_else(|| {
+                SdkError::Verification("no matching execution header for account".into())
+            })?;
 
         // Confirm the state root matches
         if header.header.state_root != account_proof.state_root {
