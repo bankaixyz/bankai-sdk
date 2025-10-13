@@ -1,0 +1,15 @@
+[package]
+name = "bankai-verify"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bankai-types = { path = "../types" }
+accumulators.workspace = true
+cairo-air.workspace = true
+stwo.workspace = true
+alloy-rlp.workspace = true
+alloy-primitives.workspace = true
+alloy-trie.workspace = true
+tree_hash.workspace = true
+thiserror.workspace = true

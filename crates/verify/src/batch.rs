@@ -2,19 +2,17 @@ use alloy_primitives::hex::ToHexExt;
 
 use bankai_types::api::proofs::HashingFunctionDto;
 use bankai_types::fetch::ProofWrapper;
-// types are referenced via `batch_results`; direct imports unnecessary
 use bankai_types::verify::evm::EvmResults;
 use bankai_types::verify::BatchResults;
 
-use crate::errors::{SdkError, SdkResult};
-use crate::verify::bankai::stwo::verify_stwo_proof;
-use crate::verify::evm::beacon::BeaconVerifier;
-use crate::verify::evm::execution::ExecutionVerifier;
+use crate::bankai::stwo::verify_stwo_proof;
+use crate::evm::beacon::BeaconVerifier;
+use crate::evm::execution::ExecutionVerifier;
+use crate::VerifyError;
 
-pub async fn verify_batch_proof(wrapper: &ProofWrapper) -> SdkResult<BatchResults> {
+pub async fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, VerifyError> {
     // Verify the block proof and get the Bankai block commitments
-    let bankai_block = verify_stwo_proof(&wrapper.block_proof)
-        .map_err(|e| SdkError::Verification(format!("stwo verification failed: {e}")))?;
+    let bankai_block = verify_stwo_proof(&wrapper.block_proof)?;
 
     let exec_root = match wrapper.hashing_function {
         HashingFunctionDto::Keccak => {

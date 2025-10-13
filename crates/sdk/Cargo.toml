@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bankai-types = { path = "../types" }
+bankai-verify = { path = "../verify" }
 reqwest.workspace = true
 tokio.workspace = true
 serde.workspace = true

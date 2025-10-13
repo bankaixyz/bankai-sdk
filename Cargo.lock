@@ -1163,6 +1163,7 @@ dependencies = [
  "alloy-trie",
  "anyhow",
  "bankai-types",
+ "bankai-verify",
  "cairo-air",
  "dotenv",
  "eth-trie-proofs",
@@ -1194,6 +1195,21 @@ dependencies = [
  "tree_hash",
  "tree_hash_derive",
  "utoipa",
+]
+
+[[package]]
+name = "bankai-verify"
+version = "0.1.0"
+dependencies = [
+ "accumulators",
+ "alloy-primitives",
+ "alloy-rlp",
+ "alloy-trie",
+ "bankai-types",
+ "cairo-air",
+ "stwo",
+ "thiserror 1.0.69",
+ "tree_hash",
 ]
 
 [[package]]

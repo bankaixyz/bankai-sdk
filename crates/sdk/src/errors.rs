@@ -1,3 +1,4 @@
+use bankai_verify::VerifyError;
 use thiserror::Error;
 
 use reqwest::StatusCode;
@@ -43,6 +44,9 @@ pub enum SdkError {
 
     #[error("other error: {0}")]
     Other(String),
+
+    #[error("verification error: {0}")]
+    Verify(#[from] VerifyError),
 }
 
 pub type SdkResult<T> = Result<T, SdkError>;

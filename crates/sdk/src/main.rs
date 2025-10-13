@@ -1,5 +1,7 @@
 use alloy_primitives::{hex::FromHex, Address, FixedBytes};
-use bankai_sdk::{errors::SdkError, verify::batch::verify_batch_proof, Bankai};
+use bankai_sdk::{errors::SdkError, Bankai};
+use bankai_verify::batch::verify_batch_proof;
+
 use bankai_types::api::proofs::HashingFunctionDto;
 use dotenv::from_filename;
 
@@ -11,7 +13,7 @@ async fn main() -> Result<(), SdkError> {
     let beacon_rpc = std::env::var("BEACON_RPC").ok();
     let bankai = Bankai::new(exec_rpc.clone(), beacon_rpc.clone());
 
-    let bankai_block_number = 11260u64;
+    let bankai_block_number = 16501;
     let exec_block_number = 9231247u64;
     let beacon_slot = 8551383u64;
 
