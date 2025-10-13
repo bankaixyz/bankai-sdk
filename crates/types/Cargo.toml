@@ -30,8 +30,9 @@ std = [
 ]
 # API types with serde support (for services)
 api = ["serde", "serde_json", "utoipa"]
-# Minimal verifier types (no_std compatible, no serde)
+# Minimal verifier types with serde support
 verifier-types = [
+    "serde",
     "alloy-rpc-types",
     "alloy-rpc-types-beacon",
 ]

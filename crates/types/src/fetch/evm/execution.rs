@@ -1,5 +1,6 @@
 extern crate alloc;
 use alloc::vec::Vec;
+use serde::{Deserialize, Serialize};
 
 use crate::proofs::MmrProofDto;
 use alloy_primitives::{Address, Bytes, FixedBytes};
@@ -9,7 +10,7 @@ use alloy_rpc_types::{Account, Header as ExecutionHeader};
 
 #[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ExecutionHeaderProof {
     pub header: ExecutionHeader,
     pub mmr_proof: MmrProofDto,
@@ -17,7 +18,7 @@ pub struct ExecutionHeaderProof {
 
 #[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct AccountProof {
     pub account: Account,
     pub address: Address,
@@ -29,7 +30,7 @@ pub struct AccountProof {
 
 #[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TxProof {
     pub network_id: u64,
     pub block_number: u64,

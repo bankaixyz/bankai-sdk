@@ -2,6 +2,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use alloy_primitives::{Address, FixedBytes};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     fetch::evm::{
@@ -15,12 +16,14 @@ pub mod beacon;
 pub mod execution;
 
 #[cfg_attr(feature = "std", derive(Debug))]
+#[derive(Serialize, Deserialize)]
 pub struct EvmProofs {
     pub execution_header_proof: Option<Vec<ExecutionHeaderProof>>,
     pub beacon_header_proof: Option<Vec<BeaconHeaderProof>>,
     pub account_proof: Option<Vec<AccountProof>>,
     pub tx_proof: Option<Vec<TxProof>>,
 }
+
 
 #[derive(Debug)]
 pub struct EvmProofsRequest {

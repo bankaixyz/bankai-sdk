@@ -13,6 +13,3 @@ alloy-primitives = { workspace = true, default-features = false, features = ["rl
 alloy-trie = { workspace = true, default-features = false }
 tree_hash = { workspace = true, default-features = false }
 
-[features]
-default = ["std"]
-std = []

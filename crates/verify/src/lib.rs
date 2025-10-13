@@ -40,5 +40,4 @@ impl core::fmt::Display for VerifyError {
     }
 }
 
-#[cfg(feature = "std")]
 impl std::error::Error for VerifyError {}

@@ -1,4 +1,5 @@
 use cairo_air::CairoProof;
+use serde::{Deserialize, Serialize};
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
 
 pub mod evm;
 
-// Manual Debug implementation since CairoProof doesn't implement Debug
+#[derive(Serialize, Deserialize)]
 pub struct ProofWrapper {
     pub hashing_function: HashingFunctionDto,
     pub block_proof: CairoProof<Blake2sMerkleHasher>,
