@@ -1,14 +1,14 @@
-# Bankai SDK (Rust)
+## Bankai SDK (Rust)
 
-Ergonomic access to Bankai fetchers and verifiers with a simple, TypeScript-friendly error model.
+Ergonomic access to Bankai fetchers and verifiers.
 
-- Namespaced access: `bankai.evm.execution.header(...)`, `bankai.evm.beacon.header(...)`
-- Simple verification: `bankai.verify.evm_execution_header(&proof)` and `bankai.verify.evm_beacon_header(&proof)`
-- Robust errors via `SdkError` (no unwraps/asserts), aligned to the public API (`openapi.json`)
+- **Batch builder**: compose multiple proof requests (execution headers, beacon headers, accounts) and fetch in one go.
+- **One-call verification**: verify everything in a wrapper with `verify::batch::verify_wrapper`.
+- **Consistent errors**: all fallible APIs return `SdkResult<T>` with `SdkError`.
 
-## Install
+### Install
 
-Add the crate to your workspace (or use the workspace member if you’re inside this repo):
+Add these to your `Cargo.toml` (path deps shown for working inside this repo):
 
 ```toml
 [dependencies]
@@ -16,135 +16,118 @@ bankai-sdk = { path = "crates/sdk" }
 bankai-types = { path = "crates/types" }
 ```
 
-## Quickstart
-
-Fetch an Ethereum execution header proof and verify it.
+### Quickstart: build a batch and verify
 
 ```rust
 use bankai_sdk::{Bankai, errors::SdkError};
+use bankai_sdk::verify::batch::verify_wrapper;
 use bankai_types::api::proofs::HashingFunctionDto;
+use alloy_primitives::Address;
 
 #[tokio::main]
 async fn main() -> Result<(), SdkError> {
-    // Build the SDK with configured endpoints
-    let bankai = Bankai::builder()
-        .with_api_base("https://sepolia.api.bankai.xyz".to_string())
-        .with_evm_execution("https://sepolia.drpc.org".to_string())
-        .build();
+    // Configure RPCs via env (optional): EXECUTION_RPC, BEACON_RPC
+    let exec_rpc = std::env::var("EXECUTION_RPC").ok();
+    let beacon_rpc = std::env::var("BEACON_RPC").ok();
+    let bankai = Bankai::new(exec_rpc, beacon_rpc);
 
-    // Fetch an execution header proof (Bankai block number ties MMR roots)
-    let exec_fetcher = bankai
-        .evm
-        .execution
-        .as_ref()
-        .ok_or_else(|| SdkError::InvalidInput("execution not configured".into()))?;
+    // Example inputs
+    let bankai_block_number = 11260u64;     // binds which MMR roots to use
+    let exec_block_number = 9_231_247u64;   // execution L2/L1 block number (network 1 in this repo)
+    let beacon_slot = 8_551_383u64;         // beacon slot (network 0 in this repo)
 
-    let proof = exec_fetcher
-        .header(
-            5_000_000,
-            HashingFunctionDto::Keccak,
-            42, // bankai block number to bind the MMR root
-        )
+    // Build a batch: beacon header, execution header, and account proof
+    let wrapper = bankai
+        .init_batch(bankai_block_number, HashingFunctionDto::Keccak)
+        .evm_beacon_header(0, beacon_slot)            // beacon network id 0
+        .evm_execution_header(1, exec_block_number)   // execution network id 1
+        .evm_account(1, exec_block_number, Address::ZERO)
+        .execute()
         .await?;
 
-    // Verify it
-    let header = bankai.verify.evm_execution_header(&proof).await?;
-    println!("verified execution header hash: 0x{}", header.inner.hash);
+    // Verify all proofs against the Bankai block commitments
+    let results = verify_wrapper(&wrapper).await?;
+    println!("verified execution headers: {}", results.evm.execution_header.len());
+    println!("verified beacon headers: {}", results.evm.beacon_header.len());
+    println!("verified accounts: {}", results.evm.account.len());
 
     Ok(())
 }
 ```
 
-Fetch a Beacon header proof and verify it.
+### Single-proof batch: verify one execution header
 
 ```rust
 use bankai_sdk::{Bankai, errors::SdkError};
+use bankai_sdk::verify::batch::verify_wrapper;
 use bankai_types::api::proofs::HashingFunctionDto;
 
 #[tokio::main]
 async fn main() -> Result<(), SdkError> {
-    let bankai = Bankai::builder()
-        .with_api_base("https://sepolia.api.bankai.xyz".to_string())
-        .with_evm_beacon("https://lodestar-sepolia.beacon-api.nimbus.team".to_string())
-        .build();
+    let bankai = Bankai::new(std::env::var("EXECUTION_RPC").ok(), std::env::var("BEACON_RPC").ok());
 
-    let beacon_fetcher = bankai
-        .evm
-        .beacon
-        .as_ref()
-        .ok_or_else(|| SdkError::InvalidInput("beacon not configured".into()))?;
-
-    let proof = beacon_fetcher
-        .header(
-            1_234_567,                // slot
-            HashingFunctionDto::Poseidon,
-            42,                        // bankai block number
-        )
+    let wrapper = bankai
+        .init_batch(11260, HashingFunctionDto::Keccak)
+        .evm_execution_header(1, 9_231_247)
+        .execute()
         .await?;
 
-    let header = bankai.verify.evm_beacon_header(&proof).await?;
-    println!("verified beacon header root bound via MMR");
+    let results = verify_wrapper(&wrapper).await?;
+    let header = &results.evm.execution_header[0];
+    println!("verified one execution header");
     Ok(())
 }
 ```
 
-## API Overview
-
-- Builder:
-  - `Bankai::builder().with_api_base(..).with_evm_execution(rpc).with_evm_beacon(rpc).build()`
-- Namespaces:
-  - `bankai.evm.execution.header(block_number, hashing_function, bankai_block_number)`
-  - `bankai.evm.beacon.header(slot, hashing_function, bankai_block_number)`
-- Verification helpers:
-  - `bankai.verify.evm_execution_header(&ExecutionHeaderProof)` → `ExecutionHeader`
-  - `bankai.verify.evm_beacon_header(&BeaconHeaderProof)` → `BeaconHeader`
-
-## Error Handling
-
-All public functions return `SdkResult<T> = Result<T, SdkError>`.
+### Fetch via RPC only (no proofs)
 
 ```rust
 use bankai_sdk::{Bankai, errors::SdkError};
 
-async fn example() {
-    let bankai = Bankai::builder().build();
-    let result = async {
-        let exec = bankai.evm.execution.as_ref().ok_or_else(|| SdkError::InvalidInput("missing exec".into()))?;
-        exec.header(100, bankai_types::api::proofs::HashingFunctionDto::Keccak, 10).await
-    }
-    .await;
+#[tokio::main]
+async fn main() -> Result<(), SdkError> {
+    let bankai = Bankai::new(std::env::var("EXECUTION_RPC").ok(), std::env::var("BEACON_RPC").ok());
 
-    match result {
-        Ok(proof) => {
-            println!("ok {} elements in path", proof.mmr_proof.path.len());
-        }
-        Err(SdkError::ApiErrorResponse { code, message, error_id }) => {
-            eprintln!("api error: {code} ({error_id}) - {message}");
-        }
-        Err(SdkError::Api { status, body }) => {
-            eprintln!("http {status}: {body}");
-        }
-        Err(e) => {
-            eprintln!("error: {e}");
-        }
-    }
+    let exec = bankai.evm.execution()?;
+    let header = exec.header_only(9_231_247).await?; // alloy_rpc_types::Header
+    println!("fetched execution header {}", header.number);
+
+    let beacon = bankai.evm.beacon()?;
+    let bheader = beacon.header_only(8_551_383).await?; // bankai_types::verify::evm::beacon::BeaconHeader
+    println!("fetched beacon header");
+    Ok(())
 }
 ```
+
+### API overview
+
+- **Construct**: `let bankai = Bankai::new(exec_rpc: Option<String>, beacon_rpc: Option<String>);`
+- **Batch builder**: `bankai.init_batch(bankai_block_number, hashing)` → `.evm_execution_header(..)`, `.evm_beacon_header(..)`, `.evm_account(..)` → `.execute()` → `ProofWrapper`
+- **Verify**: `verify::batch::verify_wrapper(&ProofWrapper)` → `BatchResults`
+- **Direct fetch**: `bankai.evm.execution()?.header_only(..)`, `bankai.evm.beacon()?.header_only(..)`
 
 Notes:
-- Errors from the Bankai API are parsed into `SdkError::ApiErrorResponse { code, message, error_id }` when the body matches the schema.
-- Non-2xx responses that aren’t parseable map to `SdkError::Api { status, body }`.
-- Provider/transport issues map to `SdkError::Provider`/`SdkError::Transport`.
-- Verification failures return `SdkError::Verification`.
+- Hashing can be `HashingFunctionDto::Keccak` or `HashingFunctionDto::Poseidon`.
+- In this repo, execution network id is `1` and beacon network id is `0` (see how `Bankai::new` wires fetchers). Adjust as needed in your integration.
 
-## Types you’ll use
+### Errors
 
-- Hashing: `bankai_types::api::proofs::HashingFunctionDto::{Keccak, Poseidon}`
-- Proofs:
-  - `bankai_types::fetch::evm::execution::ExecutionHeaderProof`
-  - `bankai_types::fetch::evm::beacon::BeaconHeaderProof`
+All fallible APIs return `SdkResult<T> = Result<T, SdkError>`. Common cases:
 
-## Future compatibility
+- **ApiErrorResponse { code, message, error_id }**: well-formed API error JSON
+- **Api { status, body }**: non-2xx without a parseable error body
+- **NotConfigured / InvalidInput / NotFound**: client-side usage errors
+- **Verification**: proof verification failed
 
-- The `evm` namespace leaves room to add other chains later without breaking the surface.
-- Errors are stable and stringly for smooth TS/WASM wrappers.
+### Build
+
+```bash
+cargo build
+```
+
+Optionally configure environment:
+
+```bash
+export EXECUTION_RPC=...   # e.g. https://sepolia.example.org
+export BEACON_RPC=...      # e.g. https://beacon.example.org
+```
