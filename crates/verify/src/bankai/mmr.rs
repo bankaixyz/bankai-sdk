@@ -18,7 +18,7 @@ use crate::VerifyError;
 pub struct BankaiMmr;
 
 impl BankaiMmr {
-    pub async fn mmr_from_peaks(
+    pub fn mmr_from_peaks(
         peaks_hashes: Vec<String>,
         elements_count: usize,
         hashing_function: HashingFunctionDto,
@@ -28,26 +28,24 @@ impl BankaiMmr {
             HashingFunctionDto::Poseidon => Arc::new(StarkPoseidonHasher::new(Some(true))),
         };
         let store = Arc::new(InMemoryStore::default());
-        let mmr = MMR::create_from_peaks(
+        let mmr = MMR::create_from_peaks_sync(
             store.clone(),
             hasher.clone(),
             None,
             peaks_hashes,
             elements_count,
         )
-        .await
         .map_err(|_| VerifyError::InvalidMmrTree)?;
 
         Ok(mmr)
     }
 
-    pub async fn verify_mmr_proof(proof: MmrProofDto) -> Result<bool, VerifyError> {
+    pub fn verify_mmr_proof(proof: MmrProofDto) -> Result<bool, VerifyError> {
         let mmr = Self::mmr_from_peaks(
             proof.peaks.clone(),
             proof.elements_count as usize,
             proof.hashing_function.clone(),
-        )
-        .await?;
+        )?;
 
         let element_hash = hash_to_leaf(proof.header_hash, &proof.hashing_function.clone());
         let proof_type = Proof {
@@ -63,8 +61,7 @@ impl BankaiMmr {
             formatting_opts: None,
         };
 
-        mmr.verify_proof(proof_type.clone(), proof_type.element_hash, Some(options))
-            .await
+        mmr.verify_proof_sync(proof_type.clone(), proof_type.element_hash, Some(options))
             .map_err(|_| VerifyError::InvalidMmrProof)?;
 
         Ok(true)

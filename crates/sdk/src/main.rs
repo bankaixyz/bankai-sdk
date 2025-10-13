@@ -47,7 +47,7 @@ async fn main() -> Result<(), SdkError> {
         .execute()
         .await?;
 
-    let valid_data = verify_batch_proof(&proof_batch).await?;
+    let valid_data = verify_batch_proof(&proof_batch)?;
     println!("valid data: {valid_data:#?}");
 
     Ok(())

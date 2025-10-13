@@ -18,7 +18,7 @@ use crate::VerifyError;
 pub struct ExecutionVerifier;
 
 impl ExecutionVerifier {
-    pub async fn verify_header_proof(
+    pub fn verify_header_proof(
         proof: &ExecutionHeaderProof,
         root: String,
     ) -> Result<ExecutionHeader, VerifyError> {
@@ -27,7 +27,6 @@ impl ExecutionVerifier {
         }
 
         BankaiMmr::verify_mmr_proof(proof.mmr_proof.clone())
-            .await
             .map_err(|_| VerifyError::InvalidMmrProof)?;
 
         let hash = proof.header.inner.hash_slow();
@@ -39,7 +38,7 @@ impl ExecutionVerifier {
         Ok(proof.header.clone().inner)
     }
 
-    pub async fn verify_account_proof(
+    pub fn verify_account_proof(
         account_proof: &AccountProof,
         headers: &[ExecutionHeader],
     ) -> Result<Account, VerifyError> {
@@ -66,7 +65,7 @@ impl ExecutionVerifier {
         Ok(account_proof.account)
     }
 
-    pub async fn verify_tx_proof(
+    pub fn verify_tx_proof(
         proof: &TxProof,
         headers: &[ExecutionHeader],
     ) -> Result<TxEnvelope, VerifyError> {

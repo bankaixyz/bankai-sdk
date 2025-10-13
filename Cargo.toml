@@ -35,5 +35,5 @@ stwo = { git = "https://github.com/starkware-libs/stwo", rev = "d9176e6e22319370
     "parallel",
     "prover",
 ], default-features = false }
-accumulators = { git = "https://github.com/bankaixyz/mmr-accumulator", default-features = false }
+accumulators = { git = "https://github.com/bankaixyz/mmr-accumulator", rev = "5b12fa8", default-features = false, features = ["sync", "mmr", "memory", "keccak", "poseidon"] }
 starknet-crypto = { version = "0.8.0", default-features = false }

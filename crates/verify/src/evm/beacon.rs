@@ -14,7 +14,7 @@ use crate::VerifyError;
 pub struct BeaconVerifier;
 
 impl BeaconVerifier {
-    pub async fn verify_header_proof(
+    pub fn verify_header_proof(
         proof: &BeaconHeaderProof,
         root: String,
     ) -> Result<BeaconHeader, VerifyError> {
@@ -22,9 +22,7 @@ impl BeaconVerifier {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        BankaiMmr::verify_mmr_proof(proof.mmr_proof.clone())
-            .await
-            .map_err(|_| VerifyError::InvalidMmrProof)?;
+        BankaiMmr::verify_mmr_proof(proof.mmr_proof.clone())?;
 
         let hash = proof.header.tree_hash_root();
         let expected_header_hash = format!("0x{}", hash.encode_hex());
