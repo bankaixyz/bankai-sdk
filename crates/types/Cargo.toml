@@ -10,6 +10,7 @@ utoipa.workspace = true
 alloy-primitives.workspace = true
 alloy-rpc-types.workspace = true
 alloy-rpc-types-beacon.workspace = true
+alloy-consensus.workspace = true
 cairo-air.workspace = true
 stwo.workspace = true
 starknet-crypto.workspace = true

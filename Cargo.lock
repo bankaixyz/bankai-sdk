@@ -1049,8 +1049,10 @@ dependencies = [
  "accumulators",
  "alloy-primitives",
  "alloy-provider",
+ "alloy-rlp",
  "alloy-rpc-types",
  "alloy-rpc-types-beacon",
+ "alloy-trie",
  "anyhow",
  "bankai-types",
  "cairo-air",
@@ -1071,6 +1073,7 @@ dependencies = [
 name = "bankai-types"
 version = "0.1.0"
 dependencies = [
+ "alloy-consensus",
  "alloy-primitives",
  "alloy-rpc-types",
  "alloy-rpc-types-beacon",

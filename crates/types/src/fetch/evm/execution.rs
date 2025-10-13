@@ -9,9 +9,11 @@ pub struct ExecutionHeaderProof {
 }
 
 #[derive(Debug)]
-    pub struct AccountProof {
+pub struct AccountProof {
     pub account: Account,
     pub address: Address,
+    pub network_id: u64,
+    pub block_number: u64,
     pub state_root: FixedBytes<32>,
     pub mpt_proof: Vec<Bytes>,
 }

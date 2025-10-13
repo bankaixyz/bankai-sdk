@@ -1,12 +1,15 @@
 use crate::errors::{SdkError, SdkResult};
+use crate::fetch::batch::ProofBatchBuilder;
 use crate::fetch::{
     clients::bankai_api::ApiClient,
     evm::{beacon::BeaconChainFetcher, execution::ExecutionChainFetcher},
 };
 use crate::verify::evm::{beacon::BeaconVerifier, execution::ExecutionVerifier};
 use alloy_rpc_types::Header as ExecutionHeader;
-use bankai_types::fetch::evm::beacon::BeaconHeader;
 use bankai_types::fetch::evm::{beacon::BeaconHeaderProof, execution::ExecutionHeaderProof};
+use bankai_types::api::proofs::HashingFunctionDto;
+
+pub use bankai_types::verify::evm::beacon::BeaconHeader;
 
 pub mod errors;
 pub mod fetch;
@@ -39,6 +42,14 @@ impl Bankai {
             verify: VerifyNamespace,
         }
     }
+
+    pub fn init_batch(
+        &self,
+        bankai_block_number: u64,
+        hashing: HashingFunctionDto,
+    ) -> ProofBatchBuilder {
+        ProofBatchBuilder::new(self, bankai_block_number, hashing)
+    }
 }
 
 impl EvmNamespace {
@@ -55,15 +66,15 @@ impl EvmNamespace {
     }
 }
 
-impl VerifyNamespace {
-    pub async fn evm_execution_header(
-        &self,
-        proof: &ExecutionHeaderProof,
-    ) -> SdkResult<ExecutionHeader> {
-        ExecutionVerifier::verify_header_proof(proof).await
-    }
+// impl VerifyNamespace {
+//     pub async fn evm_execution_header(
+//         &self,
+//         proof: &ExecutionHeaderProof,
+//     ) -> SdkResult<ExecutionHeader> {
+//         ExecutionVerifier::verify_header_proof(proof).await
+//     }
 
-    pub async fn evm_beacon_header(&self, proof: &BeaconHeaderProof) -> SdkResult<BeaconHeader> {
-        BeaconVerifier::verify_header_proof(proof).await
-    }
-}
+//     pub async fn evm_beacon_header(&self, proof: &BeaconHeaderProof) -> SdkResult<BeaconHeader> {
+//         BeaconVerifier::verify_header_proof(proof).await
+//     }
+// }

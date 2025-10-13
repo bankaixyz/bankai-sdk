@@ -1,40 +1,22 @@
-use bankai_types::api::proofs::HashingFunctionDto;
-use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
-
+use bankai_types::fetch::evm::execution::{AccountProof, ExecutionHeaderProof};
+use bankai_types::verify::evm::execution::{Account, ExecutionHeader};
 use crate::errors::{SdkError, SdkResult};
-use alloy_rpc_types::Header as ExecutionHeader;
 
 use crate::verify::bankai::mmr::BankaiMmr;
-use crate::verify::bankai::stwo::verify_stwo_proof;
+// use crate::verify::bankai::stwo::verify_stwo_proof;
 use alloy_primitives::hex::ToHexExt;
+use alloy_primitives::keccak256;
+use alloy_rlp::encode as rlp_encode;
+use alloy_trie::{proof::verify_proof as mpt_verify, Nibbles};
 
 pub struct ExecutionVerifier;
 
 impl ExecutionVerifier {
-    pub async fn verify_header_proof(proof: &ExecutionHeaderProof) -> SdkResult<ExecutionHeader> {
-        // let bankai_block = verify_stwo_proof(&proof.block_proof)
-        //     .map_err(|e| SdkError::Verification(format!("stwo verification failed: {e}")))?;
-
-        // Check the bankai block mmr root matches the mmr proof root
-        // match proof.mmr_proof.hashing_function {
-        //     HashingFunctionDto::Keccak => {
-        //         let expected = format!("0x{}", bankai_block.execution.mmr_root_keccak.encode_hex());
-        //         if proof.mmr_proof.root != expected {
-        //             return Err(SdkError::Verification("mmr root mismatch (keccak)".into()));
-        //         }
-        //     }
-        //     HashingFunctionDto::Poseidon => {
-        //         let expected = format!(
-        //             "0x{}",
-        //             bankai_block.execution.mmr_root_poseidon.encode_hex()
-        //         );
-        //         if proof.mmr_proof.root != expected {
-        //             return Err(SdkError::Verification(
-        //                 "mmr root mismatch (poseidon)".into(),
-        //             ));
-        //         }
-        //     }
-        // }
+    pub async fn verify_header_proof(proof: &ExecutionHeaderProof, root: String) -> SdkResult<ExecutionHeader> {
+        
+        if proof.mmr_proof.root != root {
+            return Err(SdkError::Verification(format!("mmr root mismatch! {} != {}", proof.mmr_proof.root, root)));
+        }
 
         // Verify the mmr proof
         let mmr_proof_valid = BankaiMmr::verify_mmr_proof(proof.mmr_proof.clone())
@@ -51,6 +33,38 @@ impl ExecutionVerifier {
             return Err(SdkError::Verification("header hash mismatch".into()));
         }
 
-        Ok(proof.header.clone())
+        Ok(proof.header.clone().inner)
+    }
+
+    pub async fn verify_account_proof(
+        account_proof: &AccountProof,
+        headers: &[ExecutionHeaderProof],
+    ) -> SdkResult<Account> {
+        // Find the matching verified header by block number
+        let header = headers
+            .iter()
+            .find(|h| h.header.number == account_proof.block_number)
+            .ok_or_else(|| SdkError::Verification("no matching execution header for account".into()))?;
+
+        // Confirm the state root matches
+        if header.header.state_root != account_proof.state_root {
+            return Err(SdkError::Verification("state root mismatch".into()));
+        }
+
+        let expected_value = rlp_encode(account_proof.account).to_vec();
+
+        // Compute the key: keccak(address) as nibbles
+        let key = Nibbles::unpack(keccak256(account_proof.address));
+
+        // Verify MPT proof against the state root
+        mpt_verify(
+            header.header.state_root,
+            key,
+            Some(expected_value),
+            account_proof.mpt_proof.iter(),
+        )
+        .map_err(|e| SdkError::Verification(format!("mpt verify error: {e}")))?;
+
+        Ok(account_proof.account)
     }
 }

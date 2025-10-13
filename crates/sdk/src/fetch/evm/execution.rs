@@ -50,6 +50,17 @@ impl ExecutionChainFetcher {
         })
     }
 
+    pub async fn header_only(&self, block_number: u64) -> SdkResult<ExecutionHeader> {
+        let header = ExecutionFetcher::new(self.rpc_url.clone())
+            .fetch_header(block_number)
+            .await?;
+        Ok(header)
+    }
+
+    pub fn network_id(&self) -> u64 {
+        self.network_id
+    }
+
     pub async fn account(
         &self,
         block_number: u64,

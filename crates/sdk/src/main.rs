@@ -1,4 +1,5 @@
-use bankai_sdk::{errors::SdkError, Bankai};
+use alloy_primitives::Address;
+use bankai_sdk::{errors::SdkError, verify::batch::verify_wrapper, Bankai};
 use bankai_types::api::proofs::HashingFunctionDto;
 use dotenv::from_filename;
 
@@ -8,34 +9,23 @@ async fn main() -> Result<(), SdkError> {
 
     let exec_rpc = std::env::var("EXECUTION_RPC").ok();
     let beacon_rpc = std::env::var("BEACON_RPC").ok();
-
     let bankai = Bankai::new(exec_rpc.clone(), beacon_rpc.clone());
 
     let bankai_block_number = 11260u64;
     let exec_block_number = 9231247u64;
     let beacon_slot = 8551383u64;
 
-    if exec_rpc.is_some() {
-        let exec = bankai.evm.execution()?;
-        let proof = exec
-            .header(
-                exec_block_number,
-                HashingFunctionDto::Keccak,
-                bankai_block_number,
-            )
-            .await?;
-        let header = bankai.verify.evm_execution_header(&proof).await?;
-        println!("Verfied Execution header: {:?}", header);
-    }
+    // Build a single batch containing: beacon header, execution header, and account proof
+    let proof_wrapper = bankai
+        .init_batch(bankai_block_number, HashingFunctionDto::Poseidon)
+        .evm_beacon_header(0, beacon_slot) // beacon network id 0
+        .evm_execution_header(1, exec_block_number) // execution network id 1
+        .evm_account(1, exec_block_number, Address::ZERO)
+        .execute()
+        .await?;
 
-    if beacon_rpc.is_some() {
-        let beacon = bankai.evm.beacon()?;
-        let proof = beacon
-            .header(beacon_slot, HashingFunctionDto::Keccak, bankai_block_number)
-            .await?;
-        let header = bankai.verify.evm_beacon_header(&proof).await?;
-        println!("Verfied Beacon header: {:?}", header);
-    }
+    let valid_data = verify_wrapper(&proof_wrapper).await?;
+    println!("valid data: {:#?}", valid_data);
 
     Ok(())
 }
