@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use alloy_primitives::FixedBytes;
 use alloy_primitives::{hex::ToHexExt, Address};
-use alloy_rpc_types::{Account as AlloyAccount, Header as ExecutionHeader};
+use alloy_rpc_types_eth::{Account as AlloyAccount, Header as ExecutionHeader};
 
 use bankai_types::api::proofs::HashingFunctionDto;
 use bankai_types::api::proofs::{HeaderRequestDto, LightClientProofRequestDto};

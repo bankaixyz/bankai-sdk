@@ -6,7 +6,7 @@ use crate::proofs::MmrProofDto;
 use alloy_primitives::{Address, Bytes, FixedBytes};
 
 #[cfg(feature = "verifier-types")]
-use alloy_rpc_types::{Account, Header as ExecutionHeader};
+use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
 
 #[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]

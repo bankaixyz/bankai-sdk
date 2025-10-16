@@ -12,13 +12,15 @@ stwo = { workspace = true, default-features = false }
 starknet-crypto = { workspace = true, default-features = false }
 tree_hash = { workspace = true, default-features = false }
 tree_hash_derive = { workspace = true, default-features = false }
+ethereum_hashing = { workspace = true, default-features = false, features = ["portable"] }
 
 # Optional dependencies for API/services
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 utoipa = { workspace = true, optional = true }
-alloy-rpc-types = { workspace = true, optional = true }
-alloy-rpc-types-beacon = { workspace = true, optional = true }
+
+alloy-rpc-types-eth = { workspace = true, default-features = false, optional = true }
+alloy-rpc-types-beacon = { workspace = true, default-features = false, optional = true }
 
 [features]
 default = ["api", "serde", "std"]
@@ -33,6 +35,6 @@ api = ["serde", "serde_json", "utoipa"]
 # Minimal verifier types with serde support
 verifier-types = [
     "serde",
-    "alloy-rpc-types",
+    "alloy-rpc-types-eth",
     "alloy-rpc-types-beacon",
 ]

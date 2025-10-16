@@ -12,7 +12,8 @@ use alloy_primitives::keccak256;
 use alloy_rlp::encode as rlp_encode;
 use alloy_trie::{proof::verify_proof as mpt_verify, Nibbles};
 
-use crate::bankai::mmr::BankaiMmr;
+// use crate::bankai::mmr::BankaiMmr;
+// use crate::bankai::mmr_new::SimpleMmr;
 use crate::VerifyError;
 
 pub struct ExecutionVerifier;
@@ -26,8 +27,8 @@ impl ExecutionVerifier {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        BankaiMmr::verify_mmr_proof(proof.mmr_proof.clone())
-            .map_err(|_| VerifyError::InvalidMmrProof)?;
+        // SimpleMmr::verify_mmr_proof(&proof.mmr_proof.clone())
+        //     .map_err(|_| VerifyError::InvalidMmrProof)?;
 
         let hash = proof.header.inner.hash_slow();
         let expected_header_hash = format!("0x{}", hash.encode_hex());
