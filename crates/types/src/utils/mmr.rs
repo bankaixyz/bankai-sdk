@@ -1,3 +1,8 @@
+//! MMR (Merkle Mountain Range) utility functions
+//!
+//! This module provides utilities for working with Merkle Mountain Ranges,
+//! including hashing functions for both Keccak and Poseidon.
+
 extern crate alloc;
 use alloy_primitives::FixedBytes;
 use alloy_primitives::keccak256;
@@ -5,6 +10,19 @@ use starknet_crypto::{Felt, poseidon_hash};
 
 use crate::proofs::HashingFunctionDto;
 
+/// Converts a header hash into an MMR leaf hash
+///
+/// Takes a header hash and applies the specified hashing function to create
+/// an MMR leaf. This is the first step in creating MMR commitments.
+///
+/// # Arguments
+///
+/// * `hash` - The header hash to convert
+/// * `hashing_function` - Which hash function to use (Keccak or Poseidon)
+///
+/// # Returns
+///
+/// The hashed leaf value suitable for MMR insertion
 pub fn hash_to_leaf(hash: FixedBytes<32>, hashing_function: &HashingFunctionDto) -> FixedBytes<32> {
     match hashing_function {
         HashingFunctionDto::Keccak => {

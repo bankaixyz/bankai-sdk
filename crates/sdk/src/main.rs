@@ -1,6 +1,6 @@
 use alloy_primitives::{hex::FromHex, Address, FixedBytes};
 use bankai_sdk::{errors::SdkError, Bankai, Network};
-use bankai_verify::batch::verify_batch_proof;
+use bankai_verify::verify_batch_proof;
 
 use bankai_types::proofs::HashingFunctionDto;
 use dotenv::from_filename;
@@ -13,18 +13,12 @@ async fn main() -> Result<(), SdkError> {
     let beacon_rpc = std::env::var("BEACON_RPC").ok();
     let bankai = Bankai::new(Network::Sepolia, exec_rpc.clone(), beacon_rpc.clone());
 
-    let bankai_block_number = 16501;
-    let exec_block_number = 9231247u64;
-    let beacon_slot = 8551383u64;
-
-    // Build a single batch containing: beacon header, execution header, and account proof
-    // Network IDs are now automatic: beacon=0, execution=1
     let proof_batch = bankai
-        .init_batch(None, HashingFunctionDto::Poseidon)
+        .init_batch(Network::Sepolia, None, HashingFunctionDto::Poseidon)
         .await?
-        .evm_beacon_header(beacon_slot)
-        .evm_execution_header(exec_block_number)
-        .evm_account(exec_block_number, Address::ZERO)
+        .evm_beacon_header(8551383)
+        .evm_execution_header(9231247)
+        .evm_account(9231247, Address::ZERO)
         .evm_tx(
             FixedBytes::from_hex(
                 "0x501b7c72c1e5f14f02e1a58a7264e18f5e26a793d42e4e802544e6629764f58c",

@@ -13,6 +13,33 @@ use crate::Network;
 /// This client provides access to the Bankai proof generation service, which generates
 /// STWO zero-knowledge proofs containing MMRs of blockchain headers. These proofs enable
 /// trustless verification of blockchain data.
+///
+/// # Available Operations
+///
+/// - **Light Client Proofs**: Fetch complete proof bundles with STWO proof + multiple MMR proofs
+/// - **Block Proofs**: Fetch just the STWO proof for a Bankai block
+/// - **MMR Proofs**: Fetch individual MMR proofs for specific headers
+/// - **Block Queries**: Query latest block numbers and block metadata
+///
+/// # Example
+///
+/// ```no_run
+/// use bankai_sdk::{ApiClient, Network};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     let api = ApiClient::new(Network::Sepolia);
+///     
+///     // Get latest block
+///     let latest = api.get_latest_block_number().await?;
+///     println!("Latest block: {}", latest);
+///     
+///     // Get block proof
+///     let block_proof = api.get_block_proof(latest).await?;
+///     
+///     Ok(())
+/// }
+/// ```
 #[derive(Clone)]
 pub struct ApiClient {
     client: reqwest::Client,
@@ -112,8 +139,8 @@ impl ApiClient {
     /// # Arguments
     ///
     /// * `request` - The MMR proof request specifying:
-    ///   - `network_id`: The blockchain network ID
-    ///   - `block_number`: The Bankai block number containing the MMR
+    ///   - `network_id`: The blockchain network ID (0 = beacon, 1 = execution)
+    ///   - `block_number`: The block number of the header
     ///   - `hashing_function`: The hash function to use
     ///   - `header_hash`: The header hash to generate a proof for
     ///

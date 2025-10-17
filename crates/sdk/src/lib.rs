@@ -19,6 +19,8 @@
 //!
 //! # Examples
 //!
+//! ## Batch Operations (Recommended)
+//!
 //! ```no_run
 //! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
 //!
@@ -30,17 +32,89 @@
 //!         Some("https://sepolia.beacon.api".to_string())
 //!     );
 //!     
-//!     // Fetch execution header with MMR proof for decommitment
-//!     let header_proof = sdk.evm.execution()?
-//!         .header(12345, HashingFunctionDto::Keccak, 100).await?;
-//!     
-//!     // Or use batch operations for efficiency (network IDs are automatic)
-//!     let batch = sdk.init_batch(None, HashingFunctionDto::Keccak)
+//!     // Batch multiple proofs together (network IDs are automatic)
+//!     let batch = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
 //!         .await?
-//!         .evm_execution_header(9231247)  // No network_id needed!
-//!         .evm_beacon_header(8551383)     // No network_id needed!
+//!         .evm_execution_header(9231247)
+//!         .evm_beacon_header(8551383)
 //!         .execute()
 //!         .await?;
+//!     
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Fetch Block Proof Only
+//!
+//! ```no_run
+//! use bankai_sdk::{Bankai, Network};
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let sdk = Bankai::new(Network::Sepolia, None, None);
+//!     
+//!     // Fetch just the STWO block proof for a specific Bankai block
+//!     let block_proof = sdk.api.get_block_proof(12345).await?;
+//!     
+//!     // Deserialize and verify using bankai-verify
+//!     // let bankai_block = verify_stwo_proof(&block_proof.proof)?;
+//!     
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Fetch MMR Proofs
+//!
+//! ```no_run
+//! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
+//! use bankai_types::proofs::MmrProofRequestDto;
+//! use alloy_primitives::FixedBytes;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let sdk = Bankai::new(Network::Sepolia, None, None);
+//!     
+//!     let header_hash = FixedBytes::from([0u8; 32]);
+//!     
+//!     // Fetch an MMR proof for a specific header
+//!     let request = MmrProofRequestDto {
+//!         network_id: 1,  // 1 = execution layer
+//!         block_number: 9231247,
+//!         hashing_function: HashingFunctionDto::Keccak,
+//!         header_hash: format!("{:?}", header_hash),
+//!     };
+//!     let mmr_proof = sdk.api.get_mmr_proof(&request).await?;
+//!     
+//!     // Verify against a trusted MMR root
+//!     // let verified_hash = verify_mmr_proof(&mmr_proof, trusted_mmr_root)?;
+//!     
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Fetch Individual Header Proofs
+//!
+//! ```no_run
+//! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let sdk = Bankai::new(
+//!         Network::Sepolia,
+//!         Some("https://eth-sepolia.rpc".to_string()),
+//!         None
+//!     );
+//!     
+//!     // Fetch execution header with MMR proof for decommitment
+//!     let header_proof = sdk.evm.execution()?
+//!         .header(9231247, HashingFunctionDto::Keccak, 12345).await?;
+//!     
+//!     // The header_proof contains:
+//!     // - The header data
+//!     // - MMR proof for verifying the header against a Bankai block
+//!     
+//!     // Verify the header
+//!     // let verified_header = ExecutionVerifier::verify_header_proof(&header_proof, mmr_root)?;
 //!     
 //!     Ok(())
 //! }
@@ -147,7 +221,7 @@ pub mod batch {
     //! # use bankai_sdk::{Bankai, Network, HashingFunctionDto};
     //! # async fn example(sdk: Bankai) -> Result<(), Box<dyn std::error::Error>> {
     //! // Use latest block automatically, network IDs are automatic
-    //! let batch = sdk.init_batch(None, HashingFunctionDto::Keccak)
+    //! let batch = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
     //!     .await?
     //!     .evm_execution_header(9231247)
     //!     .evm_beacon_header(8551383)
@@ -260,6 +334,7 @@ impl Bankai {
     ///
     /// # Arguments
     ///
+    /// * `network` - The blockchain network for this batch (e.g., `Network::Sepolia`)
     /// * `bankai_block_number` - Optional Bankai block number to anchor proofs to.
     ///   If `None`, automatically fetches and uses the latest block number from the API.
     /// * `hashing` - The hashing function to use for MMR proofs (Keccak, Poseidon, or Blake3)
@@ -274,6 +349,7 @@ impl Bankai {
     /// Returns an error if `bankai_block_number` is `None` and fetching the latest block fails.
     pub async fn init_batch(
         &self,
+        network: Network,
         bankai_block_number: Option<u64>,
         hashing: HashingFunctionDto,
     ) -> SdkResult<batch::ProofBatchBuilder> {
@@ -281,7 +357,12 @@ impl Bankai {
             Some(bn) => bn,
             None => self.api.get_latest_block_number().await?,
         };
-        Ok(batch::ProofBatchBuilder::new(self, block_number, hashing))
+        Ok(batch::ProofBatchBuilder::new(
+            self,
+            network,
+            block_number,
+            hashing,
+        ))
     }
 }
 

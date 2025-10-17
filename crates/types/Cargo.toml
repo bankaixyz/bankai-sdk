@@ -23,18 +23,17 @@ alloy-rpc-types-eth = { workspace = true, default-features = false, optional = t
 alloy-rpc-types-beacon = { workspace = true, default-features = false, optional = true }
 
 [features]
-default = ["api", "serde", "std"]
+default = ["std"]
+
 # Standard library support
 std = [
     "alloy-primitives/std",
     "alloy-consensus/std",
     "starknet-crypto/std",
 ]
-# API types with serde support (for services)
-api = ["serde", "serde_json", "utoipa"]
-# Minimal verifier types with serde support
-verifier-types = [
-    "serde",
-    "alloy-rpc-types-eth",
-    "alloy-rpc-types-beacon",
-]
+
+# API types (requires std)
+api = ["std", "serde", "serde_json", "utoipa"]
+
+# Verifier types for proof handling
+verifier-types = ["serde", "alloy-rpc-types-eth", "alloy-rpc-types-beacon"]

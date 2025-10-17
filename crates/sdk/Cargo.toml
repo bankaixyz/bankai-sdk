@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bankai-types = { path = "../types" }
+bankai-types = { path = "../types", features = ["api", "verifier-types"] }
 bankai-verify = { path = "../verify" }
 reqwest.workspace = true
 tokio.workspace = true

@@ -27,10 +27,8 @@ anyhow = "1.0.86"
 dotenv = { version = "0.15" }
 tree_hash = { version = "0.11.0", default-features = false }
 tree_hash_derive = { version = "0.11.0", default-features = false }
-ethereum_hashing = { git = "https://github.com/bankaixyz/ethereum_hashing", rev = "c457c3e927cc146d7bc91e944cf6d9c55b05d45e", default-features = false, features = ["portable"] }
 
 
-#cairo-air = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "89ca0d2787166d9d166e5074bd1bb30825b372e2", default-features = false }
 cairo-air = { git = "https://github.com/bankaixyz/stwo-cairo", rev = "e2d4a10bcd1613a185cabdd0d340992c969cf639", default-features = false }
 stwo-cairo-serialize = { git = "https://github.com/bankaixyz/stwo-cairo", rev = "e2d4a10bcd1613a185cabdd0d340992c969cf639" }
 
@@ -38,8 +36,11 @@ stwo = { git = "https://github.com/starkware-libs/stwo", rev = "d9176e6e22319370
     "parallel",
     "prover",
 ], default-features = false }
-accumulators = { git = "https://github.com/bankaixyz/mmr-accumulator", rev = "5b12fa8", default-features = false, features = ["sync", "mmr", "memory", "keccak"] }
 starknet-crypto = { version = "0.8.0", default-features = false }
+
+
+ethereum_hashing = { git = "https://github.com/bankaixyz/ethereum_hashing", rev = "c457c3e927cc146d7bc91e944cf6d9c55b05d45e", default-features = false, features = ["portable"] }
+accumulators = { git = "https://github.com/bankaixyz/mmr-accumulator", rev = "5b12fa8" }
 
 [patch.crates-io]
 ethereum_hashing = { git = "https://github.com/bankaixyz/ethereum_hashing", rev = "c457c3e927cc146d7bc91e944cf6d9c55b05d45e" }
