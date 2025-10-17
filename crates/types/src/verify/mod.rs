@@ -2,7 +2,7 @@ use crate::verify::evm::EvmResults;
 
 pub mod evm;
 
-#[derive(Debug)]
+#[cfg_attr(feature = "std", derive(Debug))]
 pub struct BatchResults {
     pub evm: EvmResults,
 }

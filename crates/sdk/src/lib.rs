@@ -10,7 +10,6 @@ pub use bankai_types::verify::evm::beacon::BeaconHeader;
 
 pub mod errors;
 pub mod fetch;
-pub mod verify;
 
 pub struct EvmNamespace {
     execution: Option<ExecutionChainFetcher>,

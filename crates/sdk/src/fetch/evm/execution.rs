@@ -1,6 +1,6 @@
 use alloy_primitives::{Address, FixedBytes};
-use alloy_rpc_types::EIP1186AccountProofResponse;
-pub use alloy_rpc_types::Header as ExecutionHeader;
+use alloy_rpc_types_eth::EIP1186AccountProofResponse;
+pub use alloy_rpc_types_eth::Header as ExecutionHeader;
 use bankai_types::api::proofs::{HashingFunctionDto, MmrProofRequestDto};
 
 use crate::errors::SdkResult;
@@ -44,7 +44,7 @@ impl ExecutionChainFetcher {
             },
         )
         .await?;
-        Ok(ExecutionHeaderProof { header, mmr_proof })
+        Ok(ExecutionHeaderProof { header, mmr_proof: mmr_proof.into() })
     }
 
     pub async fn header_only(&self, block_number: u64) -> SdkResult<ExecutionHeader> {

@@ -1,3 +1,4 @@
+use bankai_types::api::blocks::BlockSummaryDto;
 use bankai_types::api::error::ErrorResponse;
 use bankai_types::api::proofs::{
     BankaiBlockProofDto, LightClientProofDto, LightClientProofRequestDto, MmrProofDto,
@@ -64,5 +65,13 @@ impl ApiClient {
         let url = format!("{}/v1/proofs/mmr", self.base_url);
         let response = self.client.post(&url).json(request).send().await?;
         self.handle_response(response).await
+    }
+
+    pub async fn get_latest_block_number(&self) -> SdkResult<u64> {
+        let url = format!("{}/v1/blocks/latest", self.base_url);
+        let response = self.client.get(&url).send().await?;
+
+        let block_summary: BlockSummaryDto = self.handle_response(response).await?;
+        Ok(block_summary.height)
     }
 }

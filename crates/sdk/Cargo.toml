@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bankai-types = { path = "../types" }
+bankai-verify = { path = "../verify" }
 reqwest.workspace = true
 tokio.workspace = true
 serde.workspace = true
@@ -17,12 +18,13 @@ accumulators.workspace = true
 url.workspace = true
 alloy-primitives.workspace = true
 alloy-provider.workspace = true
-alloy-rpc-types.workspace = true
+alloy-rpc-types-eth.workspace = true
 alloy-rpc-types-beacon.workspace = true
 alloy-trie = { workspace = true, features = ["ethereum"] }
 alloy-rlp.workspace = true
 dotenv.workspace = true
 tree_hash.workspace = true
+ethereum_hashing = { workspace = true, features = ["portable"] }
 stwo-cairo-serialize.workspace = true
 starknet-ff = "0.3.7"
 eth-trie-proofs.workspace = true

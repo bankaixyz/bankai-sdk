@@ -4,15 +4,37 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-serde.workspace = true
-serde_json.workspace = true
-utoipa.workspace = true
-alloy-primitives.workspace = true
-alloy-rpc-types.workspace = true
-alloy-rpc-types-beacon.workspace = true
-alloy-consensus.workspace = true
-cairo-air.workspace = true
-stwo.workspace = true
-starknet-crypto.workspace = true
-tree_hash.workspace = true
-tree_hash_derive.workspace = true
+# Core dependencies (always available)
+alloy-primitives = { workspace = true, default-features = false }
+alloy-consensus = { workspace = true, default-features = false }
+cairo-air = { workspace = true, default-features = false }
+stwo = { workspace = true, default-features = false }
+starknet-crypto = { workspace = true, default-features = false }
+tree_hash = { workspace = true, default-features = false }
+tree_hash_derive = { workspace = true, default-features = false }
+ethereum_hashing = { workspace = true, default-features = false, features = ["portable"] }
+
+# Optional dependencies for API/services
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+utoipa = { workspace = true, optional = true }
+
+alloy-rpc-types-eth = { workspace = true, default-features = false, optional = true }
+alloy-rpc-types-beacon = { workspace = true, default-features = false, optional = true }
+
+[features]
+default = ["api", "serde", "std"]
+# Standard library support
+std = [
+    "alloy-primitives/std",
+    "alloy-consensus/std",
+    "starknet-crypto/std",
+]
+# API types with serde support (for services)
+api = ["serde", "serde_json", "utoipa"]
+# Minimal verifier types with serde support
+verifier-types = [
+    "serde",
+    "alloy-rpc-types-eth",
+    "alloy-rpc-types-beacon",
+]

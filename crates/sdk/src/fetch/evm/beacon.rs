@@ -45,7 +45,7 @@ impl BeaconChainFetcher {
             },
         )
         .await?;
-        Ok(BeaconHeaderProof { header, mmr_proof })
+        Ok(BeaconHeaderProof { header, mmr_proof: mmr_proof.into() })
     }
 
     pub async fn header_only(&self, slot: u64) -> SdkResult<BeaconHeader> {

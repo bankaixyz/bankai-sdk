@@ -1,6 +1,8 @@
 use alloy_primitives::{hex::FromHex, Address, FixedBytes};
-use bankai_sdk::{errors::SdkError, verify::batch::verify_batch_proof, Bankai};
-use bankai_types::api::proofs::HashingFunctionDto;
+use bankai_sdk::{errors::SdkError, Bankai};
+use bankai_verify::batch::verify_batch_proof;
+
+use bankai_types::proofs::HashingFunctionDto;
 use dotenv::from_filename;
 
 #[tokio::main]
@@ -11,13 +13,13 @@ async fn main() -> Result<(), SdkError> {
     let beacon_rpc = std::env::var("BEACON_RPC").ok();
     let bankai = Bankai::new(exec_rpc.clone(), beacon_rpc.clone());
 
-    let bankai_block_number = 11260u64;
+    let bankai_block_number = 16501;
     let exec_block_number = 9231247u64;
     let beacon_slot = 8551383u64;
 
     // Build a single batch containing: beacon header, execution header, and account proof
     let proof_batch = bankai
-        .init_batch(bankai_block_number, HashingFunctionDto::Keccak)
+        .init_batch(bankai_block_number, HashingFunctionDto::Poseidon)
         .evm_beacon_header(0, beacon_slot) // beacon network id 0
         .evm_execution_header(1, exec_block_number) // execution network id 1
         .evm_account(1, exec_block_number, Address::ZERO)
@@ -45,7 +47,7 @@ async fn main() -> Result<(), SdkError> {
         .execute()
         .await?;
 
-    let valid_data = verify_batch_proof(&proof_batch).await?;
+    let valid_data = verify_batch_proof(&proof_batch)?;
     println!("valid data: {valid_data:#?}");
 
     Ok(())

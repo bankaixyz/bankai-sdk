@@ -1,7 +1,9 @@
-use crate::{api::proofs::MmrProofDto, verify::evm::beacon::BeaconHeader};
+use crate::{fetch::evm::MmrProof, verify::evm::beacon::BeaconHeader};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[cfg_attr(any(feature = "verifier-types", feature = "std"), derive(Debug, Clone))]
+#[derive(Serialize, Deserialize)]
 pub struct BeaconHeaderProof {
     pub header: BeaconHeader,
-    pub mmr_proof: MmrProofDto,
+    pub mmr_proof: MmrProof,
 }

@@ -1,22 +1,20 @@
 use alloy_primitives::FixedBytes;
-use alloy_rpc_types_beacon::header::HeaderResponse;
+use serde::{Deserialize, Serialize};
 use tree_hash_derive::TreeHash;
 
-/// Represents a beacon chain block header
-#[derive(TreeHash, Clone, Debug)]
+#[cfg(feature = "verifier-types")]
+use alloy_rpc_types_beacon::header::HeaderResponse;
+
+#[derive(TreeHash, Clone, Debug, Serialize, Deserialize)]
 pub struct BeaconHeader {
-    /// Slot number of the block
     pub slot: u64,
-    /// Index of the block proposer
     pub proposer_index: u64,
-    /// Root hash of the parent block
     pub parent_root: FixedBytes<32>,
-    /// Root hash of the state
     pub state_root: FixedBytes<32>,
-    /// Root hash of the block body
     pub body_root: FixedBytes<32>,
 }
 
+#[cfg(feature = "verifier-types")]
 impl From<HeaderResponse> for BeaconHeader {
     fn from(header: HeaderResponse) -> Self {
         Self {
