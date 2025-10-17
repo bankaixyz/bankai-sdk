@@ -124,8 +124,8 @@ pub mod errors;
 
 // Re-export common types from bankai_types
 pub use bankai_types::api::proofs::HashingFunctionDto;
-pub use bankai_types::verify::evm::beacon::BeaconHeader;
 pub use bankai_types::fetch::ProofWrapper;
+pub use bankai_types::verify::evm::beacon::BeaconHeader;
 
 // ============================================================================
 // Network Configuration
@@ -176,23 +176,24 @@ impl Network {
 pub use crate::fetch::clients::bankai_api::ApiClient;
 
 /// EVM-related functionality for fetching blockchain data with MMR proofs
+///
+/// EVM chain data fetching with MMR proofs for header decommitment
+///
+/// This module provides fetchers that retrieve blockchain headers along with MMR proofs.
+/// These MMR proofs enable decommitment of headers from the STWO block proofs, establishing
+/// trust in the header data without syncing the full chain.
+///
+/// ## Available Fetchers
+///
+/// - **Execution Layer** (`ExecutionChainFetcher`): Fetch execution headers, accounts, and transactions
+///   with MMR proofs for decommitment from the STWO proof's execution MMR
+/// - **Beacon Chain** (`BeaconChainFetcher`): Fetch consensus layer headers with MMR proofs for
+///   decommitment from the STWO proof's beacon MMR
 pub mod evm {
-    //! EVM chain data fetching with MMR proofs for header decommitment
-    //!
-    //! This module provides fetchers that retrieve blockchain headers along with MMR proofs.
-    //! These MMR proofs enable decommitment of headers from the STWO block proofs, establishing
-    //! trust in the header data without syncing the full chain.
-    //!
-    //! ## Available Fetchers
-    //!
-    //! - **Execution Layer** (`ExecutionChainFetcher`): Fetch execution headers, accounts, and transactions
-    //!   with MMR proofs for decommitment from the STWO proof's execution MMR
-    //! - **Beacon Chain** (`BeaconChainFetcher`): Fetch consensus layer headers with MMR proofs for
-    //!   decommitment from the STWO proof's beacon MMR
-    
+
     pub use crate::fetch::evm::beacon::BeaconChainFetcher;
     pub use crate::fetch::evm::execution::ExecutionChainFetcher;
-    
+
     // Re-export common EVM types
     pub use bankai_types::fetch::evm::{
         beacon::BeaconHeaderProof,
@@ -201,36 +202,37 @@ pub mod evm {
 }
 
 /// Batch proof generation for efficient multi-proof operations
+///
+/// Efficiently batch multiple proof requests into a single STWO proof
+///
+/// The batch builder combines multiple proof requests (headers, accounts, transactions)
+/// into a single optimized request. All proofs share the same STWO block proof and
+/// are anchored to the same Bankai block number, making verification more efficient.
+///
+/// Each proof in the batch uses MMR proofs to decommit headers from the STWO proof's MMRs,
+/// enabling verification of all requested data through a single block proof.
+///
+/// Network IDs are automatically determined from the SDK's configured network:
+/// - Beacon chain: network_id = 0
+/// - Execution layer: network_id = 1
+///
+/// # Example
+///
+/// ```no_run
+/// # use bankai_sdk::{Bankai, Network, HashingFunctionDto};
+/// # async fn example(sdk: Bankai) -> Result<(), Box<dyn std::error::Error>> {
+/// // Use latest block automatically, network IDs are automatic
+/// let batch = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
+///     .await?
+///     .evm_execution_header(9231247)
+///     .evm_beacon_header(8551383)
+///     .execute()
+///     .await?;
+/// # Ok(())
+/// # }
+/// ```
 pub mod batch {
-    //! Efficiently batch multiple proof requests into a single STWO proof
-    //!
-    //! The batch builder combines multiple proof requests (headers, accounts, transactions)
-    //! into a single optimized request. All proofs share the same STWO block proof and
-    //! are anchored to the same Bankai block number, making verification more efficient.
-    //!
-    //! Each proof in the batch uses MMR proofs to decommit headers from the STWO proof's MMRs,
-    //! enabling verification of all requested data through a single block proof.
-    //!
-    //! Network IDs are automatically determined from the SDK's configured network:
-    //! - Beacon chain: network_id = 0
-    //! - Execution layer: network_id = 1
-    //!
-    //! # Example
-    //!
-    //! ```no_run
-    //! # use bankai_sdk::{Bankai, Network, HashingFunctionDto};
-    //! # async fn example(sdk: Bankai) -> Result<(), Box<dyn std::error::Error>> {
-    //! // Use latest block automatically, network IDs are automatic
-    //! let batch = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
-    //!     .await?
-    //!     .evm_execution_header(9231247)
-    //!     .evm_beacon_header(8551383)
-    //!     .execute()
-    //!     .await?;
-    //! # Ok(())
-    //! # }
-    //! ```
-    
+
     pub use crate::fetch::batch::ProofBatchBuilder;
 }
 

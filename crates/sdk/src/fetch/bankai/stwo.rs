@@ -24,6 +24,7 @@ pub fn parse_block_proof_value(
     }
 }
 
+#[allow(dead_code)]
 pub async fn fetch_block_proof(
     client: &ApiClient,
     block_number: u64,

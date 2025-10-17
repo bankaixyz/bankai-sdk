@@ -190,7 +190,7 @@ pub mod evm;
 pub use crate::batch::verify_batch_proof;
 
 // Re-export common types from bankai_types for convenience
-pub use bankai_types::verify::{BatchResults, evm::EvmResults};
+pub use bankai_types::verify::{evm::EvmResults, BatchResults};
 
 // ============================================================================
 // Error Types
@@ -205,34 +205,34 @@ pub use bankai_types::verify::{BatchResults, evm::EvmResults};
 pub enum VerifyError {
     /// The STWO zero-knowledge proof is invalid or malformed
     InvalidStwoProof,
-    
+
     /// An MMR inclusion proof failed verification
     InvalidMmrProof,
-    
+
     /// The MMR tree structure is invalid
     InvalidMmrTree,
-    
+
     /// The MMR root in the proof doesn't match the expected root from the STWO proof
     InvalidMmrRoot,
-    
+
     /// The header hash doesn't match the committed value in the MMR
     InvalidHeaderHash,
-    
+
     /// A transaction Merkle proof failed verification against the header's transactions root
     InvalidTxProof,
-    
+
     /// An account Merkle proof failed verification against the header's state root
     InvalidAccountProof,
-    
+
     /// Referenced execution header not found in the verified headers list
     InvalidExecutionHeaderProof,
-    
+
     /// The state root in the account proof doesn't match the header's state root
     InvalidStateRoot,
-    
+
     /// A Merkle Patricia Trie proof verification failed
     InvalidMptProof,
-    
+
     /// Failed to decode RLP-encoded data
     InvalidRlpDecode,
 }

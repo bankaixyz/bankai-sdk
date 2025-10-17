@@ -26,8 +26,8 @@ use crate::proofs::HashingFunctionDto;
 pub fn hash_to_leaf(hash: FixedBytes<32>, hashing_function: &HashingFunctionDto) -> FixedBytes<32> {
     match hashing_function {
         HashingFunctionDto::Keccak => {
-            let hashed_root = keccak256(hash.as_slice());
-            hashed_root
+            
+            keccak256(hash.as_slice())
         }
         HashingFunctionDto::Poseidon => {
             let root_bytes = hash.as_slice();
