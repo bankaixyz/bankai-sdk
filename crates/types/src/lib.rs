@@ -58,7 +58,8 @@ pub mod block;
 /// Proof fetching types
 ///
 /// Types used for fetching and wrapping proofs from the Bankai API,
-/// including EVM-specific proof structures.
+/// including EVM-specific proof structures. The main type is [`fetch::ProofWrapper`],
+/// which bundles together all proofs needed for batch verification.
 ///
 /// Requires the `verifier-types` feature flag.
 #[cfg(feature = "verifier-types")]
@@ -72,3 +73,7 @@ pub mod fetch;
 /// Requires the `verifier-types` feature flag.
 #[cfg(feature = "verifier-types")]
 pub mod verify;
+
+// Re-export commonly used types for easier access
+#[cfg(feature = "verifier-types")]
+pub use fetch::ProofWrapper;
