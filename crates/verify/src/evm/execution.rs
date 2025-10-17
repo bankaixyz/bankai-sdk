@@ -8,12 +8,13 @@ use bankai_types::fetch::evm::execution::{AccountProof, ExecutionHeaderProof, Tx
 use bankai_types::verify::evm::execution::{Account, ExecutionHeader, TxEnvelope};
 
 use alloy_primitives::hex::ToHexExt;
-use alloy_primitives::keccak256;
+use alloy_primitives::{keccak256, FixedBytes};
 use alloy_rlp::encode as rlp_encode;
 use alloy_trie::{proof::verify_proof as mpt_verify, Nibbles};
 
 // use crate::bankai::mmr::BankaiMmr;
 // use crate::bankai::mmr_new::SimpleMmr;
+use crate::bankai::mmr_new::CairoLikeMmr;
 use crate::VerifyError;
 
 pub struct ExecutionVerifier;
@@ -21,18 +22,17 @@ pub struct ExecutionVerifier;
 impl ExecutionVerifier {
     pub fn verify_header_proof(
         proof: &ExecutionHeaderProof,
-        root: String,
+        root: FixedBytes<32>,
     ) -> Result<ExecutionHeader, VerifyError> {
         if proof.mmr_proof.root != root {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        // SimpleMmr::verify_mmr_proof(&proof.mmr_proof.clone())
-        //     .map_err(|_| VerifyError::InvalidMmrProof)?;
+        CairoLikeMmr::verify_mmr_proof(&proof.mmr_proof.clone())
+            .map_err(|_| VerifyError::InvalidMmrProof)?;
 
         let hash = proof.header.inner.hash_slow();
-        let expected_header_hash = format!("0x{}", hash.encode_hex());
-        if expected_header_hash != proof.mmr_proof.header_hash {
+        if hash != proof.mmr_proof.header_hash {
             return Err(VerifyError::InvalidHeaderHash);
         }
 

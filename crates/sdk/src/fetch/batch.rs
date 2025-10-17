@@ -217,7 +217,7 @@ impl<'a> ProofBatchBuilder<'a> {
             })?;
             exec_header_proofs.push(ExecutionHeaderProof {
                 header: header.clone(),
-                mmr_proof: mmr.clone(),
+                mmr_proof: mmr.clone().into(),
             });
         }
 
@@ -230,7 +230,7 @@ impl<'a> ProofBatchBuilder<'a> {
                 .ok_or_else(|| SdkError::NotFound("missing MMR proof for beacon header".into()))?;
             beacon_header_proofs.push(BeaconHeaderProof {
                 header: header.clone(),
-                mmr_proof: mmr.clone(),
+                mmr_proof: mmr.clone().into(),
             });
         }
 

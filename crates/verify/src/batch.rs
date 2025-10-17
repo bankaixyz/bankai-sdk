@@ -18,21 +18,12 @@ pub fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, Verify
     let bankai_block = verify_stwo_proof(&wrapper.block_proof)?;
 
     let exec_root = match wrapper.hashing_function {
-        HashingFunctionDto::Keccak => {
-            format!("0x{}", bankai_block.execution.mmr_root_keccak.encode_hex())
-        }
-        HashingFunctionDto::Poseidon => format!(
-            "0x{}",
-            bankai_block.execution.mmr_root_poseidon.encode_hex()
-        ),
+        HashingFunctionDto::Keccak => bankai_block.execution.mmr_root_keccak.clone(),
+        HashingFunctionDto::Poseidon => bankai_block.execution.mmr_root_poseidon.clone(),
     };
     let beacon_root = match wrapper.hashing_function {
-        HashingFunctionDto::Keccak => {
-            format!("0x{}", bankai_block.beacon.mmr_root_keccak.encode_hex())
-        }
-        HashingFunctionDto::Poseidon => {
-            format!("0x{}", bankai_block.beacon.mmr_root_poseidon.encode_hex())
-        }
+        HashingFunctionDto::Keccak => bankai_block.beacon.mmr_root_keccak.clone(),
+        HashingFunctionDto::Poseidon => bankai_block.beacon.mmr_root_poseidon.clone(),
     };
 
     let mut batch_results = BatchResults {

@@ -2,7 +2,8 @@ extern crate alloc;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
-use crate::proofs::MmrProofDto;
+#[cfg(feature = "verifier-types")]
+use crate::fetch::evm::MmrProof;
 use alloy_primitives::{Address, Bytes, FixedBytes};
 
 #[cfg(feature = "verifier-types")]
@@ -13,7 +14,7 @@ use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ExecutionHeaderProof {
     pub header: ExecutionHeader,
-    pub mmr_proof: MmrProofDto,
+    pub mmr_proof: MmrProof,
 }
 
 #[cfg(feature = "verifier-types")]

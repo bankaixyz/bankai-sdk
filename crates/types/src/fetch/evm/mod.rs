@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use alloy_primitives::{Address, FixedBytes};
+use alloy_primitives::{hex::FromHex, Address, FixedBytes};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -9,7 +9,7 @@ use crate::{
         beacon::BeaconHeaderProof,
         execution::{AccountProof, ExecutionHeaderProof, TxProof},
     },
-    proofs::HashingFunctionDto,
+    proofs::{HashingFunctionDto, MmrProofDto},
 };
 
 pub mod beacon;
@@ -24,6 +24,36 @@ pub struct EvmProofs {
     pub tx_proof: Option<Vec<TxProof>>,
 }
 
+impl From<MmrProofDto> for MmrProof {
+    fn from(mmr_proof: MmrProofDto) -> Self {
+        MmrProof {
+            network_id: mmr_proof.network_id,
+            block_number: mmr_proof.block_number,
+            hashing_function: mmr_proof.hashing_function,
+            header_hash: FixedBytes::from_hex(mmr_proof.header_hash).unwrap(),
+            root: FixedBytes::from_hex(mmr_proof.root).unwrap(),
+            elements_index: mmr_proof.elements_index,
+            elements_count: mmr_proof.elements_count,
+            path: mmr_proof.path.iter().map(|h| FixedBytes::from_hex(h).unwrap()).collect(),
+            peaks: mmr_proof.peaks.iter().map(|h| FixedBytes::from_hex(h).unwrap()).collect(),
+        }
+    }
+}
+
+#[cfg(feature = "verifier-types")]
+#[cfg_attr(any(feature = "verifier-types", feature = "std"), derive(Debug))]
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MmrProof {
+    pub network_id: u64,
+    pub block_number: u64,
+    pub hashing_function: HashingFunctionDto,
+    pub header_hash: FixedBytes<32>,
+    pub root: FixedBytes<32>,
+    pub elements_index: u64,
+    pub elements_count: u64,
+    pub path: Vec<FixedBytes<32>>,
+    pub peaks: Vec<FixedBytes<32>>,
+}
 
 #[derive(Debug)]
 pub struct EvmProofsRequest {

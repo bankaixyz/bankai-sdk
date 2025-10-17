@@ -3,8 +3,7 @@ use alloc::vec::Vec;
 
 use alloy_primitives::{keccak256, B256, hex::FromHex};
 use bankai_types::{
-    proofs::{HashingFunctionDto, MmrProofDto},
-    utils::mmr::hash_to_leaf,
+    fetch::evm::MmrProof, proofs::{HashingFunctionDto, MmrProofDto}, utils::mmr::hash_to_leaf
 };
 use starknet_crypto::{Felt, poseidon_hash};
 
@@ -13,7 +12,7 @@ use crate::VerifyError;
 pub struct CairoLikeMmr;
 
 impl CairoLikeMmr {
-    pub fn verify_mmr_proof(proof: &MmrProofDto) -> Result<bool, VerifyError> {
+    pub fn verify_mmr_proof(proof: &MmrProof) -> Result<bool, VerifyError> {
         assert_mmr_size_is_valid(proof.elements_count as usize)?;
 
         let expected_peaks_len = compute_expected_peaks_len(proof.elements_count as usize)?;
@@ -26,10 +25,11 @@ impl CairoLikeMmr {
             HashingFunctionDto::Keccak => verify_keccak(proof),
             HashingFunctionDto::Poseidon => verify_poseidon(proof),
         }
+        // Ok(true)
     }
 }
 
-fn verify_keccak(proof: &MmrProofDto) -> Result<bool, VerifyError> {
+fn verify_keccak(proof: &MmrProof) -> Result<bool, VerifyError> {
     let elements_count = proof.elements_count as usize;
     let element_index = proof.elements_index as usize;
 
@@ -41,36 +41,24 @@ fn verify_keccak(proof: &MmrProofDto) -> Result<bool, VerifyError> {
     } else if !proof.path.is_empty() {
         return Err(VerifyError::InvalidMmrProof);
     }
-    let element_hash_hex = hash_to_leaf(proof.header_hash.clone(), &HashingFunctionDto::Keccak);
-    let leaf = parse_b256(&element_hash_hex).ok_or(VerifyError::InvalidHeaderHash)?;
-    let siblings: Vec<B256> = proof
-        .path
-        .iter()
-        .map(|h| parse_b256(h).ok_or(VerifyError::InvalidMmrProof))
-        .collect::<Result<_, _>>()?;
+    let leaf = hash_to_leaf(proof.header_hash.clone(), &HashingFunctionDto::Keccak);
 
     let computed_peak = if element_index == elements_count {
         leaf
     } else {
-        hash_subtree_path_keccak(leaf, 0, element_index, &siblings)
+        hash_subtree_path_keccak(leaf, 0, element_index, &proof.path)
     };
-
     println!("computed_peak: {}", computed_peak);
 
-    let peaks: Vec<B256> = proof
-        .peaks
-        .iter()
-        .map(|h| parse_b256(h).ok_or(VerifyError::InvalidMmrProof))
-        .collect::<Result<_, _>>()?;
-    println!("peaks: {:?}", peaks);
-    println!("peaks[peak_index]: {}", peaks[peak_index]);
+    
+    println!("peaks: {:?}", proof.peaks);
+    println!("peaks[peak_index]: {}", proof.peaks[peak_index]);
     println!("computed_peak: {}", computed_peak);
-    if peaks[peak_index] != computed_peak { return Err(VerifyError::InvalidMmrProof); }
+    if proof.peaks[peak_index] != computed_peak { return Err(VerifyError::InvalidMmrProof); }
 
-    let bag = bag_peaks_left_to_right_keccak(&peaks);
+    let bag = bag_peaks_left_to_right_keccak(&proof.peaks);
     let root = hash_mmr_root_keccak(elements_count as u128, &bag);
-    let expected_root = parse_b256(&proof.root).ok_or(VerifyError::InvalidMmrRoot)?;
-    if root != expected_root { return Err(VerifyError::InvalidMmrRoot); }
+    if root != proof.root { return Err(VerifyError::InvalidMmrRoot); }
     Ok(true)
 }
 
@@ -103,7 +91,7 @@ fn hash_subtree_path_poseidon(element: Felt, height: usize, position: usize, pat
 }
 
 
-fn verify_poseidon(proof: &MmrProofDto) -> Result<bool, VerifyError> {
+fn verify_poseidon(proof: &MmrProof) -> Result<bool, VerifyError> {
     let elements_count = proof.elements_count as usize;
     let element_index = proof.elements_index as usize;
 
@@ -116,16 +104,18 @@ fn verify_poseidon(proof: &MmrProofDto) -> Result<bool, VerifyError> {
         return Err(VerifyError::InvalidMmrProof);
     }
 
+    println!("peak_index: {}", peak_index);
     // Leaf as Felt using the same method as hash_to_leaf used for Poseidon in types
-    let leaf_hex = hash_to_leaf(proof.header_hash.clone(), &HashingFunctionDto::Poseidon);
-    let leaf_bytes = parse_b256(&leaf_hex).ok_or(VerifyError::InvalidHeaderHash)?;
+
+    
+    let leaf_bytes = hash_to_leaf(proof.header_hash.clone(), &HashingFunctionDto::Poseidon);
     let leaf = felt_from_b256(&leaf_bytes);
 
     let siblings: Vec<Felt> = proof
         .path
         .iter()
-        .map(|h| parse_b256(h).map(|b| felt_from_b256(&b)).ok_or(VerifyError::InvalidMmrProof))
-        .collect::<Result<_, _>>()?;
+        .map(|h| felt_from_b256(&h))
+        .collect::<Vec<Felt>>();
 
     let computed_peak = if element_index == elements_count {
         leaf
@@ -133,20 +123,23 @@ fn verify_poseidon(proof: &MmrProofDto) -> Result<bool, VerifyError> {
         hash_subtree_path_poseidon(leaf, 0, element_index, &siblings)
     };
 
+    println!("computed_peak: {}", computed_peak);
+
     let peaks: Vec<Felt> = proof
         .peaks
         .iter()
-        .map(|h| parse_b256(h).map(|b| felt_from_b256(&b)).ok_or(VerifyError::InvalidMmrProof))
-        .collect::<Result<_, _>>()?;
+        .map(|h| felt_from_b256(&h))
+        .collect::<Vec<Felt>>();
+    println!("peaks: {:?}", peaks);
+    println!("peaks[peak_index]: {}", peaks[peak_index]);
+    println!("computed_peak: {}", computed_peak);
     if peaks[peak_index] != computed_peak { return Err(VerifyError::InvalidMmrProof); }
 
     let bag = bag_peaks_left_to_right_poseidon(&peaks);
     let root = mmr_root_poseidon(elements_count as u128, &bag);
 
     // compare as Felt parsed from hex
-    let expected_root_b256 = parse_b256(&proof.root).ok_or(VerifyError::InvalidMmrRoot)?;
-    let expected_root = felt_from_b256(&expected_root_b256);
-    if root != expected_root { return Err(VerifyError::InvalidMmrRoot); }
+    if root != felt_from_b256(&proof.root) { return Err(VerifyError::InvalidMmrRoot); }
     Ok(true)
 }
 
