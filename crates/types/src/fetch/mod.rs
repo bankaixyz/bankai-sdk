@@ -16,16 +16,16 @@ pub struct ProofWrapper {
     pub evm_proofs: Option<EvmProofs>,
 }
 
-#[cfg(feature = "std")]
-impl core::fmt::Debug for ProofWrapper {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("ProofWrapper")
-            .field("hashing_function", &self.hashing_function)
-            .field("block_proof", &"<CairoProof>")
-            .field("evm_proofs", &self.evm_proofs)
-            .finish()
-    }
-}
+// #[cfg(feature = "std")]
+// impl core::fmt::Debug for ProofWrapper {
+//     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+//         f.debug_struct("ProofWrapper")
+//             .field("hashing_function", &self.hashing_function)
+//             .field("block_proof", &"<CairoProof>")
+//             .field("evm_proofs", &self.evm_proofs)
+//             .finish()
+//     }
+// }
 
 #[derive(Debug)]
 pub struct ProofRequest {

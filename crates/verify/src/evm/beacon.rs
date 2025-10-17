@@ -8,7 +8,7 @@ use tree_hash::TreeHash;
 
 use alloy_primitives::hex::ToHexExt;
 
-// use crate::bankai::mmr_new::SimpleMmr;
+use crate::bankai::mmr_new::CairoLikeMmr;
 use crate::VerifyError;
 
 pub struct BeaconVerifier;
@@ -22,7 +22,7 @@ impl BeaconVerifier {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        // SimpleMmr::verify_mmr_proof(&proof.mmr_proof.clone())?;
+        CairoLikeMmr::verify_mmr_proof(&proof.mmr_proof.clone())?;
 
         let hash = proof.header.tree_hash_root();
         let expected_header_hash = format!("0x{}", hash.encode_hex());

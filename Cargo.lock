@@ -1177,12 +1177,14 @@ dependencies = [
 name = "bankai-verify"
 version = "0.1.0"
 dependencies = [
+ "accumulators",
  "alloy-primitives",
  "alloy-rlp",
  "alloy-trie",
  "bankai-types",
  "cairo-air",
  "ethereum_hashing",
+ "starknet-crypto 0.8.1",
  "stwo",
  "tree_hash",
 ]
