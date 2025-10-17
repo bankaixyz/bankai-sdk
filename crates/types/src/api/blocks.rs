@@ -59,3 +59,8 @@ pub struct MmrRootsDto {
     pub keccak_root: String,   // 0x…32
     pub poseidon_root: String, // 0x…32
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct LatestBlockQueryDto {
+    pub status: Option<BlockStatusDto>,
+}

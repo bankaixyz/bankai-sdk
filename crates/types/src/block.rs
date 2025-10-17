@@ -1,39 +1,76 @@
+//! Bankai block representation
+//!
+//! A Bankai block represents a verified state of both the beacon chain and execution layer,
+//! containing their respective MMR roots that can be used to verify individual headers.
+
 use alloy_primitives::FixedBytes;
 use cairo_air::utils::VerificationOutput;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+/// A Bankai block containing verified beacon and execution chain state
+///
+/// Each Bankai block is the output of an STWO zero-knowledge proof and contains
+/// MMR roots for both the beacon chain and execution layer. These roots establish
+/// trust for all headers committed in the MMRs.
+///
+/// This is the foundation of stateless verification - once you have a verified
+/// Bankai block, you can trustlessly verify any header in its MMRs.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BankaiBlock {
+    /// Bankai block number (sequential)
     pub block_number: u64,
+    /// Beacon chain state at this Bankai block
     pub beacon: BeaconClient,
+    /// Execution layer state at this Bankai block
     pub execution: ExecutionClient,
 }
 
+/// Beacon chain state in a Bankai block
+///
+/// Contains the beacon chain's MMR roots and consensus information.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BeaconClient {
+    /// Latest beacon slot processed
     pub slot_number: u64,
+    /// Beacon block root at this slot
     pub header_root: FixedBytes<32>,
+    /// Last justified beacon slot
     pub justified_height: u64,
+    /// Last finalized beacon slot
     pub finalized_height: u64,
+    /// Number of validators that signed
     pub num_signers: u64,
+    /// MMR root using Keccak hash
     pub mmr_root_keccak: FixedBytes<32>,
+    /// MMR root using Poseidon hash
     pub mmr_root_poseidon: FixedBytes<32>,
+    /// Hash of current validator committee
     pub current_committee_hash: FixedBytes<32>,
+    /// Hash of next validator committee
     pub next_committee_hash: FixedBytes<32>,
 }
 
+/// Execution layer state in a Bankai block
+///
+/// Contains the execution chain's MMR roots and block information.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ExecutionClient {
+    /// Latest execution block processed
     pub block_number: u64,
+    /// Block hash at this height
     pub header_hash: FixedBytes<32>,
+    /// Last justified block height
     pub justified_height: u64,
+    /// Last finalized block height
     pub finalized_height: u64,
+    /// MMR root using Keccak hash
     pub mmr_root_keccak: FixedBytes<32>,
+    /// MMR root using Poseidon hash
     pub mmr_root_poseidon: FixedBytes<32>,
 }
 

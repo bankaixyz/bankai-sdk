@@ -1,15 +1,33 @@
+//! MMR (Merkle Mountain Range) utility functions
+//!
+//! This module provides utilities for working with Merkle Mountain Ranges,
+//! including hashing functions for both Keccak and Poseidon.
+
 extern crate alloc;
 use alloy_primitives::FixedBytes;
 use alloy_primitives::keccak256;
-use starknet_crypto::{poseidon_hash, Felt};
+use starknet_crypto::{Felt, poseidon_hash};
 
 use crate::proofs::HashingFunctionDto;
 
+/// Converts a header hash into an MMR leaf hash
+///
+/// Takes a header hash and applies the specified hashing function to create
+/// an MMR leaf. This is the first step in creating MMR commitments.
+///
+/// # Arguments
+///
+/// * `hash` - The header hash to convert
+/// * `hashing_function` - Which hash function to use (Keccak or Poseidon)
+///
+/// # Returns
+///
+/// The hashed leaf value suitable for MMR insertion
 pub fn hash_to_leaf(hash: FixedBytes<32>, hashing_function: &HashingFunctionDto) -> FixedBytes<32> {
     match hashing_function {
         HashingFunctionDto::Keccak => {
-            let hashed_root = keccak256(hash.as_slice());
-            hashed_root
+            
+            keccak256(hash.as_slice())
         }
         HashingFunctionDto::Poseidon => {
             let root_bytes = hash.as_slice();
@@ -34,7 +52,10 @@ mod tests {
             "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".to_string();
         let expected =
             "0xcae36a6a44328f3fb063df12b0cf3fa225a3c6dbdd6acef0f6e619d33890cf24".to_string();
-        let result = hash_to_leaf(FixedBytes::from_hex(input).unwrap(), &HashingFunctionDto::Keccak);
+        let result = hash_to_leaf(
+            FixedBytes::from_hex(input).unwrap(),
+            &HashingFunctionDto::Keccak,
+        );
         assert_eq!(result, FixedBytes::from_hex(expected).unwrap());
     }
 
@@ -44,7 +65,10 @@ mod tests {
             "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".to_string();
         let expected =
             "0x05206aa252b669b3d3348eede13d91a5002293e2da9f3ca4ee905dd2578793b9".to_string();
-        let result = hash_to_leaf(FixedBytes::from_hex(input).unwrap(), &HashingFunctionDto::Poseidon);
+        let result = hash_to_leaf(
+            FixedBytes::from_hex(input).unwrap(),
+            &HashingFunctionDto::Poseidon,
+        );
         assert_eq!(result, FixedBytes::from_hex(expected).unwrap());
     }
 }

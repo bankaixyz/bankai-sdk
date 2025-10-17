@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use alloy_primitives::{hex::FromHex, Address, FixedBytes};
+use alloy_primitives::{Address, FixedBytes, hex::FromHex};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -34,8 +34,16 @@ impl From<MmrProofDto> for MmrProof {
             root: FixedBytes::from_hex(mmr_proof.root).unwrap(),
             elements_index: mmr_proof.elements_index,
             elements_count: mmr_proof.elements_count,
-            path: mmr_proof.path.iter().map(|h| FixedBytes::from_hex(h).unwrap()).collect(),
-            peaks: mmr_proof.peaks.iter().map(|h| FixedBytes::from_hex(h).unwrap()).collect(),
+            path: mmr_proof
+                .path
+                .iter()
+                .map(|h| FixedBytes::from_hex(h).unwrap())
+                .collect(),
+            peaks: mmr_proof
+                .peaks
+                .iter()
+                .map(|h| FixedBytes::from_hex(h).unwrap())
+                .collect(),
         }
     }
 }
