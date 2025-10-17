@@ -14,4 +14,20 @@ cargo doc --no-deps --workspace --document-private-items
 mkdir -p public
 cp -r target/doc/* public/
 
+# Create a root index.html that redirects to the main SDK docs
+cat > public/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Bankai SDK Documentation</title>
+    <meta http-equiv="refresh" content="0; url=bankai_sdk/index.html">
+    <link rel="canonical" href="bankai_sdk/index.html">
+</head>
+<body>
+    <p>Redirecting to <a href="bankai_sdk/index.html">Bankai SDK Documentation</a>...</p>
+</body>
+</html>
+EOF
+
 echo "Documentation built successfully in public/ directory"
