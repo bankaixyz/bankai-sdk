@@ -19,7 +19,7 @@ async fn main() -> Result<(), SdkError> {
 
     // Build a single batch containing: beacon header, execution header, and account proof
     let proof_batch = bankai
-        .init_batch(bankai_block_number, HashingFunctionDto::Keccak)
+        .init_batch(bankai_block_number, HashingFunctionDto::Poseidon)
         .evm_beacon_header(0, beacon_slot) // beacon network id 0
         .evm_execution_header(1, exec_block_number) // execution network id 1
         .evm_account(1, exec_block_number, Address::ZERO)

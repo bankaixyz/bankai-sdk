@@ -6,7 +6,7 @@ use bankai_types::verify::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
 
-use crate::bankai::mmr_new::CairoLikeMmr;
+use crate::bankai::mmr::MmrVerifier;
 use crate::VerifyError;
 
 pub struct BeaconVerifier;
@@ -20,7 +20,7 @@ impl BeaconVerifier {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        CairoLikeMmr::verify_mmr_proof(&proof.mmr_proof.clone())?;
+        MmrVerifier::verify_mmr_proof(&proof.mmr_proof.clone())?;
 
         let hash = proof.header.tree_hash_root();
         if hash != proof.mmr_proof.header_hash {

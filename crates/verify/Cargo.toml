@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 bankai-types = { path = "../types", default-features = false, features = ["verifier-types"] }
-accumulators = { workspace = true, default-features = false, features = ["sync", "mmr", "memory", "keccak", "poseidon"] }
 cairo-air = { workspace = true, default-features = false }
 stwo = { workspace = true, default-features = false }
 alloy-rlp = { workspace = true, default-features = false }
