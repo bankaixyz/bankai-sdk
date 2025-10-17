@@ -9,8 +9,6 @@ use alloy_primitives::{keccak256, FixedBytes};
 use alloy_rlp::encode as rlp_encode;
 use alloy_trie::{proof::verify_proof as mpt_verify, Nibbles};
 
-// use crate::bankai::mmr::BankaiMmr;
-// use crate::bankai::mmr_new::SimpleMmr;
 use crate::bankai::mmr::MmrVerifier;
 use crate::VerifyError;
 

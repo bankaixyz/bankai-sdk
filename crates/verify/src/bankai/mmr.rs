@@ -2,11 +2,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use alloy_primitives::{keccak256, B256};
-use bankai_types::{
-    fetch::evm::MmrProof,
-    proofs::HashingFunctionDto,
-    utils::mmr::hash_to_leaf,
-};
+use bankai_types::{fetch::evm::MmrProof, proofs::HashingFunctionDto, utils::mmr::hash_to_leaf};
 use starknet_crypto::{poseidon_hash, Felt};
 
 use crate::VerifyError;
@@ -48,7 +44,9 @@ impl MmrHasher for KeccakHasher {
     type Word = B256;
 
     #[inline]
-    fn from_b256(x: &B256) -> Self::Word { *x }
+    fn from_b256(x: &B256) -> Self::Word {
+        *x
+    }
 
     #[inline]
     fn hash_pair(left: &Self::Word, right: &Self::Word) -> Self::Word {

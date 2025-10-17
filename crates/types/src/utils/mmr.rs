@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloy_primitives::FixedBytes;
 use alloy_primitives::keccak256;
-use starknet_crypto::{poseidon_hash, Felt};
+use starknet_crypto::{Felt, poseidon_hash};
 
 use crate::proofs::HashingFunctionDto;
 
@@ -34,7 +34,10 @@ mod tests {
             "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".to_string();
         let expected =
             "0xcae36a6a44328f3fb063df12b0cf3fa225a3c6dbdd6acef0f6e619d33890cf24".to_string();
-        let result = hash_to_leaf(FixedBytes::from_hex(input).unwrap(), &HashingFunctionDto::Keccak);
+        let result = hash_to_leaf(
+            FixedBytes::from_hex(input).unwrap(),
+            &HashingFunctionDto::Keccak,
+        );
         assert_eq!(result, FixedBytes::from_hex(expected).unwrap());
     }
 
@@ -44,7 +47,10 @@ mod tests {
             "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".to_string();
         let expected =
             "0x05206aa252b669b3d3348eede13d91a5002293e2da9f3ca4ee905dd2578793b9".to_string();
-        let result = hash_to_leaf(FixedBytes::from_hex(input).unwrap(), &HashingFunctionDto::Poseidon);
+        let result = hash_to_leaf(
+            FixedBytes::from_hex(input).unwrap(),
+            &HashingFunctionDto::Poseidon,
+        );
         assert_eq!(result, FixedBytes::from_hex(expected).unwrap());
     }
 }

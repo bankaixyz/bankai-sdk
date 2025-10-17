@@ -1,7 +1,6 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-
 use bankai_types::fetch::ProofWrapper;
 use bankai_types::proofs::HashingFunctionDto;
 use bankai_types::verify::evm::EvmResults;

@@ -46,7 +46,13 @@ impl<'a> ProofBatchBuilder<'a> {
         }
     }
 
-    pub fn evm_execution_header(mut self, network_id: u64, block_number: u64) -> Self {
+    /// Adds an execution header to the batch
+    ///
+    /// # Arguments
+    ///
+    /// * `block_number` - The execution layer block number to fetch
+    pub fn evm_execution_header(mut self, block_number: u64) -> Self {
+        let network_id = self.bankai.network().execution_network_id();
         let mut v = self.evm.execution_header.take().unwrap_or_default();
         v.push(ExecutionHeaderProofRequest {
             network_id,
@@ -58,7 +64,13 @@ impl<'a> ProofBatchBuilder<'a> {
         self
     }
 
-    pub fn evm_beacon_header(mut self, network_id: u64, slot: u64) -> Self {
+    /// Adds a beacon header to the batch
+    ///
+    /// # Arguments
+    ///
+    /// * `slot` - The beacon chain slot number to fetch
+    pub fn evm_beacon_header(mut self, slot: u64) -> Self {
+        let network_id = self.bankai.network().beacon_network_id();
         let mut v = self.evm.beacon_header.take().unwrap_or_default();
         v.push(BeaconHeaderProofRequest {
             network_id,
@@ -70,7 +82,14 @@ impl<'a> ProofBatchBuilder<'a> {
         self
     }
 
-    pub fn evm_account(mut self, network_id: u64, block_number: u64, address: Address) -> Self {
+    /// Adds an account proof to the batch
+    ///
+    /// # Arguments
+    ///
+    /// * `block_number` - The execution layer block number to query
+    /// * `address` - The account address to fetch proof for
+    pub fn evm_account(mut self, block_number: u64, address: Address) -> Self {
+        let network_id = self.bankai.network().execution_network_id();
         let mut v = self.evm.account.take().unwrap_or_default();
         v.push(AccountProofRequest {
             network_id,
@@ -81,7 +100,13 @@ impl<'a> ProofBatchBuilder<'a> {
         self
     }
 
-    pub fn evm_tx(mut self, network_id: u64, tx_hash: FixedBytes<32>) -> Self {
+    /// Adds a transaction proof to the batch
+    ///
+    /// # Arguments
+    ///
+    /// * `tx_hash` - The transaction hash to fetch proof for
+    pub fn evm_tx(mut self, tx_hash: FixedBytes<32>) -> Self {
+        let network_id = self.bankai.network().execution_network_id();
         let mut v = self.evm.tx_proof.take().unwrap_or_default();
         v.push(TxProofRequest {
             network_id,

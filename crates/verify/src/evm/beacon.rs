@@ -5,7 +5,6 @@ use bankai_types::fetch::evm::beacon::BeaconHeaderProof;
 use bankai_types::verify::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
-
 use crate::bankai::mmr::MmrVerifier;
 use crate::VerifyError;
 
