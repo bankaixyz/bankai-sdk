@@ -1,11 +1,13 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use alloy_primitives::{keccak256, B256, hex::FromHex};
+use alloy_primitives::{keccak256, B256};
 use bankai_types::{
-    fetch::evm::MmrProof, proofs::{HashingFunctionDto, MmrProofDto}, utils::mmr::hash_to_leaf
+    fetch::evm::MmrProof,
+    proofs::HashingFunctionDto,
+    utils::mmr::hash_to_leaf,
 };
-use starknet_crypto::{Felt, poseidon_hash};
+use starknet_crypto::{poseidon_hash, Felt};
 
 use crate::VerifyError;
 
@@ -33,37 +35,44 @@ fn verify_keccak(proof: &MmrProof) -> Result<bool, VerifyError> {
     let elements_count = proof.elements_count as usize;
     let element_index = proof.elements_index as usize;
 
-    let (peak_index, peak_height) = get_peak_info(elements_count, element_index)
-        .ok_or(VerifyError::InvalidMmrProof)?;
+    let (peak_index, peak_height) =
+        get_peak_info(elements_count, element_index).ok_or(VerifyError::InvalidMmrProof)?;
 
     if element_index != elements_count {
-        if proof.path.len() != peak_height { return Err(VerifyError::InvalidMmrProof); }
+        if proof.path.len() != peak_height {
+            return Err(VerifyError::InvalidMmrProof);
+        }
     } else if !proof.path.is_empty() {
         return Err(VerifyError::InvalidMmrProof);
     }
-    let leaf = hash_to_leaf(proof.header_hash.clone(), &HashingFunctionDto::Keccak);
+    let leaf = hash_to_leaf(proof.header_hash, &HashingFunctionDto::Keccak);
 
     let computed_peak = if element_index == elements_count {
         leaf
     } else {
         hash_subtree_path_keccak(leaf, 0, element_index, &proof.path)
     };
-    println!("computed_peak: {}", computed_peak);
+    println!("computed_peak: {computed_peak}");
 
-    
     println!("peaks: {:?}", proof.peaks);
     println!("peaks[peak_index]: {}", proof.peaks[peak_index]);
-    println!("computed_peak: {}", computed_peak);
-    if proof.peaks[peak_index] != computed_peak { return Err(VerifyError::InvalidMmrProof); }
+    println!("computed_peak: {computed_peak}");
+    if proof.peaks[peak_index] != computed_peak {
+        return Err(VerifyError::InvalidMmrProof);
+    }
 
     let bag = bag_peaks_left_to_right_keccak(&proof.peaks);
     let root = hash_mmr_root_keccak(elements_count as u128, &bag);
-    if root != proof.root { return Err(VerifyError::InvalidMmrRoot); }
+    if root != proof.root {
+        return Err(VerifyError::InvalidMmrRoot);
+    }
     Ok(true)
 }
 
 fn hash_subtree_path_keccak(element: B256, height: usize, position: usize, path: &[B256]) -> B256 {
-    if path.is_empty() { return element; }
+    if path.is_empty() {
+        return element;
+    }
     let position_height = compute_height_pre_alloc_pow2(position);
     let next_height = compute_height_pre_alloc_pow2(position + 1);
     if next_height == position_height + 1 {
@@ -76,8 +85,15 @@ fn hash_subtree_path_keccak(element: B256, height: usize, position: usize, path:
     }
 }
 
-fn hash_subtree_path_poseidon(element: Felt, height: usize, position: usize, path: &[Felt]) -> Felt {
-    if path.is_empty() { return element; }
+fn hash_subtree_path_poseidon(
+    element: Felt,
+    height: usize,
+    position: usize,
+    path: &[Felt],
+) -> Felt {
+    if path.is_empty() {
+        return element;
+    }
     let position_height = compute_height_pre_alloc_pow2(position);
     let next_height = compute_height_pre_alloc_pow2(position + 1);
     if next_height == position_height + 1 {
@@ -90,31 +106,31 @@ fn hash_subtree_path_poseidon(element: Felt, height: usize, position: usize, pat
     }
 }
 
-
 fn verify_poseidon(proof: &MmrProof) -> Result<bool, VerifyError> {
     let elements_count = proof.elements_count as usize;
     let element_index = proof.elements_index as usize;
 
-    let (peak_index, peak_height) = get_peak_info(elements_count, element_index)
-        .ok_or(VerifyError::InvalidMmrProof)?;
+    let (peak_index, peak_height) =
+        get_peak_info(elements_count, element_index).ok_or(VerifyError::InvalidMmrProof)?;
 
     if element_index != elements_count {
-        if proof.path.len() != peak_height { return Err(VerifyError::InvalidMmrProof); }
+        if proof.path.len() != peak_height {
+            return Err(VerifyError::InvalidMmrProof);
+        }
     } else if !proof.path.is_empty() {
         return Err(VerifyError::InvalidMmrProof);
     }
 
-    println!("peak_index: {}", peak_index);
+    println!("peak_index: {peak_index}");
     // Leaf as Felt using the same method as hash_to_leaf used for Poseidon in types
 
-    
-    let leaf_bytes = hash_to_leaf(proof.header_hash.clone(), &HashingFunctionDto::Poseidon);
+    let leaf_bytes = hash_to_leaf(proof.header_hash, &HashingFunctionDto::Poseidon);
     let leaf = felt_from_b256(&leaf_bytes);
 
     let siblings: Vec<Felt> = proof
         .path
         .iter()
-        .map(|h| felt_from_b256(&h))
+        .map(felt_from_b256)
         .collect::<Vec<Felt>>();
 
     let computed_peak = if element_index == elements_count {
@@ -123,27 +139,29 @@ fn verify_poseidon(proof: &MmrProof) -> Result<bool, VerifyError> {
         hash_subtree_path_poseidon(leaf, 0, element_index, &siblings)
     };
 
-    println!("computed_peak: {}", computed_peak);
+    println!("computed_peak: {computed_peak}");
 
     let peaks: Vec<Felt> = proof
         .peaks
         .iter()
-        .map(|h| felt_from_b256(&h))
+        .map(felt_from_b256)
         .collect::<Vec<Felt>>();
-    println!("peaks: {:?}", peaks);
+    println!("peaks: {peaks:?}");
     println!("peaks[peak_index]: {}", peaks[peak_index]);
-    println!("computed_peak: {}", computed_peak);
-    if peaks[peak_index] != computed_peak { return Err(VerifyError::InvalidMmrProof); }
+    println!("computed_peak: {computed_peak}");
+    if peaks[peak_index] != computed_peak {
+        return Err(VerifyError::InvalidMmrProof);
+    }
 
     let bag = bag_peaks_left_to_right_poseidon(&peaks);
     let root = mmr_root_poseidon(elements_count as u128, &bag);
 
     // compare as Felt parsed from hex
-    if root != felt_from_b256(&proof.root) { return Err(VerifyError::InvalidMmrRoot); }
+    if root != felt_from_b256(&proof.root) {
+        return Err(VerifyError::InvalidMmrRoot);
+    }
     Ok(true)
 }
-
-fn parse_b256(hex: &str) -> Option<B256> { B256::from_hex(hex).ok() }
 
 fn felt_from_b256(b: &B256) -> Felt {
     Felt::from_bytes_be_slice(b.as_slice())
@@ -201,17 +219,27 @@ fn mmr_root_poseidon(elements_count: u128, bag: &Felt) -> Felt {
 }
 
 fn assert_mmr_size_is_valid(x: usize) -> Result<(), VerifyError> {
-    println!("assert_mmr_size_is_valid: {}", x);
-    if x == 0 { return Err(VerifyError::InvalidMmrTree); }
+    println!("assert_mmr_size_is_valid: {x}");
+    if x == 0 {
+        return Err(VerifyError::InvalidMmrTree);
+    }
     // inner: decompose x into distinct peaks of form (2^k - 1)
     let mut n = x;
     let mut prev_peak = 0usize;
     while n > 0 {
         let i = bit_length(n);
-        if i == 0 { return Err(VerifyError::InvalidMmrTree); }
+        if i == 0 {
+            return Err(VerifyError::InvalidMmrTree);
+        }
         let peak_tmp = (1usize << i) - 1;
-        let peak = if n + 1 <= peak_tmp { (1usize << (i - 1)) - 1 } else { peak_tmp };
-        if peak == 0 || peak == prev_peak { return Err(VerifyError::InvalidMmrTree); }
+        let peak = if n < peak_tmp {
+            (1usize << (i - 1)) - 1
+        } else {
+            peak_tmp
+        };
+        if peak == 0 || peak == prev_peak {
+            return Err(VerifyError::InvalidMmrTree);
+        }
         n -= peak;
         prev_peak = peak;
     }
@@ -227,8 +255,14 @@ fn compute_expected_peaks_len(mmr_size: usize) -> Result<usize, VerifyError> {
     while n > 0 {
         let i = bit_length(n);
         let peak_tmp = (1usize << i) - 1;
-        let peak = if n + 1 <= peak_tmp { (1usize << (i - 1)) - 1 } else { peak_tmp };
-        if peak == 0 || peak == prev_peak { return Err(VerifyError::InvalidMmrTree); }
+        let peak = if n < peak_tmp {
+            (1usize << (i - 1)) - 1
+        } else {
+            peak_tmp
+        };
+        if peak == 0 || peak == prev_peak {
+            return Err(VerifyError::InvalidMmrTree);
+        }
         count += 1;
         n -= peak;
         prev_peak = peak;
@@ -237,7 +271,9 @@ fn compute_expected_peaks_len(mmr_size: usize) -> Result<usize, VerifyError> {
 }
 
 fn get_peak_info(mut elements_count: usize, mut element_index: usize) -> Option<(usize, usize)> {
-    if element_index == 0 || element_index > elements_count { return None; }
+    if element_index == 0 || element_index > elements_count {
+        return None;
+    }
     let mut mountain_height = bit_length(elements_count);
     let mut mountain_elements_count = (1usize << mountain_height) - 1;
     let mut mountain_index = 0usize;
@@ -260,7 +296,9 @@ fn compute_height_pre_alloc_pow2(mut x: usize) -> usize {
     // Assumes x >= 1
     loop {
         let bit_length = bit_length(x);
-        if bit_length == 0 { return 0; }
+        if bit_length == 0 {
+            return 0;
+        }
         let n = 1usize << (bit_length - 1);
         let n2 = 1usize << bit_length; // N
         if x == n2 - 1 {
@@ -272,6 +310,6 @@ fn compute_height_pre_alloc_pow2(mut x: usize) -> usize {
     }
 }
 
-fn bit_length(n: usize) -> usize { (usize::BITS as usize) - n.leading_zeros() as usize }
-
-
+fn bit_length(n: usize) -> usize {
+    (usize::BITS as usize) - n.leading_zeros() as usize
+}

@@ -1,13 +1,10 @@
 extern crate alloc;
-use alloc::format;
-use alloc::string::String;
 
 use alloy_primitives::FixedBytes;
 use bankai_types::fetch::evm::beacon::BeaconHeaderProof;
 use bankai_types::verify::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
-use alloy_primitives::hex::ToHexExt;
 
 use crate::bankai::mmr_new::CairoLikeMmr;
 use crate::VerifyError;

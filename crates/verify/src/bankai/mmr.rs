@@ -4,10 +4,6 @@
 // use alloc::vec::Vec;
 
 // use accumulators::store::memory::InMemoryStore;
-use accumulators::{
-    hasher::{keccak::KeccakHasher, stark_poseidon::StarkPoseidonHasher, Hasher},
-    mmr::{Proof, ProofOptions, MMR},
-};
 // use bankai_types::{
 //     proofs::{HashingFunctionDto, MmrProofDto},
 //     utils::mmr::hash_to_leaf,

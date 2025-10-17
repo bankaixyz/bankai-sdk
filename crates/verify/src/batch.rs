@@ -1,8 +1,6 @@
 extern crate alloc;
-use alloc::format;
 use alloc::vec::Vec;
 
-use alloy_primitives::hex::ToHexExt;
 
 use bankai_types::fetch::ProofWrapper;
 use bankai_types::proofs::HashingFunctionDto;
@@ -18,12 +16,12 @@ pub fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, Verify
     let bankai_block = verify_stwo_proof(&wrapper.block_proof)?;
 
     let exec_root = match wrapper.hashing_function {
-        HashingFunctionDto::Keccak => bankai_block.execution.mmr_root_keccak.clone(),
-        HashingFunctionDto::Poseidon => bankai_block.execution.mmr_root_poseidon.clone(),
+        HashingFunctionDto::Keccak => bankai_block.execution.mmr_root_keccak,
+        HashingFunctionDto::Poseidon => bankai_block.execution.mmr_root_poseidon,
     };
     let beacon_root = match wrapper.hashing_function {
-        HashingFunctionDto::Keccak => bankai_block.beacon.mmr_root_keccak.clone(),
-        HashingFunctionDto::Poseidon => bankai_block.beacon.mmr_root_poseidon.clone(),
+        HashingFunctionDto::Keccak => bankai_block.beacon.mmr_root_keccak,
+        HashingFunctionDto::Poseidon => bankai_block.beacon.mmr_root_poseidon,
     };
 
     let mut batch_results = BatchResults {
@@ -38,14 +36,14 @@ pub fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, Verify
     if let Some(evm) = &wrapper.evm_proofs {
         if let Some(exec_headers) = &evm.execution_header_proof {
             for proof in exec_headers {
-                let result = ExecutionVerifier::verify_header_proof(proof, exec_root.clone())?;
+                let result = ExecutionVerifier::verify_header_proof(proof, exec_root)?;
                 batch_results.evm.execution_header.push(result);
             }
         }
 
         if let Some(beacon_headers) = &evm.beacon_header_proof {
             for proof in beacon_headers {
-                let result = BeaconVerifier::verify_header_proof(proof, beacon_root.clone())?;
+                let result = BeaconVerifier::verify_header_proof(proof, beacon_root)?;
                 batch_results.evm.beacon_header.push(result);
             }
         }

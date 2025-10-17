@@ -1,13 +1,10 @@
 extern crate alloc;
-use alloc::format;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 use alloy_rlp::{Decodable, Encodable};
 use bankai_types::fetch::evm::execution::{AccountProof, ExecutionHeaderProof, TxProof};
 use bankai_types::verify::evm::execution::{Account, ExecutionHeader, TxEnvelope};
 
-use alloy_primitives::hex::ToHexExt;
 use alloy_primitives::{keccak256, FixedBytes};
 use alloy_rlp::encode as rlp_encode;
 use alloy_trie::{proof::verify_proof as mpt_verify, Nibbles};
