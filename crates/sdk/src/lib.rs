@@ -51,7 +51,7 @@
 //! let result = batch
 //!     .evm_beacon_header(8551383)                                    // Beacon header
 //!     .evm_execution_header(9231247)                                 // Execution header
-//!     .evm_transaction(9231247, tx_hash)                             // Transaction by hash
+//!     .evm_tx(tx_hash)                                               // Transaction by hash
 //!     .evm_account(9231247, Address::ZERO)                           // Account proof
 //!     .execute()
 //!     .await?;

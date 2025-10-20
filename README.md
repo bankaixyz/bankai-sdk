@@ -156,10 +156,10 @@ let batch = sdk.init_batch(
 let tx_hash = FixedBytes::from([0u8; 32]);
 
 let result = batch
-    .evm_beacon_header(8551383)                 // Beacon header
-    .evm_execution_header(9231247)              // Execution header
-    .evm_transaction(9231247, tx_hash)          // Transaction by hash
-    .evm_account(9231247, Address::ZERO)        // Account proof
+    .evm_beacon_header(8551383)                  // Beacon header
+    .evm_execution_header(9231247)               // Execution header
+    .evm_tx(tx_hash)                             // Transaction by hash
+    .evm_account(9231247, Address::ZERO)         // Account proof
     .execute()
     .await?;
 
