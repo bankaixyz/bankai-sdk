@@ -2,122 +2,157 @@
 //!
 //! # Overview
 //!
-//! This SDK enables trustless verification of blockchain data through STWO zero-knowledge proofs.
+//! Bankai enables trustless access to blockchain data through STWO zero-knowledge proofs.
+//! The process involves three steps:
 //!
-//! ## How It Works
+//! 1. **Verify the block proof**: Validate the STWO proof to establish trust in the MMR roots
+//! 2. **Retrieve MMR proofs**: Use MMR proofs to decommit and verify specific headers
+//! 3. **Generate storage proofs**: Create Merkle proofs against the header's state root to access specific data
 //!
-//! The Bankai system generates **STWO proofs** (block proofs) that contain **Merkle Mountain Ranges (MMRs)**
-//! storing cryptographic commitments to valid blockchain headers. These proofs are the foundation of the system.
-//!
-//! To verify specific blockchain data:
-//! 1. **Decommit a header**: Use MMR proofs to decommit and verify a specific header from the MMR
-//! 2. **Verify chain data**: Once you have a verified header, you can verify any data from that block
-//!    (accounts, transactions, storage, etc.) using standard Merkle proofs against the header's state root
-//!
-//! This two-step process (MMR decommitment → chain data verification) enables efficient, trustless
-//! verification of any blockchain state without needing to sync the entire chain.
-//!
-//! # Examples
-//!
-//! ## Batch Operations (Recommended)
-//!
-//! ```no_run
-//! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let sdk = Bankai::new(
-//!         Network::Sepolia,
-//!         Some("https://eth-sepolia.rpc".to_string()),
-//!         Some("https://sepolia.beacon.api".to_string())
-//!     );
-//!     
-//!     // Batch multiple proofs together (network IDs are automatic)
-//!     let batch = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
-//!         .await?
-//!         .evm_execution_header(9231247)
-//!         .evm_beacon_header(8551383)
-//!         .execute()
-//!         .await?;
-//!     
-//!     Ok(())
-//! }
-//! ```
-//!
-//! ## Fetch Block Proof Only
+//! # Setup
 //!
 //! ```no_run
 //! use bankai_sdk::{Bankai, Network};
 //!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let sdk = Bankai::new(Network::Sepolia, None, None);
-//!     
-//!     // Fetch just the STWO block proof for a specific Bankai block
-//!     let block_proof = sdk.api.get_block_proof(12345).await?;
-//!     
-//!     // Deserialize and verify using bankai-verify
-//!     // let bankai_block = verify_stwo_proof(&block_proof.proof)?;
-//!     
-//!     Ok(())
-//! }
+//! let sdk = Bankai::new(
+//!     Network::Sepolia,                              // Network to connect to
+//!     Some("https://eth-sepolia.rpc".to_string()),   // Execution layer RPC (optional)
+//!     Some("https://sepolia.beacon.api".to_string()) // Beacon chain RPC (optional)
+//! );
 //! ```
 //!
-//! ## Fetch MMR Proofs
+//! **Required parameters:**
+//! - `network`: Target blockchain network (e.g., `Network::Sepolia`)
+//! - `evm_execution_rpc`: Optional - required for execution layer operations (headers, accounts, transactions)
+//! - `evm_beacon_rpc`: Optional - required for beacon chain operations (consensus headers)
+//!
+//! # Batch Operations (Recommended)
+//!
+//! Batch multiple proof requests into a single optimized operation. All proofs share the same
+//! STWO block proof and are anchored to the same Bankai block number.
 //!
 //! ```no_run
 //! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
-//! use bankai_types::proofs::MmrProofRequestDto;
-//! use alloy_primitives::FixedBytes;
+//! use alloy_primitives::{Address, FixedBytes};
 //!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let sdk = Bankai::new(Network::Sepolia, None, None);
-//!     
-//!     let header_hash = FixedBytes::from([0u8; 32]);
-//!     
-//!     // Fetch an MMR proof for a specific header
-//!     let request = MmrProofRequestDto {
-//!         network_id: 1,  // 1 = execution layer
-//!         block_number: 9231247,
-//!         hashing_function: HashingFunctionDto::Keccak,
-//!         header_hash: format!("{:?}", header_hash),
-//!     };
-//!     let mmr_proof = sdk.api.get_mmr_proof(&request).await?;
-//!     
-//!     // Verify against a trusted MMR root
-//!     // let verified_hash = verify_mmr_proof(&mmr_proof, trusted_mmr_root)?;
-//!     
-//!     Ok(())
-//! }
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! # let sdk = Bankai::new(Network::Sepolia, 
+//! #     Some("https://eth-sepolia.rpc".to_string()),
+//! #     Some("https://sepolia.beacon.api".to_string()));
+//!
+//! let batch = sdk.init_batch(
+//!     Network::Sepolia,
+//!     None,  // Use latest block (or specify a Bankai block number)
+//!     HashingFunctionDto::Keccak
+//! ).await?;
+//!
+//! let tx_hash = FixedBytes::from([0u8; 32]);
+//!
+//! let result = batch
+//!     .evm_beacon_header(8551383)                                    // Beacon header
+//!     .evm_execution_header(9231247)                                 // Execution header
+//!     .evm_transaction(9231247, tx_hash)                             // Transaction by hash
+//!     .evm_account(9231247, Address::ZERO)                           // Account proof
+//!     .execute()
+//!     .await?;
+//!
+//! // Verify the batch proof using the verify crate
+//! use bankai_verify::verify_batch_proof;
+//! let verification_result = verify_batch_proof(&result.proof.proof)?;
+//!
+//! // Access individual proofs from the result
+//! let beacon_proof = &result.beacon_headers[0];
+//! let exec_proof = &result.execution_headers[0];
+//! let tx_proof = &result.transactions[0];
+//! let account_proof = &result.accounts[0];
+//! # Ok(())
+//! # }
 //! ```
 //!
-//! ## Fetch Individual Header Proofs
+//! # API Client
+//!
+//! Direct access to the Bankai API for low-level operations:
 //!
 //! ```no_run
 //! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
+//! use bankai_types::api::proofs::{MmrProofRequestDto, LightClientProofRequestDto, HeaderRequestDto};
 //!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let sdk = Bankai::new(
-//!         Network::Sepolia,
-//!         Some("https://eth-sepolia.rpc".to_string()),
-//!         None
-//!     );
-//!     
-//!     // Fetch execution header with MMR proof for decommitment
-//!     let header_proof = sdk.evm.execution()?
-//!         .header(9231247, HashingFunctionDto::Keccak, 12345).await?;
-//!     
-//!     // The header_proof contains:
-//!     // - The header data
-//!     // - MMR proof for verifying the header against a Bankai block
-//!     
-//!     // Verify the header
-//!     // let verified_header = ExecutionVerifier::verify_header_proof(&header_proof, mmr_root)?;
-//!     
-//!     Ok(())
-//! }
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! # let sdk = Bankai::new(Network::Sepolia, None, None);
+//!
+//! // Get latest Bankai block number
+//! let latest_block = sdk.api.get_latest_block_number().await?;
+//!
+//! // Fetch STWO block proof
+//! let block_proof = sdk.api.get_block_proof(latest_block).await?;
+//!
+//! // Fetch MMR proof for a specific header
+//! let mmr_request = MmrProofRequestDto {
+//!     network_id: 1,  // 0 = beacon, 1 = execution
+//!     block_number: 12345, // Bankai block number
+//!     hashing_function: HashingFunctionDto::Keccak,
+//!     header_hash: "0x...".to_string(),
+//! };
+//! let mmr_proof = sdk.api.get_mmr_proof(&mmr_request).await?;
+//!
+//! // Fetch batch light client proof (STWO proof + multiple MMR proofs)
+//! let lc_request = LightClientProofRequestDto {
+//!     bankai_block_number: Some(latest_block),
+//!     hashing_function: HashingFunctionDto::Keccak,
+//!     requested_headers: vec![
+//!         HeaderRequestDto {
+//!             network_id: 1,  // Execution layer
+//!             header_hash: "0x...".to_string(),
+//!         },
+//!         HeaderRequestDto {
+//!             network_id: 0,  // Beacon chain
+//!             header_hash: "0x...".to_string(),
+//!         },
+//!     ],
+//! };
+//! let light_client_proof = sdk.api.get_light_client_proof(&lc_request).await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # EVM Fetchers
+//!
+//! Use individual fetchers to generate storage proofs and retrieve MMR proofs for specific data:
+//!
+//! ```no_run
+//! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
+//! use alloy_primitives::{Address, FixedBytes};
+//!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! # let sdk = Bankai::new(Network::Sepolia,
+//! #     Some("https://eth-sepolia.rpc".to_string()),
+//! #     Some("https://sepolia.beacon.api".to_string()));
+//!
+//! // Execution layer fetcher
+//! let execution = sdk.evm.execution()?;
+//!
+//! // Fetch execution header with MMR proof
+//! let header = execution.header(9231247, HashingFunctionDto::Keccak, 12345).await?;
+//!
+//! // Fetch account with storage proofs
+//! let account = execution.account(
+//!     9231247,
+//!     Address::ZERO,
+//!     HashingFunctionDto::Keccak,
+//!     12345
+//! ).await?;
+//!
+//! // Fetch transaction with proof (by hash)
+//! let tx_hash = FixedBytes::from([0u8; 32]);
+//! let tx = execution.transaction(9231247, tx_hash, HashingFunctionDto::Keccak, 12345).await?;
+//!
+//! // Beacon chain fetcher
+//! let beacon = sdk.evm.beacon()?;
+//!
+//! // Fetch beacon header with MMR proof
+//! let beacon_header = beacon.header(8551383, HashingFunctionDto::Keccak, 12345).await?;
+//! # Ok(())
+//! # }
 //! ```
 
 pub mod errors;
@@ -132,11 +167,6 @@ pub use bankai_types::verify::evm::beacon::BeaconHeader;
 // ============================================================================
 
 /// Supported blockchain networks
-///
-/// Each network has associated configuration including:
-/// - API endpoint URL for proof generation
-/// - Beacon chain network ID (always 0)
-/// - Execution layer network ID (always 1)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Network {
     /// Ethereum Sepolia testnet
@@ -167,28 +197,12 @@ impl Network {
 // ============================================================================
 
 /// API client for interacting with Bankai's proof generation service
-///
-/// Provides methods to:
-/// - Fetch light client proofs
-/// - Get block proofs
-/// - Request MMR proofs
-/// - Query latest block numbers
 pub use crate::fetch::clients::bankai_api::ApiClient;
 
-/// EVM-related functionality for fetching blockchain data with MMR proofs
+/// EVM execution and beacon chain fetchers
 ///
-/// EVM chain data fetching with MMR proofs for header decommitment
-///
-/// This module provides fetchers that retrieve blockchain headers along with MMR proofs.
-/// These MMR proofs enable decommitment of headers from the STWO block proofs, establishing
-/// trust in the header data without syncing the full chain.
-///
-/// ## Available Fetchers
-///
-/// - **Execution Layer** (`ExecutionChainFetcher`): Fetch execution headers, accounts, and transactions
-///   with MMR proofs for decommitment from the STWO proof's execution MMR
-/// - **Beacon Chain** (`BeaconChainFetcher`): Fetch consensus layer headers with MMR proofs for
-///   decommitment from the STWO proof's beacon MMR
+/// Access execution layer (headers, accounts, transactions) and beacon chain (consensus headers)
+/// data with MMR proofs for trustless verification.
 pub mod evm {
 
     pub use crate::fetch::evm::beacon::BeaconChainFetcher;
@@ -203,34 +217,8 @@ pub mod evm {
 
 /// Batch proof generation for efficient multi-proof operations
 ///
-/// Efficiently batch multiple proof requests into a single STWO proof
-///
-/// The batch builder combines multiple proof requests (headers, accounts, transactions)
-/// into a single optimized request. All proofs share the same STWO block proof and
-/// are anchored to the same Bankai block number, making verification more efficient.
-///
-/// Each proof in the batch uses MMR proofs to decommit headers from the STWO proof's MMRs,
-/// enabling verification of all requested data through a single block proof.
-///
-/// Network IDs are automatically determined from the SDK's configured network:
-/// - Beacon chain: network_id = 0
-/// - Execution layer: network_id = 1
-///
-/// # Example
-///
-/// ```no_run
-/// # use bankai_sdk::{Bankai, Network, HashingFunctionDto};
-/// # async fn example(sdk: Bankai) -> Result<(), Box<dyn std::error::Error>> {
-/// // Use latest block automatically, network IDs are automatic
-/// let batch = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
-///     .await?
-///     .evm_execution_header(9231247)
-///     .evm_beacon_header(8551383)
-///     .execute()
-///     .await?;
-/// # Ok(())
-/// # }
-/// ```
+/// Combine multiple proof requests into a single optimized operation.
+/// All proofs share the same STWO block proof and Bankai block number.
 pub mod batch {
 
     pub use crate::fetch::batch::ProofBatchBuilder;
@@ -247,8 +235,6 @@ use crate::fetch::evm::{beacon::BeaconChainFetcher, execution::ExecutionChainFet
 // ============================================================================
 
 /// Namespace for EVM-related operations
-///
-/// Access execution and beacon chain fetchers through this namespace.
 pub struct EvmNamespace {
     execution: Option<ExecutionChainFetcher>,
     beacon: Option<BeaconChainFetcher>,
@@ -258,31 +244,13 @@ pub struct EvmNamespace {
 pub struct VerifyNamespace;
 
 /// Main entry point for the Bankai SDK
-///
-/// The `Bankai` struct provides access to all SDK functionality:
-/// - `api`: Direct access to the Bankai API client
-/// - `evm`: EVM execution and beacon chain fetchers
-/// - `verify`: Verification utilities (future)
-///
-/// # Example
-///
-/// ```no_run
-/// use bankai_sdk::{Bankai, Network};
-///
-/// let sdk = Bankai::new(
-///     Network::Sepolia,
-///     Some("https://eth-sepolia.rpc".to_string()),
-///     Some("https://sepolia.beacon.api".to_string())
-/// );
-/// ```
 pub struct Bankai {
-    /// Direct access to the Bankai API client for proof generation
+    /// Direct access to the Bankai API client
     pub api: ApiClient,
-    /// EVM execution and beacon chain data fetchers
+    /// EVM execution and beacon chain fetchers
     pub evm: EvmNamespace,
     /// Verification utilities
     pub verify: VerifyNamespace,
-    /// The network this SDK instance is configured for
     network: Network,
 }
 
@@ -291,18 +259,9 @@ impl Bankai {
     ///
     /// # Arguments
     ///
-    /// * `network` - The blockchain network to connect to (e.g., `Network::Sepolia`)
-    /// * `evm_execution_rpc` - Optional URL for EVM execution layer RPC endpoint
-    /// * `evm_beacon_rpc` - Optional URL for EVM beacon chain API endpoint
-    ///
-    /// # Note
-    ///
-    /// If RPC endpoints are not provided, the corresponding functionality
-    /// will not be available and will return `SdkError::NotConfigured` when accessed.
-    ///
-    /// The network determines:
-    /// - API endpoint for proof generation
-    /// - Network IDs (beacon=0, execution=1)
+    /// * `network` - The blockchain network (e.g., `Network::Sepolia`)
+    /// * `evm_execution_rpc` - Optional execution layer RPC endpoint
+    /// * `evm_beacon_rpc` - Optional beacon chain API endpoint
     pub fn new(
         network: Network,
         evm_execution_rpc: Option<String>,
@@ -330,25 +289,11 @@ impl Bankai {
 
     /// Initialize a new batch proof builder
     ///
-    /// Batching multiple proofs together is more efficient than requesting them individually.
-    /// All proofs in the batch will be anchored to the same STWO block proof, sharing the same
-    /// MMRs for header decommitment.
-    ///
     /// # Arguments
     ///
-    /// * `network` - The blockchain network for this batch (e.g., `Network::Sepolia`)
-    /// * `bankai_block_number` - Optional Bankai block number to anchor proofs to.
-    ///   If `None`, automatically fetches and uses the latest block number from the API.
-    /// * `hashing` - The hashing function to use for MMR proofs (Keccak, Poseidon, or Blake3)
-    ///
-    /// # Returns
-    ///
-    /// A `ProofBatchBuilder` that can be configured with multiple proof requests
-    /// and executed to generate an optimized batch proof.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if `bankai_block_number` is `None` and fetching the latest block fails.
+    /// * `network` - The blockchain network (e.g., `Network::Sepolia`)
+    /// * `bankai_block_number` - Optional Bankai block number (uses latest if `None`)
+    /// * `hashing` - The hashing function for MMR proofs (Keccak, Poseidon, or Blake3)
     pub async fn init_batch(
         &self,
         network: Network,
@@ -370,10 +315,6 @@ impl Bankai {
 
 impl EvmNamespace {
     /// Get the execution layer fetcher
-    ///
-    /// # Errors
-    ///
-    /// Returns `SdkError::NotConfigured` if no execution RPC was provided during initialization
     pub fn execution(&self) -> SdkResult<&ExecutionChainFetcher> {
         self.execution
             .as_ref()
@@ -381,10 +322,6 @@ impl EvmNamespace {
     }
 
     /// Get the beacon chain fetcher
-    ///
-    /// # Errors
-    ///
-    /// Returns `SdkError::NotConfigured` if no beacon RPC was provided during initialization
     pub fn beacon(&self) -> SdkResult<&BeaconChainFetcher> {
         self.beacon
             .as_ref()
