@@ -188,7 +188,7 @@ impl Network {
 
     /// Returns the execution layer network ID (always 1)
     pub const fn execution_network_id(&self) -> u64 {
-        1
+        11155111
     }
 }
 
