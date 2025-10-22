@@ -87,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .evm_beacon_header(8_551_383)           // Request beacon header
         .evm_execution_header(9_231_247)        // Request execution header
         .evm_account(9_231_247, Address::ZERO)  // Request account state
-        .evm_transaction(9_231_247, tx_hash)    // Request transaction
+        .evm_tx(tx_hash)                        // Request transaction
         .execute()
         .await?;
 
@@ -165,7 +165,7 @@ let result = batch
 
 // Verify with bankai-verify
 use bankai_verify::verify_batch_proof;
-let verification_result = verify_batch_proof(&result.proof.proof)?;
+let verification_result = verify_batch_proof(&result)?;
 ```
 
 ### 2. API Client
@@ -291,6 +291,8 @@ Verify just the block proof to get trusted MMR roots:
 
 ```rust
 use bankai_verify::bankai::stwo::verify_stwo_proof;
+use cairo_air::CairoProof;
+use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 
 // Verify the block proof and extract the Bankai block
 let bankai_block = verify_stwo_proof(&block_proof)?;
@@ -305,10 +307,11 @@ println!("Beacon MMR root (Keccak): {:?}", bankai_block.beacon.mmr_root_keccak);
 Verify that a header is committed in the MMR:
 
 ```rust
-use bankai_verify::bankai::mmr::verify_mmr_proof;
+use bankai_verify::bankai::mmr::MmrVerifier;
+use bankai_types::fetch::evm::MmrProof;
 
 // Verify that a header is committed in the MMR
-let header_hash = verify_mmr_proof(&mmr_proof, trusted_mmr_root)?;
+let is_valid = MmrVerifier::verify_mmr_proof(&mmr_proof)?;
 ```
 
 ### Verify Header Proofs
@@ -317,13 +320,16 @@ Verify individual headers against a trusted MMR root:
 
 ```rust
 use bankai_verify::evm::{ExecutionVerifier, BeaconVerifier};
+use bankai_types::fetch::evm::execution::{ExecutionHeaderProof, AccountProof, TxProof};
+use bankai_types::verify::evm::execution::ExecutionHeader;
+use alloy_primitives::FixedBytes;
 
 // Verify an execution header
 let verified_header = ExecutionVerifier::verify_header_proof(&proof, mmr_root)?;
 
 // Verify accounts and transactions against the verified header
-let account = ExecutionVerifier::verify_account_proof(&account_proof, &verified_header)?;
-let transaction = ExecutionVerifier::verify_tx_proof(&tx_proof, &verified_header)?;
+let account = ExecutionVerifier::verify_account_proof(&account_proof, &[verified_header.clone()])?;
+let transaction = ExecutionVerifier::verify_tx_proof(&tx_proof, &[verified_header])?;
 ```
 
 ### How Verification Works
@@ -427,7 +433,7 @@ Provide trusted inputs to zero-knowledge circuits:
 ```rust
 let proof = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
     .await?
-    .evm_transaction(block_number, tx_hash)
+    .evm_tx(tx_hash)
     .execute()
     .await?;
 
