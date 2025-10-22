@@ -95,7 +95,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Step 2: Build a batch with multiple proof requests
-    let tx_hash = FixedBytes::from([0u8; 32]);
     
     let proof_batch = bankai
         .init_batch(
@@ -104,10 +103,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             HashingFunctionDto::Keccak
         )
         .await?
-        .evm_beacon_header(8_551_383)           // Request beacon header
-        .evm_execution_header(9_231_247)        // Request execution header
-        .evm_account(9_231_247, Address::ZERO)  // Request account state
-        .evm_tx(tx_hash)                        // Request transaction
+        .evm_beacon_header(8_551_383)            // Request beacon header
+        .evm_execution_header(9_231_247)         // Request execution header
+        .evm_account(9_231_247, Address::ZERO)   // Request account state
+        .evm_tx(FixedBytes::from([0u8; 32]))     // Request transaction
         .execute()
         .await?;
 
@@ -413,52 +412,3 @@ pub enum VerifyError {
     // ... and more
 }
 ```
-
----
-
-## Use Cases
-
-### Cross-Chain Bridges
-Verify state from other chains without running full nodes:
-
-```rust
-let proof = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
-    .await?
-    .evm_account(block_number, user_address)
-    .execute()
-    .await?;
-    
-let results = verify_batch_proof(&proof)?;
-let balance = results.evm.account[0].balance;
-// Balance is cryptographically guaranteed - safe to bridge!
-```
-
-### Smart Contract Data Access
-Provide verified data to smart contracts trustlessly:
-
-```rust
-// Generate proof off-chain
-let proof = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
-    .await?
-    .evm_execution_header(target_block)
-    .execute()
-    .await?;
-
-// Submit proof to smart contract for verification
-```
-
-### ZK Circuit Inputs
-Provide trusted inputs to zero-knowledge circuits:
-
-```rust
-let proof = sdk.init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
-    .await?
-    .evm_tx(tx_hash)
-    .execute()
-    .await?;
-
-let results = verify_batch_proof(&proof)?;
-// Use verified transaction as trusted input to ZK circuit
-```
-
----
