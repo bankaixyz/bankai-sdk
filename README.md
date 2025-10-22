@@ -14,6 +14,26 @@ The verification process follows a three-step process:
 
 This **stateless light client architecture** is fully trustless - no chains to sync, no state to maintain, no trusted intermediaries. Each proof bundle is self-contained and independently verifiable.
 
+## Current Support
+
+| Feature | Sepolia | Mainnet | Status |
+|---------|---------|---------|--------|
+| **Beacon Headers** | ✅ | ❌ | Available |
+| **Execution Headers** | ✅ | ❌ | Available |
+| **Execution Accounts** | ✅ | ❌ | Available |
+| **Execution Transactions** | ✅ | ❌ | Available |
+
+**Note**: Mainnet support is coming soon. Currently only Sepolia testnet is supported.
+
+### 📊 Bankai Dashboard
+
+Monitor the status of Bankai networks and available blocks at the [Sepolia Dashboard](https://sepolia.dashboard.bankai.xyz/). The dashboard provides real-time information about:
+
+- Available Bankai blocks and their numbers
+- Network status and health metrics
+- Latest MMR roots and proof availability
+- System performance and uptime
+
 ---
 
 ## ⚠️ Important: Setup Requirements
