@@ -203,7 +203,7 @@ let block_proof = sdk.api.get_block_proof(latest_block).await?;
 
 // Fetch MMR proof for a specific header
 let mmr_request = MmrProofRequestDto {
-    network_id: 1,  // 0 = beacon, 1 = execution
+    network_id: 11155111,  // 0 = beacon, 11155111 = execution
     block_number: 12345,
     hashing_function: HashingFunctionDto::Keccak,
     header_hash: "0x...".to_string(),
@@ -216,7 +216,7 @@ let lc_request = LightClientProofRequestDto {
     hashing_function: HashingFunctionDto::Keccak,
     requested_headers: vec![
         HeaderRequestDto {
-            network_id: 1,  // Execution layer
+            network_id: 11155111,  // Execution layer
             header_hash: "0x...".to_string(),
         },
         HeaderRequestDto {
@@ -273,7 +273,7 @@ let sdk = Bankai::new(
 
 **Network IDs:**
 - Beacon chain: Always `0`
-- Execution layer: Always `1`
+- Execution layer: Always `11155111`
 
 **Supported Networks:**
 - `Network::Sepolia` - Ethereum Sepolia testnet
