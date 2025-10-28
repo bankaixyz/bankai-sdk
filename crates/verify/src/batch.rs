@@ -80,8 +80,8 @@ use crate::VerifyError;
 /// # Ok(())
 /// # }
 /// ```
-pub fn verify_batch_proof(wrapper: &ProofWrapper) -> Result<BatchResults, VerifyError> {
-    let bankai_block = verify_stwo_proof(&wrapper.block_proof)?;
+pub fn verify_batch_proof(wrapper: ProofWrapper) -> Result<BatchResults, VerifyError> {
+    let bankai_block = verify_stwo_proof(wrapper.block_proof)?;
 
     let exec_root = match wrapper.hashing_function {
         HashingFunctionDto::Keccak => bankai_block.execution.mmr_root_keccak,
