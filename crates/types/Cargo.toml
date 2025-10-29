@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 # Core dependencies (always available)
 alloy-primitives = { workspace = true, default-features = false }
-alloy-consensus = { workspace = true, default-features = false }
+alloy-consensus = { workspace = true, default-features = false, features = ["serde","serde-bincode-compat"] }
 cairo-air = { workspace = true, default-features = false }
 stwo = { workspace = true, default-features = false }
 starknet-crypto = { workspace = true, default-features = false }
@@ -16,10 +16,10 @@ ethereum_hashing = { workspace = true, default-features = false, features = ["po
 
 # Optional dependencies for API/services
 serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true, features = ["preserve_order"] }
 utoipa = { workspace = true, optional = true }
 
-alloy-rpc-types-eth = { workspace = true, default-features = false, optional = true }
+alloy-rpc-types-eth = { workspace = true, default-features = false, optional = true, features = ["serde","serde-bincode-compat"] }
 alloy-rpc-types-beacon = { workspace = true, default-features = false, optional = true }
 
 [features]
@@ -36,4 +36,4 @@ std = [
 api = ["std", "serde", "serde_json", "utoipa"]
 
 # Verifier types for proof handling
-verifier-types = ["serde", "alloy-rpc-types-eth", "alloy-rpc-types-beacon"]
+verifier-types = ["serde", "serde_json", "alloy-rpc-types-eth", "alloy-rpc-types-beacon"]
