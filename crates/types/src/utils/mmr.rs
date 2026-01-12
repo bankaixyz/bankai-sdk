@@ -25,10 +25,7 @@ use crate::proofs::HashingFunctionDto;
 /// The hashed leaf value suitable for MMR insertion
 pub fn hash_to_leaf(hash: FixedBytes<32>, hashing_function: &HashingFunctionDto) -> FixedBytes<32> {
     match hashing_function {
-        HashingFunctionDto::Keccak => {
-            
-            keccak256(hash.as_slice())
-        }
+        HashingFunctionDto::Keccak => keccak256(hash.as_slice()),
         HashingFunctionDto::Poseidon => {
             let root_bytes = hash.as_slice();
             let high = Felt::from_bytes_be_slice(&root_bytes[0..16]);

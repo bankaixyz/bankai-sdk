@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use alloy_primitives::{hex::FromHex, Address, FixedBytes, U256};
+use alloy_primitives::{Address, FixedBytes, U256, hex::FromHex};
 use serde::{Deserialize, Serialize};
 
 use crate::{

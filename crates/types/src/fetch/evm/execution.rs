@@ -1,13 +1,13 @@
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use alloc::vec::Vec;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[cfg(feature = "verifier-types")]
 use crate::fetch::evm::MmrProof;
-use alloy_primitives::{Address, Bytes, FixedBytes};
 #[cfg(feature = "verifier-types")]
 use alloy_primitives::U256;
+use alloy_primitives::{Address, Bytes, FixedBytes};
 
 #[cfg(feature = "verifier-types")]
 use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
@@ -35,7 +35,10 @@ where
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ExecutionHeaderProof {
-    #[serde(serialize_with = "serialize_execution_header", deserialize_with = "deserialize_execution_header")]
+    #[serde(
+        serialize_with = "serialize_execution_header",
+        deserialize_with = "deserialize_execution_header"
+    )]
     pub header: ExecutionHeader,
     pub mmr_proof: MmrProof,
 }

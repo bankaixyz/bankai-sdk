@@ -8,8 +8,8 @@ use crate::fetch::{
     bankai,
     clients::{bankai_api::ApiClient, execution_client::ExecutionFetcher},
 };
-use bankai_types::fetch::evm::execution::{ExecutionHeaderProof, StorageSlotProof, TxProof};
 use alloy_rpc_types_eth::Account as AlloyAccount;
+use bankai_types::fetch::evm::execution::{ExecutionHeaderProof, StorageSlotProof, TxProof};
 
 /// Fetcher for EVM execution layer data with MMR proofs
 ///

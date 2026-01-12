@@ -12,8 +12,7 @@ use bankai_types::fetch::evm::{
     beacon::BeaconHeaderProof,
     execution::{AccountProof, ExecutionHeaderProof},
     AccountProofRequest, BeaconHeaderProofRequest, EvmProofs, EvmProofsRequest,
-    ExecutionHeaderProofRequest,
-    StorageSlotProofRequest,
+    ExecutionHeaderProofRequest, StorageSlotProofRequest,
 };
 use bankai_types::fetch::ProofWrapper;
 use bankai_types::verify::evm::beacon::BeaconHeader;

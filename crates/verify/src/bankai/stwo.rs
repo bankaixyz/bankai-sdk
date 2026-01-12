@@ -1,5 +1,5 @@
 use bankai_types::block::BankaiBlock;
-use cairo_air::{CairoProof, PreProcessedTraceVariant, utils::get_verification_output};
+use cairo_air::{utils::get_verification_output, CairoProof, PreProcessedTraceVariant};
 use stwo::core::vcs::blake2_merkle::{Blake2sMerkleChannel, Blake2sMerkleHasher};
 
 use crate::VerifyError;

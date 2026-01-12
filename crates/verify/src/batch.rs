@@ -144,7 +144,6 @@ pub fn verify_batch_proof(wrapper: ProofWrapper) -> Result<BatchResults, VerifyE
                 batch_results.evm.tx.push(result);
             }
         }
-        
     }
 
     Ok(batch_results)
