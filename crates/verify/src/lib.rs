@@ -46,7 +46,7 @@
 //!
 //! # fn example(proof_wrapper: ProofWrapper) -> Result<(), Box<dyn std::error::Error>> {
 //! // Verify an entire batch of proofs at once
-//! let results = verify_batch_proof(&proof_wrapper)?;
+//! let results = verify_batch_proof(proof_wrapper)?;
 //!
 //! // Access verified data
 //! for header in &results.evm.execution_header {

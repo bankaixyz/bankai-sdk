@@ -84,7 +84,7 @@ Here's a complete example showing how to fetch and verify blockchain data:
 ```rust
 use bankai_sdk::{Bankai, Network, HashingFunctionDto};
 use bankai_verify::verify_batch_proof;
-use alloy_primitives::{Address, FixedBytes};
+use alloy_primitives::{Address, FixedBytes, U256};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -114,7 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Step 3: Verify the entire batch
     // This validates the block proof, MMR proofs, and all Merkle proofs
-    let results = verify_batch_proof(&proof_batch)?;
+    let results = verify_batch_proof(proof_batch)?;
     
     // Step 4: Use the verified data - it's cryptographically guaranteed valid!
     for header in &results.evm.execution_header {
@@ -134,7 +134,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     
     for tx in &results.evm.tx {
-        println!("✓ Verified transaction: {:?}", tx.hash);
+        println!("✓ Verified transaction: {:?}", tx);
     }
 
     Ok(())
