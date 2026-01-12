@@ -104,10 +104,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             HashingFunctionDto::Keccak
         )
         .await?
-        .evm_beacon_header(8_551_383)            // Request beacon header
-        .evm_execution_header(9_231_247)         // Request execution header
-        .evm_account(9_231_247, Address::ZERO)   // Request account state
-        .evm_tx(FixedBytes::from([0u8; 32]))     // Request transaction
+        .evm_beacon_header(8_551_383)                               // Request beacon header
+        .evm_execution_header(9_231_247)                            // Request execution header
+        .evm_account(9_231_247, Address::ZERO)                      // Request account state
+        .evm_storage_slot(9_231_247, Address::ZERO, U256::from(0))  // Request storage slot
+        .evm_tx(FixedBytes::from([0u8; 32]))                        // Request transaction
         .execute()
         .await?;
 
@@ -126,6 +127,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     for account in &results.evm.account {
         println!("✓ Verified account balance: {} wei", account.balance);
+    }
+
+    for slot in &results.evm.storage_slot {
+        println!("✓ Verified storage slot: {:?}", slot);
     }
     
     for tx in &results.evm.tx {
