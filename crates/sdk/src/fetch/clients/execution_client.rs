@@ -1,5 +1,5 @@
 use crate::errors::{SdkError, SdkResult};
-use alloy_primitives::{Address, FixedBytes};
+use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types_eth::{EIP1186AccountProofResponse, Header as ExecutionHeader};
 use bankai_types::fetch::evm::execution::TxProof;
@@ -50,6 +50,28 @@ impl ExecutionFetcher {
 
         let proof = provider
             .get_proof(address, vec![])
+            .block_id(block_number.into())
+            .await
+            .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
+
+        Ok(proof)
+    }
+
+    pub async fn fetch_storage_slot_proof(
+        &self,
+        address: Address,
+        block_number: u64,
+        mpt_key: U256,
+    ) -> SdkResult<EIP1186AccountProofResponse> {
+        let rpc_url: Url = self
+            .rpc_url
+            .parse()
+            .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
+        let provider = ProviderBuilder::new().connect_http(rpc_url);
+
+        let mpt_key: FixedBytes<32> = FixedBytes::from(mpt_key.to_be_bytes::<32>());
+        let proof = provider
+            .get_proof(address, vec![mpt_key])
             .block_id(block_number.into())
             .await
             .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;

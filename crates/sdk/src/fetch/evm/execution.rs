@@ -1,4 +1,4 @@
-use alloy_primitives::{Address, FixedBytes};
+use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_rpc_types_eth::EIP1186AccountProofResponse;
 pub use alloy_rpc_types_eth::Header as ExecutionHeader;
 use bankai_types::api::proofs::{HashingFunctionDto, MmrProofRequestDto};
@@ -8,7 +8,8 @@ use crate::fetch::{
     bankai,
     clients::{bankai_api::ApiClient, execution_client::ExecutionFetcher},
 };
-use bankai_types::fetch::evm::execution::{ExecutionHeaderProof, TxProof};
+use bankai_types::fetch::evm::execution::{ExecutionHeaderProof, StorageSlotProof, TxProof};
+use alloy_rpc_types_eth::Account as AlloyAccount;
 
 /// Fetcher for EVM execution layer data with MMR proofs
 ///
@@ -143,5 +144,62 @@ impl ExecutionChainFetcher {
             .fetch_tx_proof(tx_hash)
             .await?;
         Ok(proof)
+    }
+
+    /// Fetches a storage slot proof for a specific contract address at a given block
+    ///
+    /// This calls the EIP-1186 `eth_getProof` RPC with exactly one storage key and returns
+    /// the slot value (as `uint256`) along with the MPT nodes needed to verify it against the
+    /// contract's storage root (which itself can be verified against the header's state root).
+    ///
+    /// # Arguments
+    ///
+    /// * `block_number` - The block number to query
+    /// * `address` - The contract address
+    /// * `mpt_key` - The storage key (uint256) to query (passed through to `eth_getProof`)
+    /// * `_hashing_function` - Reserved for future use
+    /// * `_bankai_block_number` - Reserved for future use
+    pub async fn storage_slot_proof(
+        &self,
+        block_number: u64,
+        address: Address,
+        mpt_key: U256,
+        _hashing_function: HashingFunctionDto,
+        _bankai_block_number: u64,
+    ) -> SdkResult<StorageSlotProof> {
+        let proof = ExecutionFetcher::new(self.rpc_url.clone(), self.network_id)
+            .fetch_storage_slot_proof(address, block_number, mpt_key)
+            .await?;
+
+        let header = self.header_only(block_number).await?;
+
+        let mut storage_proofs = proof.storage_proof;
+        if storage_proofs.len() != 1 {
+            return Err(crate::errors::SdkError::InvalidInput(
+                "expected exactly one storage proof".into(),
+            ));
+        }
+        let storage = storage_proofs
+            .pop()
+            .ok_or_else(|| crate::errors::SdkError::NotFound("missing storage proof".into()))?;
+
+        let account_state: AlloyAccount = AlloyAccount {
+            balance: proof.balance,
+            nonce: proof.nonce,
+            code_hash: proof.code_hash,
+            storage_root: proof.storage_hash,
+        };
+
+        Ok(StorageSlotProof {
+            account: account_state,
+            address,
+            network_id: self.network_id,
+            block_number,
+            state_root: header.state_root,
+            slot_key: mpt_key,
+            slot_value: storage.value,
+            account_mpt_proof: proof.account_proof,
+            storage_mpt_proof: storage.proof,
+        })
     }
 }

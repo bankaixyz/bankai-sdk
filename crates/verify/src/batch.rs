@@ -98,6 +98,7 @@ pub fn verify_batch_proof(wrapper: ProofWrapper) -> Result<BatchResults, VerifyE
             beacon_header: Vec::new(),
             account: Vec::new(),
             tx: Vec::new(),
+            storage_slot: Vec::new(),
         },
     };
 
@@ -126,6 +127,16 @@ pub fn verify_batch_proof(wrapper: ProofWrapper) -> Result<BatchResults, VerifyE
             }
         }
 
+        if let Some(storage_slots) = &evm.storage_slot_proof {
+            for proof in storage_slots {
+                let result = ExecutionVerifier::verify_storage_slot_proof(
+                    proof,
+                    &batch_results.evm.execution_header,
+                )?;
+                batch_results.evm.storage_slot.push(result);
+            }
+        }
+
         if let Some(tx_proofs) = &evm.tx_proof {
             for proof in tx_proofs {
                 let result =
@@ -133,6 +144,7 @@ pub fn verify_batch_proof(wrapper: ProofWrapper) -> Result<BatchResults, VerifyE
                 batch_results.evm.tx.push(result);
             }
         }
+        
     }
 
     Ok(batch_results)

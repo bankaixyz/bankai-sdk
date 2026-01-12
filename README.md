@@ -21,6 +21,7 @@ This **stateless light client architecture** is fully trustless - no chains to s
 | **Beacon Headers** | ✅ | ❌ | Available |
 | **Execution Headers** | ✅ | ❌ | Available |
 | **Execution Accounts** | ✅ | ❌ | Available |
+| **Execution Storage Slots** | ✅ | ❌ | Available |
 | **Execution Transactions** | ✅ | ❌ | Available |
 
 **Note**: Mainnet support is coming soon. Currently only Sepolia testnet is supported.

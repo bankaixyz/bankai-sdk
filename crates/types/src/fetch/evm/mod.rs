@@ -1,13 +1,13 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use alloy_primitives::{Address, FixedBytes, hex::FromHex};
+use alloy_primitives::{hex::FromHex, Address, FixedBytes, U256};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     fetch::evm::{
         beacon::BeaconHeaderProof,
-        execution::{AccountProof, ExecutionHeaderProof, TxProof},
+        execution::{AccountProof, ExecutionHeaderProof, StorageSlotProof, TxProof},
     },
     proofs::{HashingFunctionDto, MmrProofDto},
 };
@@ -21,6 +21,7 @@ pub struct EvmProofs {
     pub execution_header_proof: Option<Vec<ExecutionHeaderProof>>,
     pub beacon_header_proof: Option<Vec<BeaconHeaderProof>>,
     pub account_proof: Option<Vec<AccountProof>>,
+    pub storage_slot_proof: Option<Vec<StorageSlotProof>>,
     pub tx_proof: Option<Vec<TxProof>>,
 }
 
@@ -68,6 +69,7 @@ pub struct EvmProofsRequest {
     pub execution_header: Option<Vec<ExecutionHeaderProofRequest>>,
     pub beacon_header: Option<Vec<BeaconHeaderProofRequest>>,
     pub account: Option<Vec<AccountProofRequest>>,
+    pub storage_slot: Option<Vec<StorageSlotProofRequest>>,
     pub tx_proof: Option<Vec<TxProofRequest>>,
 }
 
@@ -92,6 +94,14 @@ pub struct AccountProofRequest {
     pub network_id: u64,
     pub block_number: u64,
     pub address: Address,
+}
+
+#[derive(Debug)]
+pub struct StorageSlotProofRequest {
+    pub network_id: u64,
+    pub block_number: u64,
+    pub address: Address,
+    pub mpt_key: U256,
 }
 
 #[derive(Debug)]

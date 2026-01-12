@@ -60,11 +60,11 @@
 //! use bankai_verify::verify_batch_proof;
 //! let verification_result = verify_batch_proof(&result)?;
 //!
-//! // Access individual proofs from the result
-//! let beacon_proof = &verification_result.evm.beacon_header[index][0];
-//! let exec_proof = &verification_result.evm.execution_header[index][0];
-//! let tx_proof = &verification_result.evm.tx[index][0];
-//! let account_proof = &verification_result.evm.account[index][0];
+//! // Access verified data
+//! let beacon_header = &verification_result.evm.beacon_header[0];
+//! let exec_header = &verification_result.evm.execution_header[0];
+//! let tx = &verification_result.evm.tx[0];
+//! let account = &verification_result.evm.account[0];
 //! # Ok(())
 //! # }
 //! ```
@@ -211,7 +211,7 @@ pub mod evm {
     // Re-export common EVM types
     pub use bankai_types::fetch::evm::{
         beacon::BeaconHeaderProof,
-        execution::{AccountProof, ExecutionHeaderProof, TxProof},
+        execution::{AccountProof, ExecutionHeaderProof, StorageSlotProof, TxProof},
     };
 }
 

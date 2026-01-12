@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize, Serializer, Deserializer};
 #[cfg(feature = "verifier-types")]
 use crate::fetch::evm::MmrProof;
 use alloy_primitives::{Address, Bytes, FixedBytes};
+#[cfg(feature = "verifier-types")]
+use alloy_primitives::U256;
 
 #[cfg(feature = "verifier-types")]
 use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
@@ -60,4 +62,19 @@ pub struct TxProof {
     pub tx_index: u64,
     pub proof: Vec<Bytes>,
     pub encoded_tx: Vec<u8>,
+}
+
+#[cfg(feature = "verifier-types")]
+#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(Clone, Serialize, Deserialize)]
+pub struct StorageSlotProof {
+    pub account: Account,
+    pub address: Address,
+    pub network_id: u64,
+    pub block_number: u64,
+    pub state_root: FixedBytes<32>,
+    pub slot_key: U256,
+    pub slot_value: U256,
+    pub account_mpt_proof: Vec<Bytes>,
+    pub storage_mpt_proof: Vec<Bytes>,
 }
