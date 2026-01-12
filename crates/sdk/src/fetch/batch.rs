@@ -1,18 +1,18 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use alloy_primitives::FixedBytes;
-use alloy_primitives::{hex::ToHexExt, Address};
+use alloy_primitives::{hex::ToHexExt, Address, U256};
 use alloy_rpc_types_eth::{Account as AlloyAccount, Header as ExecutionHeader};
 
 use bankai_types::api::proofs::HashingFunctionDto;
 use bankai_types::api::proofs::{HeaderRequestDto, LightClientProofRequestDto};
-use bankai_types::fetch::evm::execution::TxProof;
+use bankai_types::fetch::evm::execution::{StorageSlotProof, TxProof};
 use bankai_types::fetch::evm::TxProofRequest;
 use bankai_types::fetch::evm::{
     beacon::BeaconHeaderProof,
     execution::{AccountProof, ExecutionHeaderProof},
     AccountProofRequest, BeaconHeaderProofRequest, EvmProofs, EvmProofsRequest,
-    ExecutionHeaderProofRequest,
+    ExecutionHeaderProofRequest, StorageSlotProofRequest,
 };
 use bankai_types::fetch::ProofWrapper;
 use bankai_types::verify::evm::beacon::BeaconHeader;
@@ -48,6 +48,7 @@ impl<'a> ProofBatchBuilder<'a> {
                 execution_header: None,
                 beacon_header: None,
                 account: None,
+                storage_slot: None,
                 tx_proof: None,
             },
         }
@@ -107,6 +108,26 @@ impl<'a> ProofBatchBuilder<'a> {
         self
     }
 
+    /// Adds a storage slot proof to the batch
+    ///
+    /// # Arguments
+    ///
+    /// * `block_number` - The execution layer block number to query
+    /// * `address` - The contract address
+    /// * `mpt_key` - The storage slot key (uint256) to query (passed through to `eth_getProof`)
+    pub fn evm_storage_slot(mut self, block_number: u64, address: Address, mpt_key: U256) -> Self {
+        let network_id = self.network.execution_network_id();
+        let mut v = self.evm.storage_slot.take().unwrap_or_default();
+        v.push(StorageSlotProofRequest {
+            network_id,
+            block_number,
+            address,
+            mpt_key,
+        });
+        self.evm.storage_slot = Some(v);
+        self
+    }
+
     /// Adds a transaction proof to the batch
     ///
     /// # Arguments
@@ -140,6 +161,11 @@ impl<'a> ProofBatchBuilder<'a> {
         }
         if let Some(accounts) = &self.evm.account {
             for r in accounts {
+                exec_headers.insert((r.network_id, r.block_number));
+            }
+        }
+        if let Some(slots) = &self.evm.storage_slot {
+            for r in slots {
                 exec_headers.insert((r.network_id, r.block_number));
             }
         }
@@ -309,6 +335,33 @@ impl<'a> ProofBatchBuilder<'a> {
             }
         }
 
+        // Fetch storage slot proofs
+        let mut storage_slot_proofs: Vec<StorageSlotProof> = Vec::new();
+        if let Some(slots) = &self.evm.storage_slot {
+            let exec_fetcher: &ExecutionChainFetcher = self
+                .bankai
+                .evm
+                .execution()
+                .map_err(|_| SdkError::NotConfigured("EVM execution fetcher".into()))?;
+            for req in slots {
+                if exec_fetcher.network_id() != req.network_id {
+                    return Err(SdkError::InvalidInput(
+                        "execution network_id mismatch".into(),
+                    ));
+                }
+                let proof = exec_fetcher
+                    .storage_slot_proof(
+                        req.block_number,
+                        req.address,
+                        req.mpt_key,
+                        self.hashing,
+                        self.bankai_block_number,
+                    )
+                    .await?;
+                storage_slot_proofs.push(proof);
+            }
+        }
+
         let evm_proofs = EvmProofs {
             execution_header_proof: if exec_header_proofs.is_empty() {
                 None
@@ -324,6 +377,11 @@ impl<'a> ProofBatchBuilder<'a> {
                 None
             } else {
                 Some(account_proofs)
+            },
+            storage_slot_proof: if storage_slot_proofs.is_empty() {
+                None
+            } else {
+                Some(storage_slot_proofs)
             },
             tx_proof: if tx_proofs.is_empty() {
                 None

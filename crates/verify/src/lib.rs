@@ -46,7 +46,7 @@
 //!
 //! # fn example(proof_wrapper: ProofWrapper) -> Result<(), Box<dyn std::error::Error>> {
 //! // Verify an entire batch of proofs at once
-//! let results = verify_batch_proof(&proof_wrapper)?;
+//! let results = verify_batch_proof(proof_wrapper)?;
 //!
 //! // Access verified data
 //! for header in &results.evm.execution_header {
@@ -224,6 +224,9 @@ pub enum VerifyError {
     /// An account Merkle proof failed verification against the header's state root
     InvalidAccountProof,
 
+    /// A storage Merkle proof failed verification against the account's storage root
+    InvalidStorageProof,
+
     /// Referenced execution header not found in the verified headers list
     InvalidExecutionHeaderProof,
 
@@ -247,6 +250,7 @@ impl core::fmt::Display for VerifyError {
             Self::InvalidHeaderHash => write!(f, "Invalid header hash"),
             Self::InvalidTxProof => write!(f, "Invalid transaction proof"),
             Self::InvalidAccountProof => write!(f, "Invalid account proof"),
+            Self::InvalidStorageProof => write!(f, "Invalid storage proof"),
             Self::InvalidExecutionHeaderProof => write!(f, "Invalid execution header proof"),
             Self::InvalidStateRoot => write!(f, "Invalid state root"),
             Self::InvalidMptProof => write!(f, "Invalid MPT proof"),

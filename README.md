@@ -21,6 +21,7 @@ This **stateless light client architecture** is fully trustless - no chains to s
 | **Beacon Headers** | ✅ | ❌ | Available |
 | **Execution Headers** | ✅ | ❌ | Available |
 | **Execution Accounts** | ✅ | ❌ | Available |
+| **Execution Storage Slots** | ✅ | ❌ | Available |
 | **Execution Transactions** | ✅ | ❌ | Available |
 
 **Note**: Mainnet support is coming soon. Currently only Sepolia testnet is supported.
@@ -83,7 +84,7 @@ Here's a complete example showing how to fetch and verify blockchain data:
 ```rust
 use bankai_sdk::{Bankai, Network, HashingFunctionDto};
 use bankai_verify::verify_batch_proof;
-use alloy_primitives::{Address, FixedBytes};
+use alloy_primitives::{Address, FixedBytes, U256};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -103,16 +104,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             HashingFunctionDto::Keccak
         )
         .await?
-        .evm_beacon_header(8_551_383)            // Request beacon header
-        .evm_execution_header(9_231_247)         // Request execution header
-        .evm_account(9_231_247, Address::ZERO)   // Request account state
-        .evm_tx(FixedBytes::from([0u8; 32]))     // Request transaction
+        .evm_beacon_header(8_551_383)                               // Request beacon header
+        .evm_execution_header(9_231_247)                            // Request execution header
+        .evm_account(9_231_247, Address::ZERO)                      // Request account state
+        .evm_storage_slot(9_231_247, Address::ZERO, U256::from(0))  // Request storage slot
+        .evm_tx(FixedBytes::from([0u8; 32]))                        // Request transaction
         .execute()
         .await?;
 
     // Step 3: Verify the entire batch
     // This validates the block proof, MMR proofs, and all Merkle proofs
-    let results = verify_batch_proof(&proof_batch)?;
+    let results = verify_batch_proof(proof_batch)?;
     
     // Step 4: Use the verified data - it's cryptographically guaranteed valid!
     for header in &results.evm.execution_header {
@@ -126,9 +128,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for account in &results.evm.account {
         println!("✓ Verified account balance: {} wei", account.balance);
     }
+
+    for slot in &results.evm.storage_slot {
+        println!("✓ Verified storage slot: {:?}", slot);
+    }
     
     for tx in &results.evm.tx {
-        println!("✓ Verified transaction: {:?}", tx.hash);
+        println!("✓ Verified transaction: {:?}", tx);
     }
 
     Ok(())

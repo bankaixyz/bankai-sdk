@@ -1,72 +1,66 @@
-//! Bankai SDK - Zero Knowledge Proof SDK
+//! Bankai SDK
 //!
-//! # Overview
+//! **Trustless blockchain data access through zero-knowledge proofs**
 //!
-//! Bankai enables trustless access to blockchain data through STWO zero-knowledge proofs.
-//! The process involves three steps:
+//! ## How It Works
 //!
-//! 1. **Verify the block proof**: Validate the STWO proof to establish trust in the MMR roots
-//! 2. **Retrieve MMR proofs**: Use MMR proofs to decommit and verify specific headers
-//! 3. **Generate storage proofs**: Create Merkle proofs against the header's state root to access specific data
+//! 1. **Verify the Bankai block proof**: validate the STWO proof to establish trust in the MMR roots
+//! 2. **Verify MMR proofs**: decommit and verify headers against those trusted MMR roots
+//! 3. **Verify chain data**: verify accounts/transactions/storage against the verified headers
 //!
-//! # Setup
+//! ## Getting Started (Fetch + Verify)
 //!
-//! ```no_run
-//! use bankai_sdk::{Bankai, Network};
-//!
-//! let sdk = Bankai::new(
-//!     Network::Sepolia,                              // Network to connect to
-//!     Some("https://eth-sepolia.rpc".to_string()),   // Execution layer RPC (optional)
-//!     Some("https://sepolia.beacon.api".to_string()) // Beacon chain RPC (optional)
-//! );
-//! ```
-//!
-//! **Required parameters:**
-//! - `network`: Target blockchain network (e.g., `Network::Sepolia`)
-//! - `evm_execution_rpc`: Optional - required for execution layer operations (headers, accounts, transactions)
-//! - `evm_beacon_rpc`: Optional - required for beacon chain operations (consensus headers)
-//!
-//! # Batch Operations (Recommended)
-//!
-//! Batch multiple proof requests into a single optimized operation. All proofs share the same
-//! STWO block proof and are anchored to the same Bankai block number.
+//! This example follows the full flow: fetch a proof batch via the SDK, then verify it with
+//! `bankai-verify`, and finally use the verified results.
 //!
 //! ```no_run
-//! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
-//! use alloy_primitives::{Address, FixedBytes};
-//!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let sdk = Bankai::new(Network::Sepolia, 
-//! #     Some("https://eth-sepolia.rpc".to_string()),
-//! #     Some("https://sepolia.beacon.api".to_string()));
-//!
-//! let batch = sdk.init_batch(
-//!     Network::Sepolia,
-//!     None,  // Use latest block (or specify a Bankai block number)
-//!     HashingFunctionDto::Keccak
-//! ).await?;
-//!
-//! let tx_hash = FixedBytes::from([0u8; 32]);
-//!
-//! let result = batch
-//!     .evm_beacon_header(8551383)                                    // Beacon header
-//!     .evm_execution_header(9231247)                                 // Execution header
-//!     .evm_tx(tx_hash)                                               // Transaction by hash
-//!     .evm_account(9231247, Address::ZERO)                           // Account proof
-//!     .execute()
-//!     .await?;
-//!
-//! // Verify the batch proof using the verify crate
+//! use alloy_primitives::{Address, FixedBytes, U256};
+//! use bankai_sdk::{Bankai, HashingFunctionDto, Network};
 //! use bankai_verify::verify_batch_proof;
-//! let verification_result = verify_batch_proof(&result)?;
 //!
-//! // Access individual proofs from the result
-//! let beacon_proof = &verification_result.evm.beacon_header[index][0];
-//! let exec_proof = &verification_result.evm.execution_header[index][0];
-//! let tx_proof = &verification_result.evm.tx[index][0];
-//! let account_proof = &verification_result.evm.account[index][0];
-//! # Ok(())
-//! # }
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Step 1: Initialize the SDK
+//!     let bankai = Bankai::new(
+//!         Network::Sepolia,
+//!         Some("https://sepolia.infura.io/v3/YOUR_KEY".to_string()),  // Execution RPC
+//!         Some("https://sepolia.beacon-api.example.com".to_string()), // Beacon RPC
+//!     );
+//!
+//!     // Step 2: Build and fetch a batch with multiple proof requests
+//!     let proof_batch = bankai
+//!         .init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
+//!         .await?
+//!         .evm_beacon_header(8_551_383)
+//!         .evm_execution_header(9_231_247)
+//!         .evm_account(9_231_247, Address::ZERO)
+//!         .evm_storage_slot(9_231_247, Address::ZERO, U256::from(0))
+//!         .evm_tx(FixedBytes::from([0u8; 32]))
+//!         .execute()
+//!         .await?;
+//!
+//!     // Step 3: Verify everything (block proof + MMR proofs + Merkle proofs)
+//!     let results = verify_batch_proof(proof_batch)?;
+//!
+//!     // Step 4: Use the verified data (cryptographically guaranteed valid)
+//!     for header in &results.evm.execution_header {
+//!         println!("✓ Verified execution header at block {}", header.number);
+//!     }
+//!     for header in &results.evm.beacon_header {
+//!         println!("✓ Verified beacon slot {}", header.slot);
+//!     }
+//!     for account in &results.evm.account {
+//!         println!("✓ Verified account balance: {} wei", account.balance);
+//!     }
+//!     for slot in &results.evm.storage_slot {
+//!         println!("✓ Verified storage slot: {}", slot);
+//!     }
+//!     for tx in &results.evm.tx {
+//!         println!("✓ Verified transaction: {:?}", tx);
+//!     }
+//!
+//!     Ok(())
+//! }
 //! ```
 //!
 //! # API Client
@@ -211,7 +205,7 @@ pub mod evm {
     // Re-export common EVM types
     pub use bankai_types::fetch::evm::{
         beacon::BeaconHeaderProof,
-        execution::{AccountProof, ExecutionHeaderProof, TxProof},
+        execution::{AccountProof, ExecutionHeaderProof, StorageSlotProof, TxProof},
     };
 }
 

@@ -5,6 +5,7 @@ pub mod beacon;
 pub mod execution;
 
 use alloy_consensus::TxEnvelope;
+use alloy_primitives::U256;
 
 use crate::verify::evm::beacon::BeaconHeader;
 use crate::verify::evm::execution::Account;
@@ -15,5 +16,6 @@ pub struct EvmResults {
     pub execution_header: Vec<ExecutionHeader>,
     pub beacon_header: Vec<BeaconHeader>,
     pub account: Vec<Account>,
+    pub storage_slot: Vec<U256>,
     pub tx: Vec<TxEnvelope>,
 }

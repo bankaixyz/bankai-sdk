@@ -1,10 +1,12 @@
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use alloc::vec::Vec;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[cfg(feature = "verifier-types")]
 use crate::fetch::evm::MmrProof;
+#[cfg(feature = "verifier-types")]
+use alloy_primitives::U256;
 use alloy_primitives::{Address, Bytes, FixedBytes};
 
 #[cfg(feature = "verifier-types")]
@@ -33,7 +35,10 @@ where
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ExecutionHeaderProof {
-    #[serde(serialize_with = "serialize_execution_header", deserialize_with = "deserialize_execution_header")]
+    #[serde(
+        serialize_with = "serialize_execution_header",
+        deserialize_with = "deserialize_execution_header"
+    )]
     pub header: ExecutionHeader,
     pub mmr_proof: MmrProof,
 }
@@ -60,4 +65,19 @@ pub struct TxProof {
     pub tx_index: u64,
     pub proof: Vec<Bytes>,
     pub encoded_tx: Vec<u8>,
+}
+
+#[cfg(feature = "verifier-types")]
+#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(Clone, Serialize, Deserialize)]
+pub struct StorageSlotProof {
+    pub account: Account,
+    pub address: Address,
+    pub network_id: u64,
+    pub block_number: u64,
+    pub state_root: FixedBytes<32>,
+    pub slot_key: U256,
+    pub slot_value: U256,
+    pub account_mpt_proof: Vec<Bytes>,
+    pub storage_mpt_proof: Vec<Bytes>,
 }
