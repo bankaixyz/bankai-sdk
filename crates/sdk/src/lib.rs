@@ -58,7 +58,7 @@
 //!
 //! // Verify the batch proof using the verify crate
 //! use bankai_verify::verify_batch_proof;
-//! let verification_result = verify_batch_proof(&result.unwrap())?;
+//! let verification_result = verify_batch_proof(&result)?;
 //!
 //! // Access individual proofs from the result
 //! let beacon_proof = &verification_result.evm.beacon_header[index][0];
