@@ -1,0 +1,13 @@
+[package]
+name = "bankai-example-worldid-root"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bankai-sdk = { path = "../../crates/sdk" }
+bankai-verify = { path = "../../crates/verify" }
+
+alloy-primitives.workspace = true
+tokio.workspace = true
+dotenv.workspace = true
+
