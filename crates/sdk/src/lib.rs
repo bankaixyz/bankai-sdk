@@ -58,13 +58,13 @@
 //!
 //! // Verify the batch proof using the verify crate
 //! use bankai_verify::verify_batch_proof;
-//! let verification_result = verify_batch_proof(&result.proof.proof)?;
+//! let verification_result = verify_batch_proof(&result.unwrap())?;
 //!
 //! // Access individual proofs from the result
-//! let beacon_proof = &result.beacon_headers[0];
-//! let exec_proof = &result.execution_headers[0];
-//! let tx_proof = &result.transactions[0];
-//! let account_proof = &result.accounts[0];
+//! let beacon_proof = &verification_result.evm.beacon_header[index][0];
+//! let exec_proof = &verification_result.evm.execution_header[index][0];
+//! let tx_proof = &verification_result.evm.tx[index][0];
+//! let account_proof = &verification_result.evm.account[index][0];
 //! # Ok(())
 //! # }
 //! ```
