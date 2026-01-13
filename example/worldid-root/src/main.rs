@@ -34,7 +34,7 @@ async fn main() -> Result<(), SdkError> {
     let verified_data = verify_batch_proof(wrapper)?;
 
     let (slot_key, slot_value) = &verified_data.evm.storage_slot[0][0];
-    println!("Latest World ID Root: slot {} = {:?}", slot_key, slot_value);
+    println!("Latest World ID Root: slot {slot_key} = {slot_value:?}");
 
     Ok(())
 }
