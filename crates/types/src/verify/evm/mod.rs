@@ -16,6 +16,7 @@ pub struct EvmResults {
     pub execution_header: Vec<ExecutionHeader>,
     pub beacon_header: Vec<BeaconHeader>,
     pub account: Vec<Account>,
-    pub storage_slot: Vec<U256>,
+    /// Each entry contains verified (slot_key, slot_value) pairs from a StorageSlotProof
+    pub storage_slot: Vec<Vec<(U256, U256)>>,
     pub tx: Vec<TxEnvelope>,
 }

@@ -26,17 +26,15 @@ async fn main() -> Result<(), SdkError> {
     let mpt_key = U256::from_be_bytes(key_bytes.into());
 
     let wrapper = batch
-        .evm_storage_slot(block_number, contract, mpt_key)
+        .evm_storage_slot(block_number, contract, vec![mpt_key])
         .execute()
         .await?;
 
     println!("Verifying Proof Data...");
     let verified_data = verify_batch_proof(wrapper)?;
 
-    println!(
-        "Latest World ID Root: {:?}",
-        verified_data.evm.storage_slot[0]
-    );
+    let (slot_key, slot_value) = &verified_data.evm.storage_slot[0][0];
+    println!("Latest World ID Root: slot {} = {:?}", slot_key, slot_value);
 
     Ok(())
 }
