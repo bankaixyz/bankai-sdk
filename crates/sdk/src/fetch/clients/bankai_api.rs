@@ -171,4 +171,18 @@ impl ApiClient {
         let block_summary: BlockSummaryDto = self.handle_response(response).await?;
         Ok(block_summary.height)
     }
+
+    /// Fetches the latest block summary
+    ///
+    /// This is useful for getting the latest block summary when you want to
+    /// get the latest block summary.
+    ///
+    /// # Returns
+    ///
+    /// The latest block summary
+    pub async fn get_latest_block(&self) -> SdkResult<BlockSummaryDto> {
+        let url = format!("{}/v1/blocks/latest", self.base_url);
+        let response = self.client.get(&url).send().await?;
+        self.handle_response(response).await
+    }
 }
