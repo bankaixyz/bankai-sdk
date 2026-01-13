@@ -101,7 +101,7 @@ pub struct StorageSlotProofRequest {
     pub network_id: u64,
     pub block_number: u64,
     pub address: Address,
-    pub mpt_key: U256,
+    pub slot_keys: Vec<U256>,
 }
 
 #[derive(Debug)]

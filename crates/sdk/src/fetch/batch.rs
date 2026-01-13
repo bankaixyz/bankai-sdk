@@ -108,21 +108,26 @@ impl<'a> ProofBatchBuilder<'a> {
         self
     }
 
-    /// Adds a storage slot proof to the batch
+    /// Adds a storage slot proof to the batch for one or more slots from the same contract.
     ///
     /// # Arguments
     ///
     /// * `block_number` - The execution layer block number to query
     /// * `address` - The contract address
-    /// * `mpt_key` - The storage slot key (uint256) to query (passed through to `eth_getProof`)
-    pub fn evm_storage_slot(mut self, block_number: u64, address: Address, mpt_key: U256) -> Self {
+    /// * `slot_keys` - The storage slot keys (uint256) to query
+    pub fn evm_storage_slot(
+        mut self,
+        block_number: u64,
+        address: Address,
+        slot_keys: Vec<U256>,
+    ) -> Self {
         let network_id = self.network.execution_network_id();
         let mut v = self.evm.storage_slot.take().unwrap_or_default();
         v.push(StorageSlotProofRequest {
             network_id,
             block_number,
             address,
-            mpt_key,
+            slot_keys,
         });
         self.evm.storage_slot = Some(v);
         self
@@ -353,7 +358,7 @@ impl<'a> ProofBatchBuilder<'a> {
                     .storage_slot_proof(
                         req.block_number,
                         req.address,
-                        req.mpt_key,
+                        &req.slot_keys,
                         self.hashing,
                         self.bankai_block_number,
                     )

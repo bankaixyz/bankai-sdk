@@ -150,25 +150,25 @@ impl ExecutionVerifier {
         Ok(account_proof.account)
     }
 
-    /// Verifies a contract storage slot proof using Merkle Patricia Trie proofs
+    /// Verifies one or more storage slots from the same contract using Merkle Patricia Trie proofs.
     ///
-    /// This method establishes that a specific storage slot value is committed in the state of
-    /// a given block by:
+    /// This method establishes that storage slot values are committed in the state of a given
+    /// block by:
     /// 1. Verifying the contract account is included in the block's state trie (against the
     ///    verified header's `state_root`)
-    /// 2. Verifying the storage slot is included in the contract's storage trie (against the
+    /// 2. Verifying each storage slot is included in the contract's storage trie (against the
     ///    account's `storage_root`)
     ///
     /// # Arguments
     ///
-    /// * `slot_proof` - The storage slot proof (includes account + account MPT proof, and
-    ///   storage slot value + storage MPT proof)
+    /// * `slot_proof` - The storage slot proof containing the account proof and individual
+    ///   storage slot proofs
     /// * `headers` - List of previously verified execution headers. Must contain the header
     ///   for the block number referenced in the storage slot proof
     ///
     /// # Returns
     ///
-    /// Returns the verified storage slot value as `U256`.
+    /// Returns a vector of verified (slot_key, slot_value) pairs in the same order as the input.
     ///
     /// # Errors
     ///
@@ -176,7 +176,7 @@ impl ExecutionVerifier {
     /// - `InvalidExecutionHeaderProof`: The referenced header is not in the verified headers list
     /// - `InvalidStateRoot`: The state root in the proof doesn't match the header's state root
     /// - `InvalidAccountProof`: The account MPT proof verification failed
-    /// - `InvalidStorageProof`: The storage MPT proof verification failed
+    /// - `InvalidStorageProof`: Any storage slot MPT proof verification failed
     ///
     /// # Example
     ///
@@ -189,15 +189,17 @@ impl ExecutionVerifier {
     /// #     slot_proof: StorageSlotProof,
     /// #     verified_headers: Vec<ExecutionHeader>
     /// # ) -> Result<(), Box<dyn std::error::Error>> {
-    /// let value = ExecutionVerifier::verify_storage_slot_proof(&slot_proof, &verified_headers)?;
-    /// println!("Verified slot value: {}", value);
+    /// let values = ExecutionVerifier::verify_storage_slot_proof(&slot_proof, &verified_headers)?;
+    /// for (key, value) in values {
+    ///     println!("Slot {:?} = {}", key, value);
+    /// }
     /// # Ok(())
     /// # }
     /// ```
     pub fn verify_storage_slot_proof(
         slot_proof: &bankai_types::fetch::evm::execution::StorageSlotProof,
         headers: &[ExecutionHeader],
-    ) -> Result<alloy_primitives::U256, VerifyError> {
+    ) -> Result<Vec<(alloy_primitives::U256, alloy_primitives::U256)>, VerifyError> {
         let header = headers
             .iter()
             .find(|h| h.number == slot_proof.block_number)
@@ -207,7 +209,6 @@ impl ExecutionVerifier {
             return Err(VerifyError::InvalidStateRoot);
         }
 
-        // Verify account inclusion in the state trie
         let expected_account = rlp_encode(slot_proof.account).to_vec();
         let account_key = Nibbles::unpack(keccak256(slot_proof.address));
         mpt_verify(
@@ -218,25 +219,44 @@ impl ExecutionVerifier {
         )
         .map_err(|_| VerifyError::InvalidAccountProof)?;
 
-        // Verify storage slot in the contract storage trie.
-        // Storage trie keys are keccak256(slot_key_32_bytes).
-        let slot_key_bytes = slot_proof.slot_key.to_be_bytes::<32>();
+        let mut results = Vec::with_capacity(slot_proof.slots.len());
+        for slot in &slot_proof.slots {
+            Self::verify_storage_slot_entry(
+                slot_proof.account.storage_root,
+                slot.slot_key,
+                slot.slot_value,
+                &slot.storage_mpt_proof,
+            )?;
+            results.push((slot.slot_key, slot.slot_value));
+        }
+
+        Ok(results)
+    }
+
+    /// Internal helper to verify a single storage slot entry against a storage root
+    fn verify_storage_slot_entry(
+        storage_root: FixedBytes<32>,
+        slot_key: alloy_primitives::U256,
+        slot_value: alloy_primitives::U256,
+        storage_mpt_proof: &[alloy_primitives::Bytes],
+    ) -> Result<(), VerifyError> {
+        let slot_key_bytes = slot_key.to_be_bytes::<32>();
         let storage_key = Nibbles::unpack(keccak256(slot_key_bytes));
-        let expected_storage_value = if slot_proof.slot_value.is_zero() {
+        let expected_storage_value = if slot_value.is_zero() {
             None
         } else {
-            Some(rlp_encode(slot_proof.slot_value).to_vec())
+            Some(rlp_encode(slot_value).to_vec())
         };
 
         mpt_verify(
-            slot_proof.account.storage_root,
+            storage_root,
             storage_key,
             expected_storage_value,
-            slot_proof.storage_mpt_proof.iter(),
+            storage_mpt_proof.iter(),
         )
         .map_err(|_| VerifyError::InvalidStorageProof)?;
 
-        Ok(slot_proof.slot_value)
+        Ok(())
     }
 
     /// Verifies a transaction using a Merkle Patricia Trie proof

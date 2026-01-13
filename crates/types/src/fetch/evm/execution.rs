@@ -67,6 +67,18 @@ pub struct TxProof {
     pub encoded_tx: Vec<u8>,
 }
 
+/// A single storage slot with its key, value, and MPT proof
+#[cfg(feature = "verifier-types")]
+#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(Clone, Serialize, Deserialize)]
+pub struct StorageSlotEntry {
+    pub slot_key: U256,
+    pub slot_value: U256,
+    pub storage_mpt_proof: Vec<Bytes>,
+}
+
+/// Proof for one or more storage slots from the same contract in a single block.
+/// The account proof is shared across all slots.
 #[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
@@ -76,8 +88,6 @@ pub struct StorageSlotProof {
     pub network_id: u64,
     pub block_number: u64,
     pub state_root: FixedBytes<32>,
-    pub slot_key: U256,
-    pub slot_value: U256,
     pub account_mpt_proof: Vec<Bytes>,
-    pub storage_mpt_proof: Vec<Bytes>,
+    pub slots: Vec<StorageSlotEntry>,
 }

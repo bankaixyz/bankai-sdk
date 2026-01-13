@@ -57,11 +57,12 @@ impl ExecutionFetcher {
         Ok(proof)
     }
 
+    /// Fetches storage slot proofs for one or more slots from the same contract.
     pub async fn fetch_storage_slot_proof(
         &self,
         address: Address,
         block_number: u64,
-        mpt_key: U256,
+        slot_keys: &[U256],
     ) -> SdkResult<EIP1186AccountProofResponse> {
         let rpc_url: Url = self
             .rpc_url
@@ -69,9 +70,13 @@ impl ExecutionFetcher {
             .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
         let provider = ProviderBuilder::new().connect_http(rpc_url);
 
-        let mpt_key: FixedBytes<32> = FixedBytes::from(mpt_key.to_be_bytes::<32>());
+        let keys: Vec<FixedBytes<32>> = slot_keys
+            .iter()
+            .map(|k| FixedBytes::from(k.to_be_bytes::<32>()))
+            .collect();
+
         let proof = provider
-            .get_proof(address, vec![mpt_key])
+            .get_proof(address, keys)
             .block_id(block_number.into())
             .await
             .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
