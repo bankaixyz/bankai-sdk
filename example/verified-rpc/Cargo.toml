@@ -1,0 +1,30 @@
+[package]
+name = "bankai-example-verified-rpc"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+default = ["native"]
+native = ["dep:reqwest", "dep:tokio", "dep:dotenv"]
+wasm = ["dep:reqwest"]
+
+[dependencies]
+bankai-sdk = { path = "../../crates/sdk" }
+bankai-verify = { path = "../../crates/verify" }
+bankai-types = { path = "../../crates/types", features = ["api", "verifier-types"] }
+
+alloy-primitives.workspace = true
+alloy-provider = { workspace = true, features = ["reqwest"] }
+alloy-rpc-types-eth.workspace = true
+cairo-air.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+stwo.workspace = true
+stwo-cairo-serialize.workspace = true
+thiserror.workspace = true
+
+dotenv = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true, features = ["json"] }
+tokio = { workspace = true, optional = true }
+starknet-ff = "0.3.7"
