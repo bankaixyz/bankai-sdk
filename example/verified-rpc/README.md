@@ -17,6 +17,9 @@ isolated client that can be reused in WASM-friendly contexts.
 cargo run -p bankai-example-verified-rpc --features native
 ```
 
+By default the demo uses the Alloy provider wrapper. Set `MODE=client` to use
+the raw JSON-RPC client instead.
+
 ### Required Environment Variables
 
 - `RPC_URL`: Execution JSON-RPC endpoint.
@@ -30,6 +33,15 @@ cargo run -p bankai-example-verified-rpc --features native
 Example:
 
 ```bash
+RPC_URL="https://sepolia.infura.io/v3/YOUR_KEY" \
+BLOCK_NUMBER=5200000 \
+cargo run -p bankai-example-verified-rpc --features native
+```
+
+Client mode:
+
+```bash
+MODE=client \
 RPC_URL="https://sepolia.infura.io/v3/YOUR_KEY" \
 BLOCK_NUMBER=5200000 \
 cargo run -p bankai-example-verified-rpc --features native
