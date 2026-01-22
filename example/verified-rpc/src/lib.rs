@@ -14,7 +14,7 @@ use bankai_types::fetch::evm::{MmrProof};
 use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
 use bankai_verify::VerifyError;
 use bankai_verify::bankai::stwo::verify_stwo_proof;
-use bankai_verify::evm::ExecutionVerifier;
+use bankai_verify::evm::execution::ExecutionVerifier;
 use cairo_air::CairoProof;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
@@ -460,7 +460,7 @@ fn parse_block_proof_value(
                 .map_err(|err| VerifiedRpcError::BlockProofParse(err.to_string()))
         })
         .collect::<Result<Vec<_>, VerifiedRpcError>>()?;
-    let proof = CairoProof::<Blake2sMerkleHasher>::deserialize(&mut data.iter());
+    let proof = <CairoProof<Blake2sMerkleHasher> as CairoDeserialize>::deserialize(&mut data.iter());
     Ok(proof)
 }
 
