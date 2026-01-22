@@ -3,6 +3,7 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use alloy_primitives::{BlockHash, FixedBytes, hex};
+use alloy_provider::network::BlockResponse;
 use alloy_provider::{Provider, RootProvider, network::Ethereum};
 use alloy_rpc_types_eth::Header as RpcHeader;
 use alloy_rpc_types_eth::BlockNumberOrTag;

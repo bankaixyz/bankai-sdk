@@ -18,13 +18,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let latest = verified.get_block_number().await?;
     let header = verified
-        .get_block_by_number_verified(latest, None)
+        .get_block_by_number_verified(latest - 100, None)
         .await?;
 
-    println!("Latest block: {}", latest);
     println!("Verified header hash: 0x{}", hex::encode(header.header_hash));
-    println!("MMR root: 0x{}", hex::encode(header.mmr_root));
-    println!("Bankai block: {}", header.bankai_block_number);
 
     Ok(())
 }
