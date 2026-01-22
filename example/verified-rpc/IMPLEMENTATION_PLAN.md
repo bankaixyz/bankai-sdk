@@ -32,6 +32,12 @@ VerifiedRpcClient::get_block_by_hash_verified(hash, bankai_block_number?)
 VerifiedRpcClient::call(method, params)
 ```
 
+### Alloy Provider Wrapper (Drop-in)
+
+Provide `VerifiedProvider` that implements `alloy_provider::Provider` and wraps
+an existing Alloy provider instance. This allows existing code to keep using
+`Provider` methods while adding `get_block_by_*_verified` helpers.
+
 ### Return Types
 
 `get_block_by_*_verified` returns `VerifiedHeader`:
@@ -136,6 +142,14 @@ The example binary should:
 - Read `RPC_URL` and `BLOCK_NUMBER` from the environment.
 - Optionally accept `BANKAI_BLOCK_NUMBER` and `BANKAI_API_BASE`.
 - Call `get_block_by_number_verified` and print the verified hash and MMR root.
+
+## Optional Alloy Integration
+
+Expose a `VerifiedProvider<P>` wrapper that:
+
+- Delegates `Provider` trait methods to an inner Alloy provider.
+- Adds `get_block_by_number_verified` and `get_block_by_hash_verified`.
+- Uses the same Bankai verification flow as `VerifiedRpcClient`.
 
 ## Testing Plan (Lightweight)
 

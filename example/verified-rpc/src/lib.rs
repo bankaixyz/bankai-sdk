@@ -2,8 +2,10 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use alloy_primitives::{FixedBytes, hex};
+use alloy_primitives::{BlockHash, FixedBytes, hex};
+use alloy_provider::{Provider, RootProvider, network::Ethereum};
 use alloy_rpc_types_eth::Header as RpcHeader;
+use alloy_rpc_types_eth::BlockNumberOrTag;
 use bankai_sdk::{ApiClient, HashingFunctionDto, Network};
 use bankai_sdk::errors::SdkError;
 use bankai_types::api::blocks::{BlockStatusDto, BlockSummaryDto, LatestBlockQueryDto};
@@ -180,82 +182,104 @@ where
         header: RpcHeader,
         bankai_block_number: Option<u64>,
     ) -> Result<VerifiedHeader, VerifiedRpcError> {
-        let bankai_block_number = self.resolve_bankai_block_number(bankai_block_number).await?;
-        let header_hash = header.inner.hash_slow();
-        let header_hash_hex = format_hash(header_hash);
-
-        let mmr_proof = self
-            .fetch_mmr_proof(bankai_block_number, &header_hash_hex)
-            .await?;
-
-        if mmr_proof.header_hash != header_hash {
-            return Err(VerifiedRpcError::HeaderHashMismatch {
-                expected: format_hash(mmr_proof.header_hash),
-                computed: header_hash_hex,
-            });
-        }
-
-        let bankai_block = self.fetch_and_verify_bankai_block(bankai_block_number).await?;
-        let mmr_root = execution_mmr_root(&bankai_block, self.hashing_function);
-
-        let proof = ExecutionHeaderProof {
-            header: header.clone(),
-            mmr_proof: mmr_proof.clone(),
-        };
-        ExecutionVerifier::verify_header_proof(&proof, mmr_root)
-            .map_err(VerifiedRpcError::ProofVerification)?;
-
-        Ok(VerifiedHeader {
+        verify_execution_header(
+            &self.bankai_api,
+            self.hashing_function,
+            self.execution_network_id,
             header,
-            header_hash,
             bankai_block_number,
-            mmr_root,
-            mmr_proof,
-        })
-    }
-
-    async fn resolve_bankai_block_number(
-        &self,
-        bankai_block_number: Option<u64>,
-    ) -> Result<u64, VerifiedRpcError> {
-        match bankai_block_number {
-            Some(number) => Ok(number),
-            None => self.bankai_api.get_latest_block_number().await,
-        }
-    }
-
-    async fn fetch_mmr_proof(
-        &self,
-        bankai_block_number: u64,
-        header_hash_hex: &str,
-    ) -> Result<MmrProof, VerifiedRpcError> {
-        let request = MmrProofRequestDto {
-            network_id: self.execution_network_id,
-            block_number: bankai_block_number,
-            hashing_function: self.hashing_function,
-            header_hash: header_hash_hex.to_string(),
-        };
-        let result = self.bankai_api.get_mmr_proof(&request).await;
-        match result {
-            Ok(proof) => Ok(proof.into()),
-            Err(error) if is_missing_mmr_proof(&error) => {
-                Err(VerifiedRpcError::MmrProofMissing(header_hash_hex.to_string()))
-            }
-            Err(error) => Err(error),
-        }
-    }
-
-    async fn fetch_and_verify_bankai_block(
-        &self,
-        bankai_block_number: u64,
-    ) -> Result<BankaiBlock, VerifiedRpcError> {
-        let block_proof = self.bankai_api.get_block_proof(bankai_block_number).await?;
-        let proof = parse_block_proof_value(block_proof.proof)?;
-        verify_stwo_proof(proof).map_err(VerifiedRpcError::ProofVerification)
+        )
+        .await
     }
 
     fn next_request_id(&self) -> u64 {
         self.request_id.fetch_add(1, Ordering::Relaxed)
+    }
+}
+
+pub struct VerifiedProvider<P> {
+    inner: P,
+    hashing_function: HashingFunctionDto,
+    execution_network_id: u64,
+    bankai_api: BankaiApiClient,
+}
+
+impl<P> VerifiedProvider<P>
+where
+    P: Provider<Ethereum>,
+{
+    pub fn new(network: Network, provider: P, bankai_api_base: Option<String>) -> Self {
+        Self {
+            inner: provider,
+            hashing_function: HashingFunctionDto::Keccak,
+            execution_network_id: network.execution_network_id(),
+            bankai_api: BankaiApiClient::new(network, bankai_api_base),
+        }
+    }
+
+    pub fn inner(&self) -> &P {
+        &self.inner
+    }
+
+    pub fn into_inner(self) -> P {
+        self.inner
+    }
+
+    pub async fn get_block_by_number_verified(
+        &self,
+        block_number: u64,
+        bankai_block_number: Option<u64>,
+    ) -> Result<VerifiedHeader, VerifiedRpcError> {
+        let block = self
+            .inner
+            .get_block_by_number(BlockNumberOrTag::Number(block_number))
+            .await
+            .map_err(|err| VerifiedRpcError::RpcTransport(err.to_string()))?
+            .ok_or_else(|| VerifiedRpcError::RpcMissingResult {
+                method: "eth_getBlockByNumber".to_string(),
+            })?;
+        let header = block.header().clone();
+        verify_execution_header(
+            &self.bankai_api,
+            self.hashing_function,
+            self.execution_network_id,
+            header,
+            bankai_block_number,
+        )
+        .await
+    }
+
+    pub async fn get_block_by_hash_verified(
+        &self,
+        block_hash: BlockHash,
+        bankai_block_number: Option<u64>,
+    ) -> Result<VerifiedHeader, VerifiedRpcError> {
+        let block = self
+            .inner
+            .get_block_by_hash(block_hash)
+            .await
+            .map_err(|err| VerifiedRpcError::RpcTransport(err.to_string()))?
+            .ok_or_else(|| VerifiedRpcError::RpcMissingResult {
+                method: "eth_getBlockByHash".to_string(),
+            })?;
+        let header = block.header().clone();
+        verify_execution_header(
+            &self.bankai_api,
+            self.hashing_function,
+            self.execution_network_id,
+            header,
+            bankai_block_number,
+        )
+        .await
+    }
+}
+
+impl<P> Provider<Ethereum> for VerifiedProvider<P>
+where
+    P: Provider<Ethereum>,
+{
+    fn root(&self) -> &RootProvider<Ethereum> {
+        self.inner.root()
     }
 }
 
@@ -469,6 +493,94 @@ fn execution_mmr_root(block: &BankaiBlock, hashing: HashingFunctionDto) -> Fixed
         HashingFunctionDto::Keccak => block.execution.mmr_root_keccak,
         HashingFunctionDto::Poseidon => block.execution.mmr_root_poseidon,
     }
+}
+
+async fn verify_execution_header(
+    bankai_api: &BankaiApiClient,
+    hashing_function: HashingFunctionDto,
+    execution_network_id: u64,
+    header: RpcHeader,
+    bankai_block_number: Option<u64>,
+) -> Result<VerifiedHeader, VerifiedRpcError> {
+    let bankai_block_number = resolve_bankai_block_number(bankai_api, bankai_block_number).await?;
+    let header_hash = header.inner.hash_slow();
+    let header_hash_hex = format_hash(header_hash);
+
+    let mmr_proof = fetch_mmr_proof(
+        bankai_api,
+        execution_network_id,
+        hashing_function,
+        bankai_block_number,
+        &header_hash_hex,
+    )
+    .await?;
+
+    if mmr_proof.header_hash != header_hash {
+        return Err(VerifiedRpcError::HeaderHashMismatch {
+            expected: format_hash(mmr_proof.header_hash),
+            computed: header_hash_hex,
+        });
+    }
+
+    let bankai_block = fetch_and_verify_bankai_block(bankai_api, bankai_block_number).await?;
+    let mmr_root = execution_mmr_root(&bankai_block, hashing_function);
+
+    let proof = ExecutionHeaderProof {
+        header: header.clone(),
+        mmr_proof: mmr_proof.clone(),
+    };
+    ExecutionVerifier::verify_header_proof(&proof, mmr_root)
+        .map_err(VerifiedRpcError::ProofVerification)?;
+
+    Ok(VerifiedHeader {
+        header,
+        header_hash,
+        bankai_block_number,
+        mmr_root,
+        mmr_proof,
+    })
+}
+
+async fn resolve_bankai_block_number(
+    bankai_api: &BankaiApiClient,
+    bankai_block_number: Option<u64>,
+) -> Result<u64, VerifiedRpcError> {
+    match bankai_block_number {
+        Some(number) => Ok(number),
+        None => bankai_api.get_latest_block_number().await,
+    }
+}
+
+async fn fetch_mmr_proof(
+    bankai_api: &BankaiApiClient,
+    execution_network_id: u64,
+    hashing_function: HashingFunctionDto,
+    bankai_block_number: u64,
+    header_hash_hex: &str,
+) -> Result<MmrProof, VerifiedRpcError> {
+    let request = MmrProofRequestDto {
+        network_id: execution_network_id,
+        block_number: bankai_block_number,
+        hashing_function,
+        header_hash: header_hash_hex.to_string(),
+    };
+    let result = bankai_api.get_mmr_proof(&request).await;
+    match result {
+        Ok(proof) => Ok(proof.into()),
+        Err(error) if is_missing_mmr_proof(&error) => {
+            Err(VerifiedRpcError::MmrProofMissing(header_hash_hex.to_string()))
+        }
+        Err(error) => Err(error),
+    }
+}
+
+async fn fetch_and_verify_bankai_block(
+    bankai_api: &BankaiApiClient,
+    bankai_block_number: u64,
+) -> Result<BankaiBlock, VerifiedRpcError> {
+    let block_proof = bankai_api.get_block_proof(bankai_block_number).await?;
+    let proof = parse_block_proof_value(block_proof.proof)?;
+    verify_stwo_proof(proof).map_err(VerifiedRpcError::ProofVerification)
 }
 
 fn format_block_number(block_number: u64) -> String {

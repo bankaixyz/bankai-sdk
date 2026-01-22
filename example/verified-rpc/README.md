@@ -49,6 +49,30 @@ println!("Verified header hash: {:?}", verified.header_hash);
 # }
 ```
 
+## Alloy Provider Integration (Drop-in)
+
+`VerifiedProvider` implements `alloy_provider::Provider`, so it can be used
+where a standard Alloy provider is expected while adding verified-header
+methods.
+
+```no_run
+use alloy_provider::ProviderBuilder;
+use bankai_example_verified_rpc::VerifiedProvider;
+use bankai_sdk::Network;
+
+# async fn example() -> Result<(), Box<dyn std::error::Error>> {
+let provider = ProviderBuilder::new().connect_http("https://rpc".parse()?);
+let verified = VerifiedProvider::new(Network::Sepolia, provider, None);
+
+let latest = verified.get_block_number().await?;
+let header = verified
+    .get_block_by_number_verified(latest, None)
+    .await?;
+println!("Verified header hash: {:?}", header.header_hash);
+# Ok(())
+# }
+```
+
 ## WASM Notes
 
 The core verification flow is transport-agnostic. Build with
