@@ -17,16 +17,9 @@ isolated client that can be reused in WASM-friendly contexts.
 cargo run -p bankai-example-verified-rpc --features native
 ```
 
-By default the demo uses the Alloy provider wrapper. Set `MODE=client` to use
-the raw JSON-RPC client instead.
-
 ### Required Environment Variables
 
 - `RPC_URL`: Execution JSON-RPC endpoint.
-
-### Optional Environment Variables
-
-- `BANKAI_API_BASE`: Override the default Bankai API base URL.
 
 Example:
 
@@ -42,7 +35,7 @@ use bankai_example_verified_rpc::VerifiedRpcClient;
 use bankai_sdk::Network;
 
 # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-let client = VerifiedRpcClient::new(Network::Sepolia, "https://rpc".to_string(), None);
+let client = VerifiedRpcClient::new(Network::Sepolia, "https://rpc".to_string());
 let verified = client.get_block_by_number_verified(5_200_000, None).await?;
 println!("Verified header hash: {:?}", verified.header_hash);
 # Ok(())
@@ -62,7 +55,7 @@ use bankai_sdk::Network;
 
 # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 let provider = ProviderBuilder::new().connect_http("https://rpc".parse()?);
-let verified = VerifiedProvider::new(Network::Sepolia, provider, None);
+let verified = VerifiedProvider::new(Network::Sepolia, provider);
 
 let latest = verified.get_block_number().await?;
 let header = verified

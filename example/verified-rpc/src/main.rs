@@ -12,11 +12,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rpc_url = env::var("RPC_URL")
         .expect("RPC_URL must be set to an execution JSON-RPC endpoint");
-    let bankai_api_base = env::var("BANKAI_API_BASE").ok();
-
     let url: reqwest::Url = rpc_url.parse()?;
     let provider = ProviderBuilder::new().connect_http(url);
-    let verified = VerifiedProvider::new(Network::Sepolia, provider, bankai_api_base);
+    let verified = VerifiedProvider::new(Network::Sepolia, provider);
 
     let latest = verified.get_block_number().await?;
     let header = verified

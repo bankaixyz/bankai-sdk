@@ -26,7 +26,7 @@ remain WASM-friendly.
 ## Public API
 
 ```rust
-VerifiedRpcClient::new(network, rpc_url, bankai_api_base?)
+VerifiedRpcClient::new(network, rpc_url)
 VerifiedRpcClient::get_block_by_number_verified(block_number, bankai_block_number?)
 VerifiedRpcClient::get_block_by_hash_verified(hash, bankai_block_number?)
 VerifiedRpcClient::call(method, params)
@@ -89,12 +89,10 @@ Responsibilities:
 
 ### 3) Bankai API Access
 
-- Default path uses `bankai_sdk::ApiClient` for:
+- Use `bankai_sdk::ApiClient` for:
   - `get_latest_block_number`
   - `get_block_proof`
   - `get_mmr_proof`
-- Optional `bankai_api_base` uses a thin HTTP client to target non-default
-  Bankai endpoints while reusing the same DTO types.
 
 ## Proof Verification Flow
 
@@ -139,9 +137,9 @@ This design is documented only; it is not part of the example implementation.
 
 The example binary should:
 
-- Read `RPC_URL` and `BLOCK_NUMBER` from the environment.
-- Optionally accept `BANKAI_BLOCK_NUMBER` and `BANKAI_API_BASE`.
-- Call `get_block_by_number_verified` and print the verified hash and MMR root.
+- Read `RPC_URL` from the environment.
+- Call `get_block_by_number_verified` on the latest block and print the
+  verified hash and MMR root.
 
 ## Optional Alloy Integration
 

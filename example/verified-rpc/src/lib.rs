@@ -8,9 +8,7 @@ use alloy_rpc_types_eth::Header as RpcHeader;
 use alloy_rpc_types_eth::BlockNumberOrTag;
 use bankai_sdk::{ApiClient, HashingFunctionDto, Network};
 use bankai_sdk::errors::SdkError;
-use bankai_types::api::blocks::{BlockStatusDto, BlockSummaryDto, LatestBlockQueryDto};
-use bankai_types::api::error::ErrorResponse;
-use bankai_types::api::proofs::{BankaiBlockProofDto, MmrProofDto, MmrProofRequestDto};
+use bankai_types::api::proofs::MmrProofRequestDto;
 use bankai_types::block::BankaiBlock;
 use bankai_types::fetch::evm::{MmrProof};
 use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
@@ -19,7 +17,6 @@ use bankai_verify::bankai::stwo::verify_stwo_proof;
 use bankai_verify::evm::execution::ExecutionVerifier;
 use cairo_air::CairoProof;
 use serde::{Deserialize, Serialize};
-use serde::de::DeserializeOwned;
 use serde_json::Value;
 use starknet_ff::FieldElement;
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
@@ -40,16 +37,6 @@ pub enum VerifiedRpcError {
     RpcDecode(#[from] serde_json::Error),
     #[error("bankai api error: {0}")]
     BankaiApi(#[from] SdkError),
-    #[error("bankai api transport error: {0}")]
-    BankaiTransport(String),
-    #[error("bankai api http error (status {status}): {body}")]
-    BankaiHttp { status: u16, body: String },
-    #[error("bankai api error response: {code} - {message}")]
-    BankaiApiResponse {
-        code: String,
-        message: String,
-        error_id: String,
-    },
     #[error("mmr proof not found for header hash {0}")]
     MmrProofMissing(String),
     #[error("header hash mismatch: expected {expected}, computed {computed}")]
@@ -100,7 +87,7 @@ pub trait JsonRpcTransport {
 pub struct VerifiedRpcClient<T> {
     hashing_function: HashingFunctionDto,
     execution_network_id: u64,
-    bankai_api: BankaiApiClient,
+    bankai_api: ApiClient,
     transport: T,
     request_id: AtomicU64,
 }
@@ -112,7 +99,7 @@ where
     pub fn with_transport(
         network: Network,
         transport: T,
-        bankai_api: BankaiApiClient,
+        bankai_api: ApiClient,
     ) -> Self {
         Self {
             hashing_function: HashingFunctionDto::Keccak,
@@ -201,19 +188,19 @@ pub struct VerifiedProvider<P> {
     inner: P,
     hashing_function: HashingFunctionDto,
     execution_network_id: u64,
-    bankai_api: BankaiApiClient,
+    bankai_api: ApiClient,
 }
 
 impl<P> VerifiedProvider<P>
 where
     P: Provider<Ethereum>,
 {
-    pub fn new(network: Network, provider: P, bankai_api_base: Option<String>) -> Self {
+    pub fn new(network: Network, provider: P) -> Self {
         Self {
             inner: provider,
             hashing_function: HashingFunctionDto::Keccak,
             execution_network_id: network.execution_network_id(),
-            bankai_api: BankaiApiClient::new(network, bankai_api_base),
+            bankai_api: ApiClient::new(network),
         }
     }
 
@@ -332,136 +319,10 @@ impl VerifiedRpcClient<ReqwestTransport> {
     pub fn new(
         network: Network,
         rpc_url: String,
-        bankai_api_base: Option<String>,
     ) -> Self {
-        let bankai_api = BankaiApiClient::new(network, bankai_api_base);
+        let bankai_api = ApiClient::new(network);
         let transport = ReqwestTransport::new(rpc_url);
         Self::with_transport(network, transport, bankai_api)
-    }
-}
-
-pub enum BankaiApiClient {
-    Sdk(ApiClient),
-    #[cfg(any(feature = "native", feature = "wasm"))]
-    Http(HttpBankaiApiClient),
-}
-
-impl BankaiApiClient {
-    pub fn new(network: Network, bankai_api_base: Option<String>) -> Self {
-        match bankai_api_base {
-            Some(base_url) => {
-                #[cfg(any(feature = "native", feature = "wasm"))]
-                {
-                    return BankaiApiClient::Http(HttpBankaiApiClient::new(base_url));
-                }
-                #[cfg(not(any(feature = "native", feature = "wasm")))]
-                {
-                    let _ = base_url;
-                    BankaiApiClient::Sdk(ApiClient::new(network))
-                }
-            }
-            None => BankaiApiClient::Sdk(ApiClient::new(network)),
-        }
-    }
-
-    pub async fn get_latest_block_number(&self) -> Result<u64, VerifiedRpcError> {
-        match self {
-            BankaiApiClient::Sdk(client) => Ok(client.get_latest_block_number().await?),
-            #[cfg(any(feature = "native", feature = "wasm"))]
-            BankaiApiClient::Http(client) => client.get_latest_block_number().await,
-        }
-    }
-
-    pub async fn get_block_proof(
-        &self,
-        block_number: u64,
-    ) -> Result<BankaiBlockProofDto, VerifiedRpcError> {
-        match self {
-            BankaiApiClient::Sdk(client) => Ok(client.get_block_proof(block_number).await?),
-            #[cfg(any(feature = "native", feature = "wasm"))]
-            BankaiApiClient::Http(client) => client.get_block_proof(block_number).await,
-        }
-    }
-
-    pub async fn get_mmr_proof(
-        &self,
-        request: &MmrProofRequestDto,
-    ) -> Result<MmrProofDto, VerifiedRpcError> {
-        match self {
-            BankaiApiClient::Sdk(client) => Ok(client.get_mmr_proof(request).await?),
-            #[cfg(any(feature = "native", feature = "wasm"))]
-            BankaiApiClient::Http(client) => client.get_mmr_proof(request).await,
-        }
-    }
-}
-
-#[cfg(any(feature = "native", feature = "wasm"))]
-pub struct HttpBankaiApiClient {
-    base_url: String,
-    client: reqwest::Client,
-}
-
-#[cfg(any(feature = "native", feature = "wasm"))]
-impl HttpBankaiApiClient {
-    pub fn new(base_url: String) -> Self {
-        Self {
-            base_url: base_url.trim_end_matches('/').to_string(),
-            client: reqwest::Client::new(),
-        }
-    }
-
-    pub async fn get_latest_block_number(&self) -> Result<u64, VerifiedRpcError> {
-        let url = format!("{}/v1/blocks/latest", self.base_url);
-        let query = LatestBlockQueryDto {
-            status: Some(BlockStatusDto::Completed),
-        };
-        let response = self.client.get(&url).query(&query).send().await;
-        let block_summary: BlockSummaryDto = self.handle_response(response).await?;
-        Ok(block_summary.height)
-    }
-
-    pub async fn get_block_proof(
-        &self,
-        block_number: u64,
-    ) -> Result<BankaiBlockProofDto, VerifiedRpcError> {
-        let url = format!("{}/v1/proofs/block/{}", self.base_url, block_number);
-        let response = self.client.get(&url).send().await;
-        self.handle_response(response).await
-    }
-
-    pub async fn get_mmr_proof(
-        &self,
-        request: &MmrProofRequestDto,
-    ) -> Result<MmrProofDto, VerifiedRpcError> {
-        let url = format!("{}/v1/proofs/mmr", self.base_url);
-        let response = self.client.post(&url).json(request).send().await;
-        self.handle_response(response).await
-    }
-
-    async fn handle_response<T: DeserializeOwned>(
-        &self,
-        response: Result<reqwest::Response, reqwest::Error>,
-    ) -> Result<T, VerifiedRpcError> {
-        let response =
-            response.map_err(|err| VerifiedRpcError::BankaiTransport(err.to_string()))?;
-        if response.status().is_success() {
-            let value = response
-                .json::<T>()
-                .await
-                .map_err(|err| VerifiedRpcError::BankaiTransport(err.to_string()))?;
-            return Ok(value);
-        }
-
-        let status = response.status().as_u16();
-        let body = response.text().await.unwrap_or_default();
-        if let Ok(api_err) = serde_json::from_str::<ErrorResponse>(&body) {
-            return Err(VerifiedRpcError::BankaiApiResponse {
-                code: api_err.code,
-                message: api_err.message,
-                error_id: api_err.error_id,
-            });
-        }
-        Err(VerifiedRpcError::BankaiHttp { status, body })
     }
 }
 
@@ -496,7 +357,7 @@ fn execution_mmr_root(block: &BankaiBlock, hashing: HashingFunctionDto) -> Fixed
 }
 
 async fn verify_execution_header(
-    bankai_api: &BankaiApiClient,
+    bankai_api: &ApiClient,
     hashing_function: HashingFunctionDto,
     execution_network_id: u64,
     header: RpcHeader,
@@ -542,17 +403,20 @@ async fn verify_execution_header(
 }
 
 async fn resolve_bankai_block_number(
-    bankai_api: &BankaiApiClient,
+    bankai_api: &ApiClient,
     bankai_block_number: Option<u64>,
 ) -> Result<u64, VerifiedRpcError> {
     match bankai_block_number {
         Some(number) => Ok(number),
-        None => bankai_api.get_latest_block_number().await,
+        None => bankai_api
+            .get_latest_block_number()
+            .await
+            .map_err(VerifiedRpcError::from),
     }
 }
 
 async fn fetch_mmr_proof(
-    bankai_api: &BankaiApiClient,
+    bankai_api: &ApiClient,
     execution_network_id: u64,
     hashing_function: HashingFunctionDto,
     bankai_block_number: u64,
@@ -567,15 +431,19 @@ async fn fetch_mmr_proof(
     let result = bankai_api.get_mmr_proof(&request).await;
     match result {
         Ok(proof) => Ok(proof.into()),
-        Err(error) if is_missing_mmr_proof(&error) => {
-            Err(VerifiedRpcError::MmrProofMissing(header_hash_hex.to_string()))
+        Err(error) => {
+            let err = VerifiedRpcError::from(error);
+            if is_missing_mmr_proof(&err) {
+                Err(VerifiedRpcError::MmrProofMissing(header_hash_hex.to_string()))
+            } else {
+                Err(err)
+            }
         }
-        Err(error) => Err(error),
     }
 }
 
 async fn fetch_and_verify_bankai_block(
-    bankai_api: &BankaiApiClient,
+    bankai_api: &ApiClient,
     bankai_block_number: u64,
 ) -> Result<BankaiBlock, VerifiedRpcError> {
     let block_proof = bankai_api.get_block_proof(bankai_block_number).await?;
@@ -598,8 +466,6 @@ fn is_missing_mmr_proof(error: &VerifiedRpcError) -> bool {
         VerifiedRpcError::BankaiApi(SdkError::ApiErrorResponse { code, .. }) => {
             code.contains("not_found")
         }
-        VerifiedRpcError::BankaiHttp { status, .. } => *status == 404,
-        VerifiedRpcError::BankaiApiResponse { code, .. } => code.contains("not_found"),
         _ => false,
     }
 }
