@@ -24,6 +24,6 @@ stwo-cairo-serialize.workspace = true
 thiserror.workspace = true
 
 dotenv = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true, default-features = false, features = ["json"] }
+reqwest = { workspace = true, optional = true, features = ["json"] }
 tokio = { workspace = true, optional = true }
 starknet-ff = "0.3.7"
