@@ -23,27 +23,15 @@ the raw JSON-RPC client instead.
 ### Required Environment Variables
 
 - `RPC_URL`: Execution JSON-RPC endpoint.
-- `BLOCK_NUMBER`: Historical block number to verify.
 
 ### Optional Environment Variables
 
-- `BANKAI_BLOCK_NUMBER`: Bankai block height to anchor proofs to (defaults to latest).
 - `BANKAI_API_BASE`: Override the default Bankai API base URL.
 
 Example:
 
 ```bash
 RPC_URL="https://sepolia.infura.io/v3/YOUR_KEY" \
-BLOCK_NUMBER=5200000 \
-cargo run -p bankai-example-verified-rpc --features native
-```
-
-Client mode:
-
-```bash
-MODE=client \
-RPC_URL="https://sepolia.infura.io/v3/YOUR_KEY" \
-BLOCK_NUMBER=5200000 \
 cargo run -p bankai-example-verified-rpc --features native
 ```
 
