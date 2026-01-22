@@ -1,23 +1,63 @@
 # Verified RPC Example
 
-This example crate wraps execution-layer JSON-RPC header retrieval and verifies
-historical headers using Bankai MMR proofs. It focuses on a minimal, transport-
-isolated client that can be reused in WASM-friendly contexts.
+Bankai is a stateless light client based on recursive ZK proofs. This example
+uses Bankai to validate the response of an Ethereum JSON-RPC endpoint by
+verifying execution headers against Bankai MMR proofs.
 
-## Features
+The verified methods are limited right now. The logic wraps an Alloy provider,
+so you still get the standard provider surface for unverified calls.
 
-- Fetches execution headers via JSON-RPC and computes the canonical header hash.
-- Fetches Bankai STWO block proofs and MMR proofs to verify header inclusion.
-- Returns a `VerifiedHeader` with proof metadata.
-- Provides a `call` passthrough for unverified JSON-RPC calls.
+## How it works
 
-## Running the Demo (Native)
+1. Request a Bankai block proof and MMR proof from the Bankai API.
+2. Request an execution header from RPC.
+3. Verify the Bankai ZK proof, extract the trusted MMR root, and run the MMR
+   inclusion proof.
+4. Assert the RPC header hash matches the MMR proof header hash.
+5. Return verified header data secured by Bankai.
+
+### Flow diagram
+
+```mermaid
+flowchart TD
+  BankaiApi[Request Bankai proof + MMR proof] --> VerifyStwo[Verify Bankai ZK proof]
+  VerifyStwo --> MmrRoot[Extract trusted MMR root]
+  Rpc[Request header from RPC] --> Hash[Compute canonical header hash]
+  Hash --> VerifyMmr[Verify MMR inclusion proof]
+  MmrRoot --> VerifyMmr
+  VerifyMmr --> Match[Assert header hash matches]
+  Match --> Verified[Verified data secured by Bankai]
+```
+
+## Compatible functions
+
+Verified methods:
+
+- `VerifiedRpcClient::get_block_by_number_verified`
+- `VerifiedRpcClient::get_block_by_hash_verified`
+- `VerifiedProvider::get_block_by_number_verified`
+- `VerifiedProvider::get_block_by_hash_verified`
+
+Unverified passthrough:
+
+- `VerifiedRpcClient::call`
+- `VerifiedProvider` implements `alloy_provider::Provider`, so all standard
+  provider methods remain available without verification.
+
+## Limitations and future work
+
+- Only historical headers are supported today.
+- New headers are not yet verified because they are not in the MMR.
+- Planned: use the sync committee aggregate key from the Bankai proof to verify
+  a header before it is included in the MMR.
+
+## Running the demo (native)
 
 ```bash
 cargo run -p bankai-example-verified-rpc --features native
 ```
 
-### Required Environment Variables
+### Required environment variables
 
 - `RPC_URL`: Execution JSON-RPC endpoint.
 
@@ -28,7 +68,7 @@ RPC_URL="https://sepolia.infura.io/v3/YOUR_KEY" \
 cargo run -p bankai-example-verified-rpc --features native
 ```
 
-## Library Usage
+## Library usage
 
 ```no_run
 use bankai_example_verified_rpc::VerifiedRpcClient;
@@ -42,7 +82,7 @@ println!("Verified header hash: {:?}", verified.header_hash);
 # }
 ```
 
-## Alloy Provider Integration (Drop-in)
+## Alloy provider integration (drop-in)
 
 `VerifiedProvider` implements `alloy_provider::Provider`, so it can be used
 where a standard Alloy provider is expected while adding verified-header
@@ -66,8 +106,17 @@ println!("Verified header hash: {:?}", header.header_hash);
 # }
 ```
 
-## WASM Notes
+## WASM notes
 
 The core verification flow is transport-agnostic. Build with
 `--no-default-features --features wasm` and supply a custom JSON-RPC transport
 as needed.
+
+## Contributing
+
+Issues and pull requests are welcome. Keep changes focused on the example crate
+and avoid introducing new runtime assumptions.
+
+## License
+
+Licensed under the repository license. See the root `LICENSE` file.
