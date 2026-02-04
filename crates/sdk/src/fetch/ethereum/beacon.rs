@@ -1,16 +1,16 @@
 use alloy_primitives::hex::ToHexExt;
-use bankai_types::api::proofs::MmrProofRequestDto;
+use bankai_types::api::ethereum::{BankaiBlockFilterDto, EthereumMmrProofRequestDto};
 use bankai_types::verify::evm::beacon::BeaconHeader;
 use bankai_types::{api::proofs::HashingFunctionDto, fetch::evm::beacon::BeaconHeaderProof};
 use tree_hash::TreeHash;
 
 use crate::errors::SdkResult;
 use crate::fetch::{
-    bankai,
-    clients::{bankai_api::ApiClient, beacon_client::BeaconFetcher},
+    api::ApiClient,
+    clients::beacon_client::BeaconFetcher,
 };
 
-/// Fetcher for EVM beacon chain data with MMR proofs
+/// Fetcher for Ethereum beacon chain data with MMR proofs
 ///
 /// This fetcher retrieves beacon chain (consensus layer) headers along with MMR proofs
 /// needed to decommit headers from STWO proofs.
@@ -50,7 +50,7 @@ impl BeaconChainFetcher {
     ///
     /// * `slot` - The beacon chain slot number to fetch
     /// * `hashing_function` - The hash function to use for the MMR proof
-    /// * `bankai_block_number` - The Bankai block number containing the MMR
+    /// * `filter` - Bankai block selector/filter for resolving the snapshot
     ///
     /// # Returns
     ///
@@ -59,22 +59,23 @@ impl BeaconChainFetcher {
         &self,
         slot: u64,
         hashing_function: HashingFunctionDto,
-        bankai_block_number: u64,
+        filter: BankaiBlockFilterDto,
     ) -> SdkResult<BeaconHeaderProof> {
         let header_response = self.beacon_client.fetch_header(slot).await?;
         let header: BeaconHeader = header_response.into();
         let header_root = header.tree_hash_root();
         let header_root_string = format!("0x{}", header_root.encode_hex());
-        let mmr_proof = bankai::mmr::fetch_mmr_proof(
-            &self.api_client,
-            &MmrProofRequestDto {
-                network_id: self.network_id,
-                block_number: bankai_block_number,
-                hashing_function,
-                header_hash: header_root_string,
-            },
-        )
-        .await?;
+        let request = EthereumMmrProofRequestDto {
+            filter,
+            hashing_function,
+            header_hash: header_root_string,
+        };
+        let mmr_proof = self
+            .api_client
+            .ethereum()
+            .beacon()
+            .mmr_proof(&request)
+            .await?;
         Ok(BeaconHeaderProof {
             header,
             mmr_proof: mmr_proof.into(),

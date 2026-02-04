@@ -4,6 +4,10 @@ use utoipa::ToSchema;
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct BlockDetailDto {
     pub height: u64,
+    #[serde(default)]
+    pub version: u64,
+    #[serde(default)]
+    pub program_hash: String,
     pub status: BlockStatusDto,
     pub ethereum: Option<EthereumConsensusSummaryDto>,
     pub zk_proof_available: bool,
@@ -31,6 +35,10 @@ pub enum BlockStatusDto {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct BlockSummaryDto {
     pub height: u64,
+    #[serde(default)]
+    pub version: u64,
+    #[serde(default)]
+    pub program_hash: String,
     pub status: BlockStatusDto,
     pub ethereum: Option<EthereumConsensusSummaryDto>,
 }
@@ -38,7 +46,7 @@ pub struct BlockSummaryDto {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct EthereumConsensusSummaryDto {
     pub epoch_number: u64,
-    pub epochs_count: u16,
+    pub epochs_count: u32,
     pub num_signers: u64,
     pub beacon: Option<ChainSnapshotSummaryDto>,
     pub execution: Option<ChainSnapshotSummaryDto>,

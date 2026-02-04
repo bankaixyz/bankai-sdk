@@ -31,11 +31,11 @@
 //!     let proof_batch = bankai
 //!         .init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
 //!         .await?
-//!         .evm_beacon_header(8_551_383)
-//!         .evm_execution_header(9_231_247)
-//!         .evm_account(9_231_247, Address::ZERO)
-//!         .evm_storage_slot(9_231_247, Address::ZERO, U256::from(0))
-//!         .evm_tx(FixedBytes::from([0u8; 32]))
+//!         .ethereum_beacon_header(8_551_383)
+//!         .ethereum_execution_header(9_231_247)
+//!         .ethereum_account(9_231_247, Address::ZERO)
+//!         .ethereum_storage_slot(9_231_247, Address::ZERO, vec![U256::from(0)])
+//!         .ethereum_tx(FixedBytes::from([0u8; 32]))
 //!         .execute()
 //!         .await?;
 //!
@@ -69,82 +69,35 @@
 //!
 //! ```no_run
 //! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
-//! use bankai_types::api::proofs::{MmrProofRequestDto, LightClientProofRequestDto, HeaderRequestDto};
+//! use bankai_types::api::ethereum::{
+//!     BankaiBlockFilterDto, EthereumLightClientProofRequestDto, EthereumMmrProofRequestDto,
+//! };
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! # let sdk = Bankai::new(Network::Sepolia, None, None);
 //!
 //! // Get latest Bankai block number
-//! let latest_block = sdk.api.get_latest_block_number().await?;
+//! let latest_block = sdk.api.blocks().latest_number().await?;
 //!
 //! // Fetch STWO block proof
-//! let block_proof = sdk.api.get_block_proof(latest_block).await?;
+//! let block_proof = sdk.api.blocks().proof(latest_block).await?;
 //!
 //! // Fetch MMR proof for a specific header
-//! let mmr_request = MmrProofRequestDto {
-//!     network_id: 1,  // 0 = beacon, 1 = execution
-//!     block_number: 12345, // Bankai block number
+//! let filter = BankaiBlockFilterDto::with_bankai_block_number(latest_block);
+//! let mmr_request = EthereumMmrProofRequestDto {
+//!     filter: filter.clone(),
 //!     hashing_function: HashingFunctionDto::Keccak,
 //!     header_hash: "0x...".to_string(),
 //! };
-//! let mmr_proof = sdk.api.get_mmr_proof(&mmr_request).await?;
+//! let mmr_proof = sdk.api.ethereum().execution().mmr_proof(&mmr_request).await?;
 //!
 //! // Fetch batch light client proof (STWO proof + multiple MMR proofs)
-//! let lc_request = LightClientProofRequestDto {
-//!     bankai_block_number: Some(latest_block),
+//! let lc_request = EthereumLightClientProofRequestDto {
+//!     filter,
 //!     hashing_function: HashingFunctionDto::Keccak,
-//!     requested_headers: vec![
-//!         HeaderRequestDto {
-//!             network_id: 1,  // Execution layer
-//!             header_hash: "0x...".to_string(),
-//!         },
-//!         HeaderRequestDto {
-//!             network_id: 0,  // Beacon chain
-//!             header_hash: "0x...".to_string(),
-//!         },
-//!     ],
+//!     header_hashes: vec!["0x...".to_string()],
 //! };
-//! let light_client_proof = sdk.api.get_light_client_proof(&lc_request).await?;
-//! # Ok(())
-//! # }
-//! ```
-//!
-//! # EVM Fetchers
-//!
-//! Use individual fetchers to generate storage proofs and retrieve MMR proofs for specific data:
-//!
-//! ```no_run
-//! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
-//! use alloy_primitives::{Address, FixedBytes};
-//!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let sdk = Bankai::new(Network::Sepolia,
-//! #     Some("https://eth-sepolia.rpc".to_string()),
-//! #     Some("https://sepolia.beacon.api".to_string()));
-//!
-//! // Execution layer fetcher
-//! let execution = sdk.evm.execution()?;
-//!
-//! // Fetch execution header with MMR proof
-//! let header = execution.header(9231247, HashingFunctionDto::Keccak, 12345).await?;
-//!
-//! // Fetch account with storage proofs
-//! let account = execution.account(
-//!     9231247,
-//!     Address::ZERO,
-//!     HashingFunctionDto::Keccak,
-//!     12345
-//! ).await?;
-//!
-//! // Fetch transaction with proof (by hash)
-//! let tx_hash = FixedBytes::from([0u8; 32]);
-//! let tx = execution.transaction(9231247, tx_hash, HashingFunctionDto::Keccak, 12345).await?;
-//!
-//! // Beacon chain fetcher
-//! let beacon = sdk.evm.beacon()?;
-//!
-//! // Fetch beacon header with MMR proof
-//! let beacon_header = beacon.header(8551383, HashingFunctionDto::Keccak, 12345).await?;
+//! let light_client_proof = sdk.api.ethereum().execution().light_client_proof(&lc_request).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -153,7 +106,7 @@ pub mod errors;
 
 // Re-export common types from bankai_types
 pub use bankai_types::api::proofs::HashingFunctionDto;
-pub use bankai_types::fetch::ProofWrapper;
+pub use bankai_types::fetch::ProofBundle;
 pub use bankai_types::verify::evm::beacon::BeaconHeader;
 
 // ============================================================================
@@ -165,6 +118,8 @@ pub use bankai_types::verify::evm::beacon::BeaconHeader;
 pub enum Network {
     /// Ethereum Sepolia testnet
     Sepolia,
+    /// Local API
+    Local,
 }
 
 impl Network {
@@ -172,6 +127,7 @@ impl Network {
     pub fn api_url(&self) -> &'static str {
         match self {
             Network::Sepolia => "https://sepolia.api.bankai.xyz",
+            Network::Local => "http://localhost:8080",
         }
     }
 
@@ -190,24 +146,8 @@ impl Network {
 // Public API Components
 // ============================================================================
 
-/// API client for interacting with Bankai's proof generation service
-pub use crate::fetch::clients::bankai_api::ApiClient;
-
-/// EVM execution and beacon chain fetchers
-///
-/// Access execution layer (headers, accounts, transactions) and beacon chain (consensus headers)
-/// data with MMR proofs for trustless verification.
-pub mod evm {
-
-    pub use crate::fetch::evm::beacon::BeaconChainFetcher;
-    pub use crate::fetch::evm::execution::ExecutionChainFetcher;
-
-    // Re-export common EVM types
-    pub use bankai_types::fetch::evm::{
-        beacon::BeaconHeaderProof,
-        execution::{AccountProof, ExecutionHeaderProof, StorageSlotProof, TxProof},
-    };
-}
+/// API client for interacting with Bankai's API
+pub use crate::fetch::api::ApiClient;
 
 /// Batch proof generation for efficient multi-proof operations
 ///
@@ -222,29 +162,24 @@ pub mod batch {
 mod fetch;
 
 use crate::errors::{SdkError, SdkResult};
-use crate::fetch::evm::{beacon::BeaconChainFetcher, execution::ExecutionChainFetcher};
+use crate::fetch::ethereum::{beacon::BeaconChainFetcher, execution::ExecutionChainFetcher};
 
 // ============================================================================
 // Main SDK Struct
 // ============================================================================
 
-/// Namespace for EVM-related operations
-pub struct EvmNamespace {
+/// Namespace for Ethereum-related operations
+struct EthereumNamespace {
     execution: Option<ExecutionChainFetcher>,
     beacon: Option<BeaconChainFetcher>,
 }
-
-/// Namespace for verification operations (placeholder for future functionality)
-pub struct VerifyNamespace;
 
 /// Main entry point for the Bankai SDK
 pub struct Bankai {
     /// Direct access to the Bankai API client
     pub api: ApiClient,
-    /// EVM execution and beacon chain fetchers
-    pub evm: EvmNamespace,
-    /// Verification utilities
-    pub verify: VerifyNamespace,
+    /// Ethereum execution and beacon chain fetchers (internal)
+    ethereum: EthereumNamespace,
     network: Network,
 }
 
@@ -254,24 +189,23 @@ impl Bankai {
     /// # Arguments
     ///
     /// * `network` - The blockchain network (e.g., `Network::Sepolia`)
-    /// * `evm_execution_rpc` - Optional execution layer RPC endpoint
-    /// * `evm_beacon_rpc` - Optional beacon chain API endpoint
+    /// * `ethereum_execution_rpc` - Optional execution layer RPC endpoint
+    /// * `ethereum_beacon_rpc` - Optional beacon chain API endpoint
     pub fn new(
         network: Network,
-        evm_execution_rpc: Option<String>,
-        evm_beacon_rpc: Option<String>,
+        ethereum_execution_rpc: Option<String>,
+        ethereum_beacon_rpc: Option<String>,
     ) -> Self {
         let api = ApiClient::new(network);
-        let execution = evm_execution_rpc.map(|rpc| {
+        let execution = ethereum_execution_rpc.map(|rpc| {
             ExecutionChainFetcher::new(api.clone(), rpc, network.execution_network_id())
         });
-        let beacon = evm_beacon_rpc
+        let beacon = ethereum_beacon_rpc
             .map(|rpc| BeaconChainFetcher::new(api.clone(), rpc, network.beacon_network_id()));
 
         Bankai {
             api: api.clone(),
-            evm: EvmNamespace { execution, beacon },
-            verify: VerifyNamespace,
+            ethereum: EthereumNamespace { execution, beacon },
             network,
         }
     }
@@ -296,7 +230,7 @@ impl Bankai {
     ) -> SdkResult<batch::ProofBatchBuilder> {
         let block_number = match bankai_block_number {
             Some(bn) => bn,
-            None => self.api.get_latest_block_number().await?,
+            None => self.api.blocks().latest_number().await?,
         };
         Ok(batch::ProofBatchBuilder::new(
             self,
@@ -305,20 +239,24 @@ impl Bankai {
             hashing,
         ))
     }
+
+    pub(crate) fn ethereum(&self) -> &EthereumNamespace {
+        &self.ethereum
+    }
 }
 
-impl EvmNamespace {
+impl EthereumNamespace {
     /// Get the execution layer fetcher
-    pub fn execution(&self) -> SdkResult<&ExecutionChainFetcher> {
+    pub(crate) fn execution(&self) -> SdkResult<&ExecutionChainFetcher> {
         self.execution
             .as_ref()
-            .ok_or_else(|| SdkError::NotConfigured("EVM execution fetcher".to_string()))
+            .ok_or_else(|| SdkError::NotConfigured("Ethereum execution fetcher".to_string()))
     }
 
     /// Get the beacon chain fetcher
-    pub fn beacon(&self) -> SdkResult<&BeaconChainFetcher> {
+    pub(crate) fn beacon(&self) -> SdkResult<&BeaconChainFetcher> {
         self.beacon
             .as_ref()
-            .ok_or_else(|| SdkError::NotConfigured("EVM beacon fetcher".to_string()))
+            .ok_or_else(|| SdkError::NotConfigured("Ethereum beacon fetcher".to_string()))
     }
 }

@@ -42,11 +42,11 @@
 //!
 //! ```no_run
 //! use bankai_verify::verify_batch_proof;
-//! use bankai_types::fetch::ProofWrapper;
+//! use bankai_types::fetch::ProofBundle;
 //!
-//! # fn example(proof_wrapper: ProofWrapper) -> Result<(), Box<dyn std::error::Error>> {
+//! # fn example(proof_bundle: ProofBundle) -> Result<(), Box<dyn std::error::Error>> {
 //! // Verify an entire batch of proofs at once
-//! let results = verify_batch_proof(proof_wrapper)?;
+//! let results = verify_batch_proof(proof_bundle)?;
 //!
 //! // Access verified data
 //! for header in &results.evm.execution_header {

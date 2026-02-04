@@ -71,12 +71,12 @@ impl ExecutionVerifier {
         MmrVerifier::verify_mmr_proof(&proof.mmr_proof.clone())
             .map_err(|_| VerifyError::InvalidMmrProof)?;
 
-        let hash = proof.header.inner.hash_slow();
+        let hash = proof.header.hash_slow();
         if hash != proof.mmr_proof.header_hash {
             return Err(VerifyError::InvalidHeaderHash);
         }
 
-        Ok(proof.header.clone().inner)
+        Ok(proof.header.clone().into())
     }
 
     /// Verifies an account's state using a Merkle Patricia Trie proof

@@ -15,5 +15,8 @@ pub mod error;
 /// Proof request and response types (re-exports from root proofs module)
 pub mod proofs;
 
+/// Ethereum light-client API types
+pub mod ethereum;
+
 /// Chain statistics and metrics
 pub mod stats;

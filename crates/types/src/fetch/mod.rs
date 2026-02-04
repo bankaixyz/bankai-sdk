@@ -1,7 +1,7 @@
 //! Types for fetching and wrapping proofs
 //!
 //! This module contains types used when fetching proofs from the Bankai API
-//! and preparing them for verification. The main type is [`ProofWrapper`],
+//! and preparing them for verification. The main type is [`ProofBundle`],
 //! which bundles together all proofs needed for batch verification.
 
 use cairo_air::CairoProof;
@@ -23,7 +23,7 @@ pub mod evm;
 ///
 /// This is the output from the SDK's batch builder and input to the verifier.
 #[derive(Serialize, Deserialize)]
-pub struct ProofWrapper {
+pub struct ProofBundle {
     /// Hash function used for MMR construction
     pub hashing_function: HashingFunctionDto,
     /// STWO zero-knowledge proof for the Bankai block
@@ -33,9 +33,9 @@ pub struct ProofWrapper {
 }
 
 // #[cfg(feature = "std")]
-// impl core::fmt::Debug for ProofWrapper {
+// impl core::fmt::Debug for ProofBundle {
 //     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-//         f.debug_struct("ProofWrapper")
+//         f.debug_struct("ProofBundle")
 //             .field("hashing_function", &self.hashing_function)
 //             .field("block_proof", &"<CairoProof>")
 //             .field("evm_proofs", &self.evm_proofs)

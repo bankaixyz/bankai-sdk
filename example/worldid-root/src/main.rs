@@ -10,7 +10,7 @@ async fn main() -> Result<(), SdkError> {
     println!("Initializing Bankai Client...");
 
     let exec_rpc = std::env::var("EXECUTION_RPC").ok();
-    let bankai = Bankai::new(Network::Sepolia, exec_rpc, None);
+    let bankai = Bankai::new(Network::Local, exec_rpc, None);
 
     println!("Initializing Batch...");
     let batch = bankai
@@ -26,7 +26,7 @@ async fn main() -> Result<(), SdkError> {
     let mpt_key = U256::from_be_bytes(key_bytes.into());
 
     let wrapper = batch
-        .evm_storage_slot(block_number, contract, vec![mpt_key])
+        .ethereum_storage_slot(block_number, contract, vec![mpt_key])
         .execute()
         .await?;
 
