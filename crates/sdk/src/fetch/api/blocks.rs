@@ -42,10 +42,10 @@ impl BlocksApi {
         handle_response(response).await
     }
 
-    /// Fetches the latest block summary (request body required).
+    /// Fetches the latest block summary with optional status filter.
     pub async fn latest(&self, query: &LatestBlockQueryDto) -> SdkResult<BlockSummaryDto> {
         let url = format!("{}/v1/blocks/latest", self.core.base_url);
-        let response = self.core.client.get(&url).json(query).send().await?;
+        let response = self.core.client.get(&url).query(query).send().await?;
         handle_response(response).await
     }
 
