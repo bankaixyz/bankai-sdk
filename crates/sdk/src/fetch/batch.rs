@@ -253,7 +253,11 @@ impl<'a> ProofBatchBuilder<'a> {
                 hashing_function: self.hashing,
                 header_hashes,
             };
-            let lc_proof = api.ethereum().execution().light_client_proof(&lc_req).await?;
+            let lc_proof = api
+                .ethereum()
+                .execution()
+                .light_client_proof(&lc_req)
+                .await?;
             if block_proof_value.is_none() {
                 block_proof_value = Some(lc_proof.block_proof.proof);
             }

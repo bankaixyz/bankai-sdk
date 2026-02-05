@@ -11,8 +11,8 @@ use starknet_ff::FieldElement;
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 use stwo_cairo_serialize::deserialize::CairoDeserialize;
 
-use crate::errors::SdkResult;
 use super::{handle_response, ApiCore};
+use crate::errors::SdkResult;
 
 #[derive(Debug, Default, Serialize)]
 pub struct BlocksQuery {

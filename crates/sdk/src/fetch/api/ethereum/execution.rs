@@ -27,10 +27,7 @@ impl ExecutionApi {
     }
 
     /// Fetch the full execution snapshot for a selector/filter.
-    pub async fn snapshot(
-        &self,
-        filter: &BankaiBlockFilterDto,
-    ) -> SdkResult<ExecutionSnapshotDto> {
+    pub async fn snapshot(&self, filter: &BankaiBlockFilterDto) -> SdkResult<ExecutionSnapshotDto> {
         let url = format!("{}/v1/ethereum/execution/snapshot", self.core.base_url);
         let response = self.core.client.get(&url).query(filter).send().await?;
         handle_response(response).await
@@ -44,10 +41,7 @@ impl ExecutionApi {
     }
 
     /// Fetch an execution MMR proof for a specific header hash.
-    pub async fn mmr_proof(
-        &self,
-        request: &EthereumMmrProofRequestDto,
-    ) -> SdkResult<MmrProofDto> {
+    pub async fn mmr_proof(&self, request: &EthereumMmrProofRequestDto) -> SdkResult<MmrProofDto> {
         let url = format!("{}/v1/ethereum/execution/mmr_proof", self.core.base_url);
         let response = self.core.client.post(&url).json(request).send().await?;
         handle_response(response).await
@@ -58,7 +52,10 @@ impl ExecutionApi {
         &self,
         request: &EthereumLightClientProofRequestDto,
     ) -> SdkResult<LightClientProofDto> {
-        let url = format!("{}/v1/ethereum/execution/light_client_proof", self.core.base_url);
+        let url = format!(
+            "{}/v1/ethereum/execution/light_client_proof",
+            self.core.base_url
+        );
         let response = self.core.client.post(&url).json(request).send().await?;
         handle_response(response).await
     }

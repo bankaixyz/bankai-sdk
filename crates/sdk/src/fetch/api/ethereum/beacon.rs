@@ -41,10 +41,7 @@ impl BeaconApi {
     }
 
     /// Fetch a beacon MMR proof for a specific header hash.
-    pub async fn mmr_proof(
-        &self,
-        request: &EthereumMmrProofRequestDto,
-    ) -> SdkResult<MmrProofDto> {
+    pub async fn mmr_proof(&self, request: &EthereumMmrProofRequestDto) -> SdkResult<MmrProofDto> {
         let url = format!("{}/v1/ethereum/beacon/mmr_proof", self.core.base_url);
         let response = self.core.client.post(&url).json(request).send().await?;
         handle_response(response).await
@@ -55,7 +52,10 @@ impl BeaconApi {
         &self,
         request: &EthereumLightClientProofRequestDto,
     ) -> SdkResult<LightClientProofDto> {
-        let url = format!("{}/v1/ethereum/beacon/light_client_proof", self.core.base_url);
+        let url = format!(
+            "{}/v1/ethereum/beacon/light_client_proof",
+            self.core.base_url
+        );
         let response = self.core.client.post(&url).json(request).send().await?;
         handle_response(response).await
     }

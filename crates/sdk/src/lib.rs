@@ -53,7 +53,7 @@
 //!         println!("✓ Verified account balance: {} wei", account.balance);
 //!     }
 //!     for slot in &results.evm.storage_slot {
-//!         println!("✓ Verified storage slot: {}", slot);
+//!         println!("✓ Verified storage slot: {:?}", slot);
 //!     }
 //!     for tx in &results.evm.tx {
 //!         println!("✓ Verified transaction: {:?}", tx);

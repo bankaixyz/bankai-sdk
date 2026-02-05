@@ -49,7 +49,7 @@ impl ExecutionVerifier {
     /// # Example
     ///
     /// ```no_run
-    /// use bankai_verify::evm::ExecutionVerifier;
+    /// use bankai_verify::evm::execution::ExecutionVerifier;
     /// use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
     /// use alloy_primitives::FixedBytes;
     ///
@@ -109,7 +109,7 @@ impl ExecutionVerifier {
     /// # Example
     ///
     /// ```no_run
-    /// use bankai_verify::evm::ExecutionVerifier;
+    /// use bankai_verify::evm::execution::ExecutionVerifier;
     /// use bankai_types::fetch::evm::execution::AccountProof;
     /// use bankai_types::verify::evm::execution::ExecutionHeader;
     ///
@@ -181,7 +181,7 @@ impl ExecutionVerifier {
     /// # Example
     ///
     /// ```no_run
-    /// use bankai_verify::evm::ExecutionVerifier;
+    /// use bankai_verify::evm::execution::ExecutionVerifier;
     /// use bankai_types::fetch::evm::execution::StorageSlotProof;
     /// use bankai_types::verify::evm::execution::ExecutionHeader;
     ///
@@ -291,7 +291,7 @@ impl ExecutionVerifier {
     /// # Example
     ///
     /// ```no_run
-    /// use bankai_verify::evm::ExecutionVerifier;
+    /// use bankai_verify::evm::execution::ExecutionVerifier;
     /// use bankai_types::fetch::evm::execution::TxProof;
     /// use bankai_types::verify::evm::execution::ExecutionHeader;
     ///

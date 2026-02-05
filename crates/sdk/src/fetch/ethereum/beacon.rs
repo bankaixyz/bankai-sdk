@@ -5,10 +5,7 @@ use bankai_types::{api::proofs::HashingFunctionDto, fetch::evm::beacon::BeaconHe
 use tree_hash::TreeHash;
 
 use crate::errors::SdkResult;
-use crate::fetch::{
-    api::ApiClient,
-    clients::beacon_client::BeaconFetcher,
-};
+use crate::fetch::{api::ApiClient, clients::beacon_client::BeaconFetcher};
 
 /// Fetcher for Ethereum beacon chain data with MMR proofs
 ///
@@ -20,6 +17,7 @@ use crate::fetch::{
 /// 2. Use the MMR proof to decommit and verify the header from the STWO block proof
 /// 3. The verified beacon header can be used to verify consensus layer data
 pub struct BeaconChainFetcher {
+    #[allow(dead_code)]
     pub api_client: ApiClient,
     pub beacon_client: BeaconFetcher,
     pub network_id: u64,
@@ -55,6 +53,7 @@ impl BeaconChainFetcher {
     /// # Returns
     ///
     /// A `BeaconHeaderProof` containing the header and MMR proof for decommitment
+    #[allow(dead_code)]
     pub async fn header(
         &self,
         slot: u64,

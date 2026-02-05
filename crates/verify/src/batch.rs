@@ -66,7 +66,7 @@ use crate::VerifyError;
 /// // Access verified execution headers
 /// println!("Verified {} execution headers", results.evm.execution_header.len());
 /// for header in &results.evm.execution_header {
-///     println!("Block {}: hash {:?}", header.number, header.hash());
+///     println!("Block {}", header.number);
 /// }
 ///
 /// // Access verified accounts

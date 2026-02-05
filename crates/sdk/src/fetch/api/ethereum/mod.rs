@@ -42,7 +42,13 @@ impl EthereumApi {
     /// Fetch sync committee keys by term id.
     pub async fn sync_committee(&self, term_id: u64) -> SdkResult<SyncCommitteeKeysDto> {
         let url = format!("{}/v1/ethereum/sync_committee", self.core.base_url);
-        let response = self.core.client.get(&url).query(&[("term_id", term_id)]).send().await?;
+        let response = self
+            .core
+            .client
+            .get(&url)
+            .query(&[("term_id", term_id)])
+            .send()
+            .await?;
         handle_response(response).await
     }
 }

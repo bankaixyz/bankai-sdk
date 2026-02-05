@@ -5,10 +5,7 @@ use bankai_types::api::ethereum::{BankaiBlockFilterDto, EthereumMmrProofRequestD
 use bankai_types::api::proofs::HashingFunctionDto;
 
 use crate::errors::SdkResult;
-use crate::fetch::{
-    api::ApiClient,
-    clients::execution_client::ExecutionFetcher,
-};
+use crate::fetch::{api::ApiClient, clients::execution_client::ExecutionFetcher};
 use alloy_rpc_types_eth::Account as AlloyAccount;
 use bankai_types::fetch::evm::execution::{
     ExecutionHeaderProof, StorageSlotEntry, StorageSlotProof, TxProof,
@@ -24,6 +21,7 @@ use bankai_types::fetch::evm::execution::{
 /// 2. Use the MMR proof to decommit and verify the header from the STWO block proof
 /// 3. Use the verified header to verify accounts/transactions via standard Merkle proofs
 pub struct ExecutionChainFetcher {
+    #[allow(dead_code)]
     api_client: ApiClient,
     rpc_url: String,
     network_id: u64,
@@ -59,6 +57,7 @@ impl ExecutionChainFetcher {
     /// # Returns
     ///
     /// An `ExecutionHeaderProof` containing the header and MMR proof for decommitment
+    #[allow(dead_code)]
     pub async fn header(
         &self,
         block_number: u64,
