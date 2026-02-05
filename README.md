@@ -104,11 +104,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             HashingFunctionDto::Keccak
         )
         .await?
-        .evm_beacon_header(8_551_383)                               // Request beacon header
-        .evm_execution_header(9_231_247)                            // Request execution header
-        .evm_account(9_231_247, Address::ZERO)                      // Request account state
-        .evm_storage_slot(9_231_247, Address::ZERO, U256::from(0))  // Request storage slot
-        .evm_tx(FixedBytes::from([0u8; 32]))                        // Request transaction
+        .ethereum_beacon_header(8_551_383)                               // Request beacon header
+        .ethereum_execution_header(9_231_247)                            // Request execution header
+        .ethereum_account(9_231_247, Address::ZERO)                      // Request account state
+        .ethereum_storage_slot(9_231_247, Address::ZERO, vec![U256::from(0)]) // Request storage slot
+        .ethereum_tx(FixedBytes::from([0u8; 32]))                        // Request transaction
         .execute()
         .await?;
 
@@ -181,16 +181,16 @@ let batch = sdk.init_batch(
 let tx_hash = FixedBytes::from([0u8; 32]);
 
 let result = batch
-    .evm_beacon_header(8551383)                  // Beacon header
-    .evm_execution_header(9231247)               // Execution header
-    .evm_tx(tx_hash)                             // Transaction by hash
-    .evm_account(9231247, Address::ZERO)         // Account proof
+    .ethereum_beacon_header(8551383)                  // Beacon header
+    .ethereum_execution_header(9231247)               // Execution header
+    .ethereum_tx(tx_hash)                             // Transaction by hash
+    .ethereum_account(9231247, Address::ZERO)         // Account proof
     .execute()
     .await?;
 
 // Verify with bankai-verify
 use bankai_verify::verify_batch_proof;
-let verification_result = verify_batch_proof(&result)?;
+let verification_result = verify_batch_proof(result)?;
 ```
 
 ### 2. API Client
@@ -199,72 +199,32 @@ Direct access to the Bankai API for low-level operations:
 
 ```rust
 use bankai_sdk::{Bankai, Network, HashingFunctionDto};
-use bankai_types::api::proofs::{MmrProofRequestDto, LightClientProofRequestDto, HeaderRequestDto};
+use bankai_types::api::ethereum::{
+    BankaiBlockFilterDto, EthereumLightClientProofRequestDto, EthereumMmrProofRequestDto,
+};
 
 // Get latest Bankai block number
-let latest_block = sdk.api.get_latest_block_number().await?;
+let latest_block = sdk.api.blocks().latest_number().await?;
 
 // Fetch Bankai block proof
-let block_proof = sdk.api.get_block_proof(latest_block).await?;
+let block_proof = sdk.api.blocks().proof(latest_block).await?;
 
 // Fetch MMR proof for a specific header
-let mmr_request = MmrProofRequestDto {
-    network_id: 11155111,  // 0 = beacon, 11155111 = execution
-    block_number: 12345,
+let filter = BankaiBlockFilterDto::with_bankai_block_number(latest_block);
+let mmr_request = EthereumMmrProofRequestDto {
+    filter: filter.clone(),
     hashing_function: HashingFunctionDto::Keccak,
     header_hash: "0x...".to_string(),
 };
-let mmr_proof = sdk.api.get_mmr_proof(&mmr_request).await?;
+let mmr_proof = sdk.api.ethereum().execution().mmr_proof(&mmr_request).await?;
 
 // Fetch batch light client proof (block proof + multiple MMR proofs)
-let lc_request = LightClientProofRequestDto {
-    bankai_block_number: Some(latest_block),
+let lc_request = EthereumLightClientProofRequestDto {
+    filter,
     hashing_function: HashingFunctionDto::Keccak,
-    requested_headers: vec![
-        HeaderRequestDto {
-            network_id: 11155111,  // Execution layer
-            header_hash: "0x...".to_string(),
-        },
-        HeaderRequestDto {
-            network_id: 0,  // Beacon chain
-            header_hash: "0x...".to_string(),
-        },
-    ],
+    header_hashes: vec!["0x...".to_string()],
 };
-let light_client_proof = sdk.api.get_light_client_proof(&lc_request).await?;
-```
-
-### 3. EVM Fetchers
-
-Individual fetchers for generating storage proofs and retrieving MMR proofs:
-
-```rust
-use bankai_sdk::{Bankai, Network, HashingFunctionDto};
-use alloy_primitives::{Address, FixedBytes};
-
-// Execution layer fetcher
-let execution = sdk.evm.execution()?;
-
-// Fetch execution header with MMR proof
-let header = execution.header(9231247, HashingFunctionDto::Keccak, 12345).await?;
-
-// Fetch account with storage proofs
-let account = execution.account(
-    9231247,
-    Address::ZERO,
-    HashingFunctionDto::Keccak,
-    12345
-).await?;
-
-// Fetch transaction with proof (by hash)
-let tx_hash = FixedBytes::from([0u8; 32]);
-let tx = execution.transaction(9231247, tx_hash, HashingFunctionDto::Keccak, 12345).await?;
-
-// Beacon chain fetcher
-let beacon = sdk.evm.beacon()?;
-
-// Fetch beacon header with MMR proof
-let beacon_header = beacon.header(8551383, HashingFunctionDto::Keccak, 12345).await?;
+let light_client_proof = sdk.api.ethereum().execution().light_client_proof(&lc_request).await?;
 ```
 
 ### Configuration
@@ -298,7 +258,7 @@ Verify complete proof bundles in one call:
 use bankai_verify::verify_batch_proof;
 
 // Verify an entire batch of proofs at once
-let results = verify_batch_proof(&proof_wrapper)?;
+let results = verify_batch_proof(proof_bundle)?;
 
 // Access verified data - no further checks needed
 for header in &results.evm.execution_header {

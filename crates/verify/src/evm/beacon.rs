@@ -49,7 +49,7 @@ impl BeaconVerifier {
     /// # Example
     ///
     /// ```no_run
-    /// use bankai_verify::evm::BeaconVerifier;
+    /// use bankai_verify::evm::beacon::BeaconVerifier;
     /// use bankai_types::fetch::evm::beacon::BeaconHeaderProof;
     /// use alloy_primitives::FixedBytes;
     ///

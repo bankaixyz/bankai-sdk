@@ -4,8 +4,8 @@ use alloy_primitives::FixedBytes;
 use alloy_primitives::{hex::ToHexExt, Address, U256};
 use alloy_rpc_types_eth::{Account as AlloyAccount, Header as ExecutionHeader};
 
+use bankai_types::api::ethereum::{BankaiBlockFilterDto, EthereumLightClientProofRequestDto};
 use bankai_types::api::proofs::HashingFunctionDto;
-use bankai_types::api::proofs::{HeaderRequestDto, LightClientProofRequestDto};
 use bankai_types::fetch::evm::execution::{StorageSlotProof, TxProof};
 use bankai_types::fetch::evm::TxProofRequest;
 use bankai_types::fetch::evm::{
@@ -14,14 +14,14 @@ use bankai_types::fetch::evm::{
     AccountProofRequest, BeaconHeaderProofRequest, EvmProofs, EvmProofsRequest,
     ExecutionHeaderProofRequest, StorageSlotProofRequest,
 };
-use bankai_types::fetch::ProofWrapper;
+use bankai_types::fetch::ProofBundle;
 use bankai_types::verify::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
 use crate::errors::{SdkError, SdkResult};
-use crate::fetch::bankai::stwo::parse_block_proof_value;
-use crate::fetch::clients::bankai_api::ApiClient;
-use crate::fetch::evm::execution::ExecutionChainFetcher;
+use crate::fetch::api::blocks::parse_block_proof_value;
+use crate::fetch::api::ApiClient;
+use crate::fetch::ethereum::execution::ExecutionChainFetcher;
 use crate::{Bankai, Network};
 
 pub struct ProofBatchBuilder<'a> {
@@ -29,7 +29,7 @@ pub struct ProofBatchBuilder<'a> {
     network: Network,
     bankai_block_number: u64,
     hashing: HashingFunctionDto,
-    evm: EvmProofsRequest,
+    ethereum: EvmProofsRequest,
 }
 
 impl<'a> ProofBatchBuilder<'a> {
@@ -44,7 +44,7 @@ impl<'a> ProofBatchBuilder<'a> {
             network,
             bankai_block_number,
             hashing,
-            evm: EvmProofsRequest {
+            ethereum: EvmProofsRequest {
                 execution_header: None,
                 beacon_header: None,
                 account: None,
@@ -59,16 +59,16 @@ impl<'a> ProofBatchBuilder<'a> {
     /// # Arguments
     ///
     /// * `block_number` - The execution layer block number to fetch
-    pub fn evm_execution_header(mut self, block_number: u64) -> Self {
+    pub fn ethereum_execution_header(mut self, block_number: u64) -> Self {
         let network_id = self.network.execution_network_id();
-        let mut v = self.evm.execution_header.take().unwrap_or_default();
+        let mut v = self.ethereum.execution_header.take().unwrap_or_default();
         v.push(ExecutionHeaderProofRequest {
             network_id,
             block_number,
             hashing_function: self.hashing,
             bankai_block_number: self.bankai_block_number,
         });
-        self.evm.execution_header = Some(v);
+        self.ethereum.execution_header = Some(v);
         self
     }
 
@@ -77,16 +77,16 @@ impl<'a> ProofBatchBuilder<'a> {
     /// # Arguments
     ///
     /// * `slot` - The beacon chain slot number to fetch
-    pub fn evm_beacon_header(mut self, slot: u64) -> Self {
+    pub fn ethereum_beacon_header(mut self, slot: u64) -> Self {
         let network_id = self.network.beacon_network_id();
-        let mut v = self.evm.beacon_header.take().unwrap_or_default();
+        let mut v = self.ethereum.beacon_header.take().unwrap_or_default();
         v.push(BeaconHeaderProofRequest {
             network_id,
             slot,
             hashing_function: self.hashing,
             bankai_block_number: self.bankai_block_number,
         });
-        self.evm.beacon_header = Some(v);
+        self.ethereum.beacon_header = Some(v);
         self
     }
 
@@ -96,15 +96,15 @@ impl<'a> ProofBatchBuilder<'a> {
     ///
     /// * `block_number` - The execution layer block number to query
     /// * `address` - The account address to fetch proof for
-    pub fn evm_account(mut self, block_number: u64, address: Address) -> Self {
+    pub fn ethereum_account(mut self, block_number: u64, address: Address) -> Self {
         let network_id = self.network.execution_network_id();
-        let mut v = self.evm.account.take().unwrap_or_default();
+        let mut v = self.ethereum.account.take().unwrap_or_default();
         v.push(AccountProofRequest {
             network_id,
             block_number,
             address,
         });
-        self.evm.account = Some(v);
+        self.ethereum.account = Some(v);
         self
     }
 
@@ -115,21 +115,21 @@ impl<'a> ProofBatchBuilder<'a> {
     /// * `block_number` - The execution layer block number to query
     /// * `address` - The contract address
     /// * `slot_keys` - The storage slot keys (uint256) to query
-    pub fn evm_storage_slot(
+    pub fn ethereum_storage_slot(
         mut self,
         block_number: u64,
         address: Address,
         slot_keys: Vec<U256>,
     ) -> Self {
         let network_id = self.network.execution_network_id();
-        let mut v = self.evm.storage_slot.take().unwrap_or_default();
+        let mut v = self.ethereum.storage_slot.take().unwrap_or_default();
         v.push(StorageSlotProofRequest {
             network_id,
             block_number,
             address,
             slot_keys,
         });
-        self.evm.storage_slot = Some(v);
+        self.ethereum.storage_slot = Some(v);
         self
     }
 
@@ -138,50 +138,50 @@ impl<'a> ProofBatchBuilder<'a> {
     /// # Arguments
     ///
     /// * `tx_hash` - The transaction hash to fetch proof for
-    pub fn evm_tx(mut self, tx_hash: FixedBytes<32>) -> Self {
+    pub fn ethereum_tx(mut self, tx_hash: FixedBytes<32>) -> Self {
         let network_id = self.network.execution_network_id();
-        let mut v = self.evm.tx_proof.take().unwrap_or_default();
+        let mut v = self.ethereum.tx_proof.take().unwrap_or_default();
         v.push(TxProofRequest {
             network_id,
             tx_hash,
         });
-        self.evm.tx_proof = Some(v);
+        self.ethereum.tx_proof = Some(v);
         self
     }
 
-    pub async fn execute(self) -> SdkResult<ProofWrapper> {
+    pub async fn execute(self) -> SdkResult<ProofBundle> {
         // Build working sets
         let mut exec_headers: BTreeSet<(u64, u64)> = BTreeSet::new(); // (network_id, block_number)
         let mut beacon_headers: BTreeSet<(u64, u64)> = BTreeSet::new(); // (network_id, slot)
 
-        if let Some(explicit) = &self.evm.execution_header {
+        if let Some(explicit) = &self.ethereum.execution_header {
             for r in explicit {
                 exec_headers.insert((r.network_id, r.block_number));
             }
         }
-        if let Some(bh) = &self.evm.beacon_header {
+        if let Some(bh) = &self.ethereum.beacon_header {
             for r in bh {
                 beacon_headers.insert((r.network_id, r.slot));
             }
         }
-        if let Some(accounts) = &self.evm.account {
+        if let Some(accounts) = &self.ethereum.account {
             for r in accounts {
                 exec_headers.insert((r.network_id, r.block_number));
             }
         }
-        if let Some(slots) = &self.evm.storage_slot {
+        if let Some(slots) = &self.ethereum.storage_slot {
             for r in slots {
                 exec_headers.insert((r.network_id, r.block_number));
             }
         }
 
         let mut tx_proofs: Vec<TxProof> = Vec::new();
-        if let Some(txs) = &self.evm.tx_proof {
+        if let Some(txs) = &self.ethereum.tx_proof {
             let exec_fetcher: &ExecutionChainFetcher = self
                 .bankai
-                .evm
+                .ethereum()
                 .execution()
-                .map_err(|_| SdkError::NotConfigured("EVM execution fetcher".into()))?;
+                .map_err(|_| SdkError::NotConfigured("Ethereum execution fetcher".into()))?;
             for req in txs {
                 if exec_fetcher.network_id() != req.network_id {
                     return Err(SdkError::InvalidInput(
@@ -205,9 +205,9 @@ impl<'a> ProofBatchBuilder<'a> {
         for (network_id, block_number) in &exec_headers {
             let fetcher = self
                 .bankai
-                .evm
+                .ethereum()
                 .execution()
-                .map_err(|_| SdkError::NotConfigured("EVM execution fetcher".into()))?;
+                .map_err(|_| SdkError::NotConfigured("Ethereum execution fetcher".into()))?;
             if fetcher.network_id() != *network_id {
                 return Err(SdkError::InvalidInput(format!(
                     "execution network_id mismatch: requested {}, configured {}",
@@ -222,9 +222,9 @@ impl<'a> ProofBatchBuilder<'a> {
         for (network_id, slot) in &beacon_headers {
             let fetcher = self
                 .bankai
-                .evm
+                .ethereum()
                 .beacon()
-                .map_err(|_| SdkError::NotConfigured("EVM beacon fetcher".into()))?;
+                .map_err(|_| SdkError::NotConfigured("Ethereum beacon fetcher".into()))?;
             if fetcher.network_id() != *network_id {
                 return Err(SdkError::InvalidInput(format!(
                     "beacon network_id mismatch: requested {}, configured {}",
@@ -236,46 +236,69 @@ impl<'a> ProofBatchBuilder<'a> {
             beacon_header_map.insert((*network_id, *slot), header);
         }
 
-        // Build light-client request
-        let mut requested_headers: Vec<HeaderRequestDto> = Vec::new();
-        for ((network_id, _), header) in exec_header_map.iter() {
-            requested_headers.push(HeaderRequestDto {
-                network_id: *network_id,
-                header_hash: header.hash.to_string(),
-            });
-        }
-        for ((network_id, _), header) in beacon_header_map.iter() {
-            let root = header.tree_hash_root();
-            requested_headers.push(HeaderRequestDto {
-                network_id: *network_id,
-                header_hash: format!("0x{}", root.encode_hex()),
-            });
-        }
-
-        // Single light-client call
+        // Build light-client requests (execution + beacon)
+        let filter = BankaiBlockFilterDto::with_bankai_block_number(self.bankai_block_number);
         let api: &ApiClient = &self.bankai.api;
-        let lc_req = LightClientProofRequestDto {
-            bankai_block_number: Some(self.bankai_block_number),
-            hashing_function: self.hashing,
-            requested_headers,
-        };
-        let lc_proof = api.get_light_client_proof(&lc_req).await?;
+        let mut block_proof_value: Option<serde_json::Value> = None;
+        let mut exec_mmr_by_hash: BTreeMap<String, _> = BTreeMap::new();
+        let mut beacon_mmr_by_hash: BTreeMap<String, _> = BTreeMap::new();
 
-        // Parse block proof
-        let block_proof = parse_block_proof_value(lc_proof.block_proof.proof);
-        let block_proof = block_proof?;
-
-        // Index MMR proofs
-        let mut mmr_by_key: BTreeMap<(u64, String), _> = BTreeMap::new();
-        for p in lc_proof.mmr_proofs {
-            mmr_by_key.insert((p.network_id, p.header_hash.clone()), p);
+        if !exec_header_map.is_empty() {
+            let header_hashes: Vec<String> = exec_header_map
+                .values()
+                .map(|header| header.hash.to_string())
+                .collect();
+            let lc_req = EthereumLightClientProofRequestDto {
+                filter: filter.clone(),
+                hashing_function: self.hashing,
+                header_hashes,
+            };
+            let lc_proof = api
+                .ethereum()
+                .execution()
+                .light_client_proof(&lc_req)
+                .await?;
+            if block_proof_value.is_none() {
+                block_proof_value = Some(lc_proof.block_proof.proof);
+            }
+            for p in lc_proof.mmr_proofs {
+                exec_mmr_by_hash.insert(p.header_hash.clone(), p);
+            }
         }
+
+        if !beacon_header_map.is_empty() {
+            let header_hashes: Vec<String> = beacon_header_map
+                .values()
+                .map(|header| {
+                    let root = header.tree_hash_root();
+                    format!("0x{}", root.encode_hex())
+                })
+                .collect();
+            let lc_req = EthereumLightClientProofRequestDto {
+                filter: filter.clone(),
+                hashing_function: self.hashing,
+                header_hashes,
+            };
+            let lc_proof = api.ethereum().beacon().light_client_proof(&lc_req).await?;
+            if block_proof_value.is_none() {
+                block_proof_value = Some(lc_proof.block_proof.proof);
+            }
+            for p in lc_proof.mmr_proofs {
+                beacon_mmr_by_hash.insert(p.header_hash.clone(), p);
+            }
+        }
+
+        let block_proof_value = match block_proof_value {
+            Some(value) => value,
+            None => api.blocks().proof(self.bankai_block_number).await?.proof,
+        };
+        let block_proof = parse_block_proof_value(block_proof_value)?;
 
         // Build header proofs
         let mut exec_header_proofs: Vec<ExecutionHeaderProof> = Vec::new();
-        for ((network_id, _), header) in exec_header_map.iter() {
-            let key = (*network_id, header.hash.to_string());
-            let mmr = mmr_by_key.get(&key).ok_or_else(|| {
+        for ((_, _), header) in exec_header_map.iter() {
+            let key = header.hash.to_string();
+            let mmr = exec_mmr_by_hash.get(&key).ok_or_else(|| {
                 SdkError::NotFound("missing MMR proof for execution header".into())
             })?;
             exec_header_proofs.push(ExecutionHeaderProof {
@@ -285,10 +308,10 @@ impl<'a> ProofBatchBuilder<'a> {
         }
 
         let mut beacon_header_proofs: Vec<BeaconHeaderProof> = Vec::new();
-        for ((network_id, _), header) in beacon_header_map.iter() {
+        for ((_, _), header) in beacon_header_map.iter() {
             let root = header.tree_hash_root();
-            let key = (*network_id, format!("0x{}", root.encode_hex()));
-            let mmr = mmr_by_key
+            let key = format!("0x{}", root.encode_hex());
+            let mmr = beacon_mmr_by_hash
                 .get(&key)
                 .ok_or_else(|| SdkError::NotFound("missing MMR proof for beacon header".into()))?;
             beacon_header_proofs.push(BeaconHeaderProof {
@@ -299,12 +322,12 @@ impl<'a> ProofBatchBuilder<'a> {
 
         // Fetch account proofs
         let mut account_proofs: Vec<AccountProof> = Vec::new();
-        if let Some(accounts) = &self.evm.account {
+        if let Some(accounts) = &self.ethereum.account {
             let exec_fetcher: &ExecutionChainFetcher = self
                 .bankai
-                .evm
+                .ethereum()
                 .execution()
-                .map_err(|_| SdkError::NotConfigured("EVM execution fetcher".into()))?;
+                .map_err(|_| SdkError::NotConfigured("Ethereum execution fetcher".into()))?;
             for req in accounts {
                 if exec_fetcher.network_id() != req.network_id {
                     return Err(SdkError::InvalidInput(
@@ -342,12 +365,12 @@ impl<'a> ProofBatchBuilder<'a> {
 
         // Fetch storage slot proofs
         let mut storage_slot_proofs: Vec<StorageSlotProof> = Vec::new();
-        if let Some(slots) = &self.evm.storage_slot {
+        if let Some(slots) = &self.ethereum.storage_slot {
             let exec_fetcher: &ExecutionChainFetcher = self
                 .bankai
-                .evm
+                .ethereum()
                 .execution()
-                .map_err(|_| SdkError::NotConfigured("EVM execution fetcher".into()))?;
+                .map_err(|_| SdkError::NotConfigured("Ethereum execution fetcher".into()))?;
             for req in slots {
                 if exec_fetcher.network_id() != req.network_id {
                     return Err(SdkError::InvalidInput(
@@ -395,7 +418,7 @@ impl<'a> ProofBatchBuilder<'a> {
             },
         };
 
-        let wrapper = ProofWrapper {
+        let wrapper = ProofBundle {
             block_proof,
             hashing_function: self.hashing,
             evm_proofs: Some(evm_proofs),

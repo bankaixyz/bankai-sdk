@@ -42,11 +42,11 @@
 //!
 //! ```no_run
 //! use bankai_verify::verify_batch_proof;
-//! use bankai_types::fetch::ProofWrapper;
+//! use bankai_types::fetch::ProofBundle;
 //!
-//! # fn example(proof_wrapper: ProofWrapper) -> Result<(), Box<dyn std::error::Error>> {
+//! # fn example(proof_bundle: ProofBundle) -> Result<(), Box<dyn std::error::Error>> {
 //! // Verify an entire batch of proofs at once
-//! let results = verify_batch_proof(proof_wrapper)?;
+//! let results = verify_batch_proof(proof_bundle)?;
 //!
 //! // Access verified data
 //! for header in &results.evm.execution_header {
@@ -71,7 +71,7 @@
 //!
 //! # fn example(block_proof: CairoProof<Blake2sMerkleHasher>) -> Result<(), Box<dyn std::error::Error>> {
 //! // Verify the STWO proof and extract the Bankai block
-//! let bankai_block = verify_stwo_proof(&block_proof)?;
+//! let bankai_block = verify_stwo_proof(block_proof)?;
 //!
 //! // Access the verified MMR roots
 //! println!("Execution MMR root (Keccak): {:?}", bankai_block.execution.mmr_root_keccak);
@@ -86,18 +86,13 @@
 //! Once you have verified MMR roots from a Bankai block, you can verify MMR inclusion proofs:
 //!
 //! ```no_run
-//! use bankai_verify::bankai::mmr::verify_mmr_proof;
-//! use bankai_types::proofs::{MmrProofDto, HashingFunctionDto};
-//! use alloy_primitives::FixedBytes;
+//! use bankai_verify::bankai::mmr::MmrVerifier;
+//! use bankai_types::fetch::evm::MmrProof;
 //!
-//! # fn example(
-//! #     mmr_proof: MmrProofDto,
-//! #     trusted_mmr_root: FixedBytes<32>
-//! # ) -> Result<(), Box<dyn std::error::Error>> {
+//! # fn example(mmr_proof: MmrProof) -> Result<(), Box<dyn std::error::Error>> {
 //! // Verify that a header is committed in the MMR
-//! let header_hash = verify_mmr_proof(&mmr_proof, trusted_mmr_root)?;
-//!
-//! println!("Verified header hash: {:?}", header_hash);
+//! MmrVerifier::verify_mmr_proof(&mmr_proof)?;
+//! println!("MMR proof verified");
 //! # Ok(())
 //! # }
 //! ```
@@ -107,7 +102,8 @@
 //! With a verified MMR root, you can verify individual header proofs:
 //!
 //! ```no_run
-//! use bankai_verify::evm::{ExecutionVerifier, BeaconVerifier};
+//! use bankai_verify::evm::beacon::BeaconVerifier;
+//! use bankai_verify::evm::execution::ExecutionVerifier;
 //! use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
 //! use alloy_primitives::FixedBytes;
 //!
@@ -130,22 +126,22 @@
 //! Once you have a verified header, you can verify account and transaction proofs against it:
 //!
 //! ```no_run
-//! use bankai_verify::evm::ExecutionVerifier;
+//! use bankai_verify::evm::execution::ExecutionVerifier;
 //! use bankai_types::fetch::evm::execution::{AccountProof, TxProof};
-//! use alloy_rpc_types_eth::Header;
+//! use bankai_types::verify::evm::execution::ExecutionHeader;
 //!
 //! # fn example(
 //! #     account_proof: AccountProof,
 //! #     tx_proof: TxProof,
-//! #     verified_header: Header
+//! #     verified_header: ExecutionHeader
 //! # ) -> Result<(), Box<dyn std::error::Error>> {
 //! // Verify an account exists in the header's state
-//! let account = ExecutionVerifier::verify_account_proof(&account_proof, &verified_header)?;
+//! let account = ExecutionVerifier::verify_account_proof(&account_proof, &[verified_header.clone()])?;
 //! println!("Account balance: {}", account.balance);
 //!
 //! // Verify a transaction is included in the block
-//! let transaction = ExecutionVerifier::verify_tx_proof(&tx_proof, &verified_header)?;
-//! println!("Transaction hash: {:?}", transaction.hash);
+//! let transaction = ExecutionVerifier::verify_tx_proof(&tx_proof, &[verified_header])?;
+//! println!("Transaction hash: {:?}", transaction.hash());
 //! # Ok(())
 //! # }
 //! ```

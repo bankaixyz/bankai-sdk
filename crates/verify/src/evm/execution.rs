@@ -49,7 +49,7 @@ impl ExecutionVerifier {
     /// # Example
     ///
     /// ```no_run
-    /// use bankai_verify::evm::ExecutionVerifier;
+    /// use bankai_verify::evm::execution::ExecutionVerifier;
     /// use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
     /// use alloy_primitives::FixedBytes;
     ///
@@ -71,12 +71,12 @@ impl ExecutionVerifier {
         MmrVerifier::verify_mmr_proof(&proof.mmr_proof.clone())
             .map_err(|_| VerifyError::InvalidMmrProof)?;
 
-        let hash = proof.header.inner.hash_slow();
+        let hash = proof.header.hash_slow();
         if hash != proof.mmr_proof.header_hash {
             return Err(VerifyError::InvalidHeaderHash);
         }
 
-        Ok(proof.header.clone().inner)
+        Ok(proof.header.clone().into())
     }
 
     /// Verifies an account's state using a Merkle Patricia Trie proof
@@ -109,7 +109,7 @@ impl ExecutionVerifier {
     /// # Example
     ///
     /// ```no_run
-    /// use bankai_verify::evm::ExecutionVerifier;
+    /// use bankai_verify::evm::execution::ExecutionVerifier;
     /// use bankai_types::fetch::evm::execution::AccountProof;
     /// use bankai_types::verify::evm::execution::ExecutionHeader;
     ///
@@ -181,7 +181,7 @@ impl ExecutionVerifier {
     /// # Example
     ///
     /// ```no_run
-    /// use bankai_verify::evm::ExecutionVerifier;
+    /// use bankai_verify::evm::execution::ExecutionVerifier;
     /// use bankai_types::fetch::evm::execution::StorageSlotProof;
     /// use bankai_types::verify::evm::execution::ExecutionHeader;
     ///
@@ -291,7 +291,7 @@ impl ExecutionVerifier {
     /// # Example
     ///
     /// ```no_run
-    /// use bankai_verify::evm::ExecutionVerifier;
+    /// use bankai_verify::evm::execution::ExecutionVerifier;
     /// use bankai_types::fetch::evm::execution::TxProof;
     /// use bankai_types::verify::evm::execution::ExecutionHeader;
     ///

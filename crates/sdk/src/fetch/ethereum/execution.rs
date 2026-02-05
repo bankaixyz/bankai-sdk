@@ -1,19 +1,17 @@
 use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_rpc_types_eth::EIP1186AccountProofResponse;
 pub use alloy_rpc_types_eth::Header as ExecutionHeader;
-use bankai_types::api::proofs::{HashingFunctionDto, MmrProofRequestDto};
+use bankai_types::api::ethereum::{BankaiBlockFilterDto, EthereumMmrProofRequestDto};
+use bankai_types::api::proofs::HashingFunctionDto;
 
 use crate::errors::SdkResult;
-use crate::fetch::{
-    bankai,
-    clients::{bankai_api::ApiClient, execution_client::ExecutionFetcher},
-};
+use crate::fetch::{api::ApiClient, clients::execution_client::ExecutionFetcher};
 use alloy_rpc_types_eth::Account as AlloyAccount;
 use bankai_types::fetch::evm::execution::{
     ExecutionHeaderProof, StorageSlotEntry, StorageSlotProof, TxProof,
 };
 
-/// Fetcher for EVM execution layer data with MMR proofs
+/// Fetcher for Ethereum execution layer data with MMR proofs
 ///
 /// This fetcher retrieves execution layer (EL) blockchain data such as headers, accounts,
 /// and transactions, along with the MMR proofs needed to decommit headers from STWO proofs.
@@ -23,6 +21,7 @@ use bankai_types::fetch::evm::execution::{
 /// 2. Use the MMR proof to decommit and verify the header from the STWO block proof
 /// 3. Use the verified header to verify accounts/transactions via standard Merkle proofs
 pub struct ExecutionChainFetcher {
+    #[allow(dead_code)]
     api_client: ApiClient,
     rpc_url: String,
     network_id: u64,
@@ -34,7 +33,7 @@ impl ExecutionChainFetcher {
     /// # Arguments
     ///
     /// * `api_client` - The Bankai API client for fetching MMR proofs
-    /// * `rpc_url` - The EVM RPC endpoint URL
+    /// * `rpc_url` - The execution RPC endpoint URL
     /// * `network_id` - The network ID for this chain
     pub fn new(api_client: ApiClient, rpc_url: String, network_id: u64) -> Self {
         Self {
@@ -53,30 +52,32 @@ impl ExecutionChainFetcher {
     ///
     /// * `block_number` - The block number to fetch
     /// * `hashing_function` - The hash function to use for the MMR proof
-    /// * `bankai_block_number` - The Bankai block number containing the MMR
+    /// * `filter` - Bankai block selector/filter for resolving the snapshot
     ///
     /// # Returns
     ///
     /// An `ExecutionHeaderProof` containing the header and MMR proof for decommitment
+    #[allow(dead_code)]
     pub async fn header(
         &self,
         block_number: u64,
         hashing_function: HashingFunctionDto,
-        bankai_block_number: u64,
+        filter: BankaiBlockFilterDto,
     ) -> SdkResult<ExecutionHeaderProof> {
         let header = ExecutionFetcher::new(self.rpc_url.clone(), self.network_id)
             .fetch_header(block_number)
             .await?;
-        let mmr_proof = bankai::mmr::fetch_mmr_proof(
-            &self.api_client,
-            &MmrProofRequestDto {
-                network_id: self.network_id,
-                block_number: bankai_block_number,
-                hashing_function,
-                header_hash: header.hash.to_string(),
-            },
-        )
-        .await?;
+        let request = EthereumMmrProofRequestDto {
+            filter,
+            hashing_function,
+            header_hash: header.hash.to_string(),
+        };
+        let mmr_proof = self
+            .api_client
+            .ethereum()
+            .execution()
+            .mmr_proof(&request)
+            .await?;
         Ok(ExecutionHeaderProof {
             header,
             mmr_proof: mmr_proof.into(),
