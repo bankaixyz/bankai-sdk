@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 
 use crate::api::proofs::HashingFunctionDto;
 
@@ -11,7 +11,14 @@ pub enum BankaiBlockSelectorDto {
     Finalized,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
+impl Default for BankaiBlockSelectorDto {
+    fn default() -> Self {
+        Self::Finalized
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct BankaiBlockFilterDto {
     pub selector: Option<BankaiBlockSelectorDto>,
     pub bankai_block_number: Option<u64>,
@@ -118,4 +125,10 @@ pub struct EthereumLightClientProofRequestDto {
     pub filter: BankaiBlockFilterDto,
     pub hashing_function: HashingFunctionDto,
     pub header_hashes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, ToSchema, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct SyncCommitteeQueryDto {
+    pub term_id: u64,
 }
