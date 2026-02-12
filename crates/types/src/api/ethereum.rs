@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
-use crate::api::proofs::HashingFunctionDto;
+use crate::api::proofs::{HashingFunctionDto, ProofFormatDto};
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, ToSchema, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -125,6 +125,8 @@ pub struct EthereumLightClientProofRequestDto {
     pub filter: BankaiBlockFilterDto,
     pub hashing_function: HashingFunctionDto,
     pub header_hashes: Vec<String>,
+    #[serde(default)]
+    pub proof_format: ProofFormatDto,
 }
 
 #[derive(Debug, Clone, Deserialize, ToSchema, IntoParams)]

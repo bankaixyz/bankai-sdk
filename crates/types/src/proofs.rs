@@ -15,6 +15,24 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
+/// Proof encoding format supported by the API.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub enum ProofFormatDto {
+    /// Binary proof payload encoded as base64.
+    Bin,
+    /// JSON proof payload.
+    Json,
+}
+
+impl Default for ProofFormatDto {
+    fn default() -> Self {
+        Self::Bin
+    }
+}
+
 /// MMR (Merkle Mountain Range) proof for header inclusion
 ///
 /// Proves that a specific blockchain header is committed in a verified MMR.
@@ -86,10 +104,26 @@ pub enum HashingFunctionDto {
 pub struct BankaiBlockProofDto {
     /// Bankai block number this proof corresponds to
     pub block_number: u64,
-    /// STWO proof data (JSON serialized)
-    #[cfg_attr(feature = "utoipa", schema(value_type = Object))]
-    pub proof: serde_json::Value,
+    /// STWO proof payload in the requested format.
+    pub proof: BlockProofPayloadDto,
 }
+
+/// STWO proof payload returned by the API.
+#[cfg(feature = "api")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "format", content = "data", rename_all = "lowercase"))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub enum BlockProofPayloadDto {
+    /// Base64 encoded binary proof payload.
+    Bin(String),
+    /// JSON encoded proof payload.
+    Json(serde_json::Value),
+}
+
+#[cfg(feature = "api")]
+pub type BlakeCairoProof =
+    cairo_air::CairoProof<stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher>;
 
 /// Complete light client proof bundle
 ///
