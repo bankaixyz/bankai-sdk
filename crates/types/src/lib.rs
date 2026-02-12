@@ -42,6 +42,10 @@ pub mod proofs;
 #[cfg(any(feature = "default", feature = "api"))]
 pub mod api;
 
+// Re-export commonly used types for easier access
+#[cfg(feature = "api")]
+pub use cairo_air;
+
 /// Utility functions for MMR operations
 ///
 /// Provides helpers for working with Merkle Mountain Ranges,
@@ -74,6 +78,5 @@ pub mod fetch;
 #[cfg(feature = "verifier-types")]
 pub mod verify;
 
-// Re-export commonly used types for easier access
 #[cfg(feature = "verifier-types")]
 pub use fetch::ProofBundle;
