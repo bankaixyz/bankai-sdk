@@ -72,6 +72,7 @@
 //! use bankai_types::api::ethereum::{
 //!     BankaiBlockFilterDto, EthereumLightClientProofRequestDto, EthereumMmrProofRequestDto,
 //! };
+//! use bankai_types::api::proofs::ProofFormatDto;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! # let sdk = Bankai::new(Network::Sepolia, None, None);
@@ -96,6 +97,7 @@
 //!     filter,
 //!     hashing_function: HashingFunctionDto::Keccak,
 //!     header_hashes: vec!["0x...".to_string()],
+//!     proof_format: ProofFormatDto::Bin, // default if omitted by backend
 //! };
 //! let light_client_proof = sdk.api.ethereum().execution().light_client_proof(&lc_request).await?;
 //! # Ok(())

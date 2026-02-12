@@ -202,6 +202,7 @@ use bankai_sdk::{Bankai, Network, HashingFunctionDto};
 use bankai_types::api::ethereum::{
     BankaiBlockFilterDto, EthereumLightClientProofRequestDto, EthereumMmrProofRequestDto,
 };
+use bankai_types::api::proofs::ProofFormatDto;
 
 // Get latest Bankai block number
 let latest_block = sdk.api.blocks().latest_number().await?;
@@ -223,6 +224,7 @@ let lc_request = EthereumLightClientProofRequestDto {
     filter,
     hashing_function: HashingFunctionDto::Keccak,
     header_hashes: vec!["0x...".to_string()],
+    proof_format: ProofFormatDto::Bin,
 };
 let light_client_proof = sdk.api.ethereum().execution().light_client_proof(&lc_request).await?;
 ```

@@ -5,7 +5,7 @@ use alloy_primitives::{hex::ToHexExt, Address, U256};
 use alloy_rpc_types_eth::{Account as AlloyAccount, Header as ExecutionHeader};
 
 use bankai_types::api::ethereum::{BankaiBlockFilterDto, EthereumLightClientProofRequestDto};
-use bankai_types::api::proofs::HashingFunctionDto;
+use bankai_types::api::proofs::{BlockProofPayloadDto, HashingFunctionDto, ProofFormatDto};
 use bankai_types::fetch::evm::execution::{StorageSlotProof, TxProof};
 use bankai_types::fetch::evm::TxProofRequest;
 use bankai_types::fetch::evm::{
@@ -19,7 +19,7 @@ use bankai_types::verify::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
 use crate::errors::{SdkError, SdkResult};
-use crate::fetch::api::blocks::parse_block_proof_value;
+use crate::fetch::api::blocks::parse_block_proof_payload;
 use crate::fetch::api::ApiClient;
 use crate::fetch::ethereum::execution::ExecutionChainFetcher;
 use crate::{Bankai, Network};
@@ -29,6 +29,7 @@ pub struct ProofBatchBuilder<'a> {
     network: Network,
     bankai_block_number: u64,
     hashing: HashingFunctionDto,
+    proof_format: ProofFormatDto,
     ethereum: EvmProofsRequest,
 }
 
@@ -44,6 +45,7 @@ impl<'a> ProofBatchBuilder<'a> {
             network,
             bankai_block_number,
             hashing,
+            proof_format: ProofFormatDto::Bin,
             ethereum: EvmProofsRequest {
                 execution_header: None,
                 beacon_header: None,
@@ -149,6 +151,14 @@ impl<'a> ProofBatchBuilder<'a> {
         self
     }
 
+    /// Sets the desired block proof payload format.
+    ///
+    /// Defaults to binary (`ProofFormatDto::Bin`) for compact transport and faster decode.
+    pub fn proof_format(mut self, proof_format: ProofFormatDto) -> Self {
+        self.proof_format = proof_format;
+        self
+    }
+
     pub async fn execute(self) -> SdkResult<ProofBundle> {
         // Build working sets
         let mut exec_headers: BTreeSet<(u64, u64)> = BTreeSet::new(); // (network_id, block_number)
@@ -239,7 +249,7 @@ impl<'a> ProofBatchBuilder<'a> {
         // Build light-client requests (execution + beacon)
         let filter = BankaiBlockFilterDto::with_bankai_block_number(self.bankai_block_number);
         let api: &ApiClient = &self.bankai.api;
-        let mut block_proof_value: Option<serde_json::Value> = None;
+        let mut block_proof_value: Option<BlockProofPayloadDto> = None;
         let mut exec_mmr_by_hash: BTreeMap<String, _> = BTreeMap::new();
         let mut beacon_mmr_by_hash: BTreeMap<String, _> = BTreeMap::new();
 
@@ -252,6 +262,7 @@ impl<'a> ProofBatchBuilder<'a> {
                 filter: filter.clone(),
                 hashing_function: self.hashing,
                 header_hashes,
+                proof_format: self.proof_format,
             };
             let lc_proof = api
                 .ethereum()
@@ -278,6 +289,7 @@ impl<'a> ProofBatchBuilder<'a> {
                 filter: filter.clone(),
                 hashing_function: self.hashing,
                 header_hashes,
+                proof_format: self.proof_format,
             };
             let lc_proof = api.ethereum().beacon().light_client_proof(&lc_req).await?;
             if block_proof_value.is_none() {
@@ -290,9 +302,18 @@ impl<'a> ProofBatchBuilder<'a> {
 
         let block_proof_value = match block_proof_value {
             Some(value) => value,
-            None => api.blocks().proof(self.bankai_block_number).await?.proof,
+            None => {
+                if self.proof_format == ProofFormatDto::Bin {
+                    api.blocks().proof(self.bankai_block_number).await?.proof
+                } else {
+                    api.blocks()
+                        .proof_with_format(self.bankai_block_number, self.proof_format)
+                        .await?
+                        .proof
+                }
+            }
         };
-        let block_proof = parse_block_proof_value(block_proof_value)?;
+        let block_proof = parse_block_proof_payload(block_proof_value)?;
 
         // Build header proofs
         let mut exec_header_proofs: Vec<ExecutionHeaderProof> = Vec::new();
