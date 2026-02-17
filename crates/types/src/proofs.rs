@@ -64,6 +64,32 @@ pub struct MmrProofDto {
     pub peaks: Vec<String>,
 }
 
+/// Bankai MMR inclusion proof for a historical target block hash.
+#[cfg(feature = "api")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct BankaiMmrProofDto {
+    /// Bankai block number whose MMR root is used for verification.
+    pub reference_block_number: u64,
+    /// Target historical Bankai block number being proven.
+    pub target_block_number: u64,
+    /// Hash function used for the MMR path.
+    pub hashing_function: HashingFunctionDto,
+    /// Hash of the target Bankai block.
+    pub block_hash: String,
+    /// Computed MMR root for the reference block snapshot.
+    pub root: String,
+    /// Position of the target block leaf in the MMR.
+    pub elements_index: u64,
+    /// Total elements in the reference block MMR.
+    pub elements_count: u64,
+    /// Sibling path used for MMR verification.
+    pub path: Vec<String>,
+    /// Peaks used for MMR verification.
+    pub peaks: Vec<String>,
+}
+
 /// Request for an MMR proof
 ///
 /// Used to request a proof that a specific header is committed in the MMR.
@@ -144,6 +170,18 @@ pub struct LightClientProofDto {
     pub block_proof: BankaiBlockProofDto,
     /// MMR inclusion proofs for requested headers
     pub mmr_proofs: Vec<MmrProofDto>,
+}
+
+/// Combined response for Bankai block proof endpoint.
+#[cfg(feature = "api")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct BankaiBlockProofWithMmrDto {
+    /// The STWO block proof for the reference block.
+    pub block_proof: BankaiBlockProofDto,
+    /// The Bankai MMR proof for the target block.
+    pub mmr_proof: BankaiMmrProofDto,
 }
 
 /// Request for a complete light client proof

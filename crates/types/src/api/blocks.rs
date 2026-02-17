@@ -1,6 +1,18 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use crate::api::{
+    ethereum::BankaiBlockFilterDto,
+    proofs::{HashingFunctionDto, ProofFormatDto},
+};
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[schema(bound = "T: ToSchema")]
+pub struct BlockWithHashDto<T> {
+    pub block_hash: String,
+    pub block: T,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct BlockDetailDto {
     pub height: u64,
@@ -71,4 +83,26 @@ pub struct MmrRootsDto {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct LatestBlockQueryDto {
     pub status: Option<BlockStatusDto>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BankaiTargetBlockSelectorDto {
+    pub block_number: Option<u64>,
+    pub block_hash: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BankaiMmrProofRequestDto {
+    pub filter: BankaiBlockFilterDto,
+    pub target_block: BankaiTargetBlockSelectorDto,
+    pub hashing_function: HashingFunctionDto,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BankaiBlockProofRequestDto {
+    pub filter: BankaiBlockFilterDto,
+    pub target_block: BankaiTargetBlockSelectorDto,
+    pub hashing_function: HashingFunctionDto,
+    #[serde(default)]
+    pub proof_format: ProofFormatDto,
 }
