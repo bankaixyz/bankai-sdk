@@ -5,7 +5,6 @@ members = [
     "crates/sdk",
     "crates/verify",
     "example/worldid-root",
-    "xtask",
 ]
 
 [workspace.dependencies]
