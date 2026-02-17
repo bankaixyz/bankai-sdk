@@ -1,6 +1,6 @@
 use bankai_types::block::BankaiBlock;
-use cairo_air::{utils::get_verification_output, CairoProof, PreProcessedTraceVariant};
-use stwo::core::vcs::blake2_merkle::{Blake2sMerkleChannel, Blake2sMerkleHasher};
+pub use cairo_air::{utils::get_verification_output, CairoProof, PreProcessedTraceVariant};
+pub use stwo::core::vcs::blake2_merkle::{Blake2sMerkleChannel, Blake2sMerkleHasher};
 
 use crate::VerifyError;
 
@@ -15,6 +15,5 @@ pub fn verify_stwo_proof(
     if result.is_err() {
         return Err(VerifyError::InvalidStwoProof);
     }
-    let block = BankaiBlock::from_verication_output(&verification_output);
-    Ok(block)
+    BankaiBlock::from_verication_output(&verification_output).ok_or(VerifyError::InvalidStwoProof)
 }

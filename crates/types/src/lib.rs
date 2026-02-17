@@ -39,7 +39,7 @@ pub mod proofs;
 /// proof requests, and chain statistics.
 ///
 /// Requires the `api` feature flag.
-#[cfg(any(feature = "default", feature = "api"))]
+#[cfg(feature = "api")]
 pub mod api;
 
 // Re-export commonly used types for easier access

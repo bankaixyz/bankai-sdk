@@ -111,6 +111,8 @@ pub use bankai_types::api::proofs::HashingFunctionDto;
 pub use bankai_types::fetch::ProofBundle;
 pub use bankai_types::verify::evm::beacon::BeaconHeader;
 
+pub use crate::fetch::api::blocks::parse_block_proof_payload;
+
 // ============================================================================
 // Network Configuration
 // ============================================================================

@@ -7,8 +7,9 @@ use bankai_types::api::blocks::{
 };
 use bankai_types::api::proofs::{BankaiBlockProofDto, BlockProofPayloadDto, ProofFormatDto};
 use bankai_types::api::stats::PageDto;
-use cairo_air::CairoProof;
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use cairo_air::utils::{deserialize_proof_from_file, ProofFormat};
+use cairo_air::CairoProof;
 use serde::Serialize;
 use starknet_ff::FieldElement;
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
@@ -98,7 +99,7 @@ impl BlocksApi {
     }
 }
 
-pub(crate) fn parse_block_proof_payload(
+pub fn parse_block_proof_payload(
     payload: BlockProofPayloadDto,
 ) -> SdkResult<CairoProof<Blake2sMerkleHasher>> {
     match payload {
@@ -134,23 +135,33 @@ fn parse_json_block_proof_payload(
     }
 }
 
-fn parse_binary_block_proof_payload(
-    value: &str,
-) -> SdkResult<CairoProof<Blake2sMerkleHasher>> {
+fn parse_binary_block_proof_payload(value: &str) -> SdkResult<CairoProof<Blake2sMerkleHasher>> {
+    let decoded = decode_base64_block_proof_bytes(value)?;
     let proof_path = build_temp_binary_proof_path()?;
 
-    std::fs::write(&proof_path, value.as_bytes()).map_err(|e| {
+    std::fs::write(&proof_path, &decoded).map_err(|e| {
         SdkError::Other(format!(
             "failed to write temporary binary block proof '{}': {e}",
             proof_path.display()
         ))
     })?;
 
-    let parsed = deserialize_proof_from_file::<Blake2sMerkleHasher>(&proof_path, ProofFormat::Binary)
-        .map_err(|e| SdkError::InvalidInput(format!("failed to deserialize binary block proof: {e}")));
+    let parsed =
+        deserialize_proof_from_file::<Blake2sMerkleHasher>(&proof_path, ProofFormat::Binary)
+            .map_err(|e| {
+                SdkError::InvalidInput(format!("failed to deserialize binary block proof: {e}"))
+            });
 
     let _ = std::fs::remove_file(&proof_path);
     parsed
+}
+
+fn decode_base64_block_proof_bytes(value: &str) -> SdkResult<Vec<u8>> {
+    BASE64_STANDARD.decode(value).map_err(|e| {
+        SdkError::InvalidInput(format!(
+            "failed to decode base64 binary block proof payload: {e}"
+        ))
+    })
 }
 
 fn build_temp_binary_proof_path() -> SdkResult<PathBuf> {
@@ -164,4 +175,49 @@ fn build_temp_binary_proof_path() -> SdkResult<PathBuf> {
         ts.as_nanos()
     ));
     Ok(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{decode_base64_block_proof_bytes, parse_block_proof_payload};
+    use bankai_types::api::proofs::BlockProofPayloadDto;
+    use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
+
+    #[test]
+    fn decode_base64_block_proof_bytes_ok() {
+        let decoded = decode_base64_block_proof_bytes("Qlpo").expect("valid base64");
+        assert_eq!(decoded, b"BZh");
+    }
+
+    #[test]
+    fn decode_base64_block_proof_bytes_err() {
+        let err = decode_base64_block_proof_bytes("!not-base64!");
+        assert!(err.is_err());
+    }
+
+    #[tokio::test]
+    #[ignore = "requires network access to live R2 proof artifact"]
+    async fn remote_block_400_bin_roundtrip_and_verify() {
+        let url = "https://sepolia.local.proofs.bankai.xyz/proofs/stwo/block_400.bin";
+        let resp = reqwest::get(url)
+            .await
+            .expect("failed to fetch proof from R2");
+        assert!(
+            resp.status().is_success(),
+            "unexpected status {} while fetching {}",
+            resp.status(),
+            url
+        );
+        let bytes = resp.bytes().await.expect("failed reading response bytes");
+        assert!(
+            bytes.starts_with(b"BZh"),
+            "expected bzip2 header at proof start"
+        );
+
+        let payload = BlockProofPayloadDto::Bin(BASE64_STANDARD.encode(bytes.as_ref()));
+        let proof = parse_block_proof_payload(payload).expect("failed to parse proof payload");
+        let block = bankai_verify::bankai::stwo::verify_stwo_proof(proof)
+            .expect("proof verification failed");
+        assert_eq!(block.block_number, 400);
+    }
 }

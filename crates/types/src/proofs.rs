@@ -112,7 +112,10 @@ pub struct BankaiBlockProofDto {
 #[cfg(feature = "api")]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(tag = "format", content = "data", rename_all = "lowercase"))]
+#[cfg_attr(
+    feature = "serde",
+    serde(tag = "format", content = "data", rename_all = "lowercase")
+)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub enum BlockProofPayloadDto {
     /// Base64 encoded binary proof payload.
