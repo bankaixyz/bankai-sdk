@@ -1,6 +1,6 @@
 use crate::compat::case::{
-    CompatArea, CompatCaseDef, CompatCaseId, CompatKind, LightClientProofSource, MmrProofSource,
-    SdkCallSpec,
+    CompatArea, CompatCaseDef, CompatCaseId, CompatEndpoint, CompatKind, HttpMethod,
+    LightClientProofSource, MatrixScope, MmrProofSource, SdkCallSpec,
 };
 
 pub fn cases() -> Vec<CompatCaseDef> {
@@ -10,7 +10,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumExecution,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::EthereumExecutionHeightFinalized,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/ethereum/execution/height",
+            }),
             required: true,
         },
         CompatCaseDef {
@@ -18,7 +23,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumExecution,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::EthereumExecutionSnapshotFinalized,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/ethereum/execution/snapshot",
+            }),
             required: true,
         },
         CompatCaseDef {
@@ -26,7 +36,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumExecution,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::EthereumExecutionMmrRootFinalized,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/ethereum/execution/mmr_root",
+            }),
             required: true,
         },
         CompatCaseDef {
@@ -34,7 +49,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumExecution,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::EthereumExecutionMmrProofFromSnapshot,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Post,
+                path: "/v1/ethereum/execution/mmr_proof",
+            }),
             required: true,
         },
         CompatCaseDef {
@@ -42,7 +62,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumExecution,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::EthereumExecutionLightClientProofFromSnapshot,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Post,
+                path: "/v1/ethereum/execution/light_client_proof",
+            }),
             required: true,
         },
         CompatCaseDef {
@@ -50,7 +75,9 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumExecution,
             kind: CompatKind::MmrProofVerify {
                 source: MmrProofSource::EthereumExecutionFromSnapshot,
+                scope: MatrixScope::Core,
             },
+            endpoint: None,
             required: true,
         },
         CompatCaseDef {
@@ -58,7 +85,9 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumExecution,
             kind: CompatKind::LightClientProofVerify {
                 source: LightClientProofSource::EthereumExecutionFromSnapshot,
+                scope: MatrixScope::Core,
             },
+            endpoint: None,
             required: true,
         },
     ]

@@ -1,5 +1,6 @@
 use crate::compat::case::{
-    ApiErrorSource, CompatArea, CompatCaseDef, CompatCaseId, CompatKind, SdkCallSpec,
+    ApiErrorSource, CompatArea, CompatCaseDef, CompatCaseId, CompatEndpoint, CompatKind,
+    HttpMethod, MatrixScope, SdkCallSpec,
 };
 
 pub fn cases() -> Vec<CompatCaseDef> {
@@ -9,7 +10,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumRoot,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::EthereumEpochFinalized,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/ethereum/epoch",
+            }),
             required: true,
         },
         CompatCaseDef {
@@ -17,7 +23,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumRoot,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::EthereumEpochByNumberFromEpoch,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/ethereum/epoch/{number}",
+            }),
             required: true,
         },
         CompatCaseDef {
@@ -25,7 +36,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumRoot,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::EthereumSyncCommitteeFromEpoch,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/ethereum/sync_committee",
+            }),
             required: false,
         },
         CompatCaseDef {
@@ -33,8 +49,26 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::EthereumRoot,
             kind: CompatKind::ApiErrorShape {
                 source: ApiErrorSource::SyncCommitteeFromEpoch,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/ethereum/sync_committee",
+            }),
             required: true,
+        },
+        CompatCaseDef {
+            id: CompatCaseId("ethereum.filter_conflict.error_shape"),
+            area: CompatArea::EthereumRoot,
+            kind: CompatKind::ApiErrorShape {
+                source: ApiErrorSource::FilterConflict,
+                scope: MatrixScope::Edge,
+            },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/ethereum/epoch",
+            }),
+            required: false,
         },
     ]
 }

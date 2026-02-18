@@ -1,102 +1,10 @@
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 
 use anyhow::{anyhow, Context, Result};
 
 use crate::compat::context::CompatContext;
 
 const IGNORED_PATHS: &[&str] = &["/v1/openapi.json", "/v1/swagger", "/v1/rapidoc"];
-
-const ENDPOINT_CASE_MAP: &[(&str, &str, &str)] = &[
-    ("get", "/v1/health", "health.get.decode"),
-    ("get", "/v1/chains", "chains.list.decode"),
-    ("get", "/v1/chains/{chain_id}", "chains.by_id.decode"),
-    ("get", "/v1/blocks", "blocks.list.decode"),
-    ("get", "/v1/blocks/latest", "blocks.latest.decode"),
-    ("get", "/v1/blocks/{height}", "blocks.by_height.decode"),
-    (
-        "get",
-        "/v1/blocks/get_proof",
-        "blocks.proof_by_query.decode",
-    ),
-    (
-        "get",
-        "/v1/blocks/{height}/proof",
-        "blocks.proof_by_height.decode",
-    ),
-    ("post", "/v1/blocks/mmr_proof", "blocks.mmr_proof.decode"),
-    (
-        "post",
-        "/v1/blocks/block_proof",
-        "blocks.block_proof.decode",
-    ),
-    ("get", "/v1/stats/overview", "stats.overview.decode"),
-    (
-        "get",
-        "/v1/stats/block/{height}",
-        "stats.block_detail.decode",
-    ),
-    ("get", "/v1/ethereum/epoch", "ethereum.epoch.decode"),
-    (
-        "get",
-        "/v1/ethereum/epoch/{number}",
-        "ethereum.epoch_by_number.decode",
-    ),
-    (
-        "get",
-        "/v1/ethereum/sync_committee",
-        "ethereum.sync_committee.error_shape",
-    ),
-    (
-        "get",
-        "/v1/ethereum/beacon/height",
-        "ethereum.beacon.height.decode",
-    ),
-    (
-        "get",
-        "/v1/ethereum/beacon/snapshot",
-        "ethereum.beacon.snapshot.decode",
-    ),
-    (
-        "get",
-        "/v1/ethereum/beacon/mmr_root",
-        "ethereum.beacon.mmr_root.decode",
-    ),
-    (
-        "post",
-        "/v1/ethereum/beacon/mmr_proof",
-        "ethereum.beacon.mmr_proof.decode",
-    ),
-    (
-        "post",
-        "/v1/ethereum/beacon/light_client_proof",
-        "ethereum.beacon.light_client_proof.decode",
-    ),
-    (
-        "get",
-        "/v1/ethereum/execution/height",
-        "ethereum.execution.height.decode",
-    ),
-    (
-        "get",
-        "/v1/ethereum/execution/snapshot",
-        "ethereum.execution.snapshot.decode",
-    ),
-    (
-        "get",
-        "/v1/ethereum/execution/mmr_root",
-        "ethereum.execution.mmr_root.decode",
-    ),
-    (
-        "post",
-        "/v1/ethereum/execution/mmr_proof",
-        "ethereum.execution.mmr_proof.decode",
-    ),
-    (
-        "post",
-        "/v1/ethereum/execution/light_client_proof",
-        "ethereum.execution.light_client_proof.decode",
-    ),
-];
 
 pub async fn run(ctx: &CompatContext) -> Result<()> {
     let url = ctx.url("/v1/openapi.json");
@@ -129,12 +37,11 @@ pub async fn run(ctx: &CompatContext) -> Result<()> {
         .ok_or_else(|| anyhow!("openapi JSON is missing object field 'paths'"))?;
 
     let documented = documented_endpoints(paths)?;
-    let (mapped, missing_case_ids) = mapped_endpoints();
+    let mapped = mapped_endpoints();
 
-    if !missing_case_ids.is_empty() {
+    if mapped.is_empty() {
         return Err(anyhow!(
-            "endpoint coverage map references unknown compat case ids:\n{}",
-            missing_case_ids.join("\n")
+            "SDK endpoint coverage map from compat case metadata is empty"
         ));
     }
 
@@ -177,23 +84,20 @@ fn documented_endpoints(
     Ok(endpoints)
 }
 
-fn mapped_endpoints() -> (BTreeSet<(String, String)>, Vec<String>) {
-    let known_case_ids: HashSet<&'static str> = crate::compat::all_cases()
-        .iter()
-        .map(|case| case.id.0)
-        .collect();
-
+fn mapped_endpoints() -> BTreeSet<(String, String)> {
     let mut mapped = BTreeSet::new();
-    let mut missing_case_ids = Vec::new();
 
-    for (method, path, case_id) in ENDPOINT_CASE_MAP {
-        mapped.insert(((*method).to_string(), (*path).to_string()));
-        if !known_case_ids.contains(case_id) {
-            missing_case_ids.push(format!("- {} {} -> {}", method, path, case_id));
+    for case in crate::compat::all_cases() {
+        if let Some(endpoint) = case.endpoint {
+            let method = match endpoint.method {
+                crate::compat::case::HttpMethod::Get => "get",
+                crate::compat::case::HttpMethod::Post => "post",
+            };
+            mapped.insert((method.to_string(), endpoint.path.to_string()));
         }
     }
 
-    (mapped, missing_case_ids)
+    mapped
 }
 
 fn diff_endpoints(

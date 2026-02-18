@@ -12,19 +12,16 @@ pub enum CompatArea {
     EthereumRoot,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HttpMethod {
     Get,
     Post,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DecodeAs {
-    JsonValue,
-    BankaiBlockProofWithMmr,
-    BankaiBlockProofWithBlock,
+pub enum MatrixScope {
+    Core,
+    Edge,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,12 +54,6 @@ pub enum SdkCallSpec {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RawBodySource {
-    BankaiMmrProofRequestFromLatest,
-    BankaiBlockProofRequestFromLatest,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MmrProofSource {
     EthereumBeaconFromSnapshot,
     EthereumExecutionFromSnapshot,
@@ -87,36 +78,41 @@ pub enum ProofHashSource {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ApiErrorSource {
     SyncCommitteeFromEpoch,
+    FilterConflict,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompatKind {
     SdkCallDecode {
         call: SdkCallSpec,
-    },
-    #[allow(dead_code)]
-    RawHttpDecode {
-        method: HttpMethod,
-        path: &'static str,
-        query: &'static [(&'static str, &'static str)],
-        body: Option<RawBodySource>,
-        decode_as: DecodeAs,
+        scope: MatrixScope,
     },
     ProofHashConsistency {
         source: ProofHashSource,
+        scope: MatrixScope,
     },
     MmrProofVerify {
         source: MmrProofSource,
+        scope: MatrixScope,
     },
     BankaiMmrProofVerify {
         source: BankaiMmrProofSource,
+        scope: MatrixScope,
     },
     LightClientProofVerify {
         source: LightClientProofSource,
+        scope: MatrixScope,
     },
     ApiErrorShape {
         source: ApiErrorSource,
+        scope: MatrixScope,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CompatEndpoint {
+    pub method: HttpMethod,
+    pub path: &'static str,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,5 +120,6 @@ pub struct CompatCaseDef {
     pub id: CompatCaseId,
     pub area: CompatArea,
     pub kind: CompatKind,
+    pub endpoint: Option<CompatEndpoint>,
     pub required: bool,
 }

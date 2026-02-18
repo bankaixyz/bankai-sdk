@@ -1,4 +1,7 @@
-use crate::compat::case::{CompatArea, CompatCaseDef, CompatCaseId, CompatKind, SdkCallSpec};
+use crate::compat::case::{
+    CompatArea, CompatCaseDef, CompatCaseId, CompatEndpoint, CompatKind, HttpMethod, MatrixScope,
+    SdkCallSpec,
+};
 
 pub fn cases() -> Vec<CompatCaseDef> {
     vec![
@@ -7,7 +10,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::Chains,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::ChainsList,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/chains",
+            }),
             required: true,
         },
         CompatCaseDef {
@@ -15,7 +23,12 @@ pub fn cases() -> Vec<CompatCaseDef> {
             area: CompatArea::Chains,
             kind: CompatKind::SdkCallDecode {
                 call: SdkCallSpec::ChainsByIdFromList,
+                scope: MatrixScope::Core,
             },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/chains/{chain_id}",
+            }),
             required: true,
         },
     ]
