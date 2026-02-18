@@ -3,7 +3,7 @@ use utoipa::ToSchema;
 
 use crate::api::{
     ethereum::BankaiBlockFilterDto,
-    proofs::{HashingFunctionDto, ProofFormatDto},
+    proofs::{BankaiBlockProofDto, HashingFunctionDto, ProofFormatDto},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -105,4 +105,14 @@ pub struct BankaiBlockProofRequestDto {
     pub hashing_function: HashingFunctionDto,
     #[serde(default)]
     pub proof_format: ProofFormatDto,
+}
+
+/// API envelope carrying canonical Bankai block hash + full block payload.
+pub type BankaiBlockOutputDto = crate::block::BankaiBlockOutput;
+
+/// Compatibility payload used by `/v1/blocks/block_proof`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BankaiBlockProofWithBlockDto {
+    pub block: BankaiBlockOutputDto,
+    pub block_proof: BankaiBlockProofDto,
 }

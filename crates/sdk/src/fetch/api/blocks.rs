@@ -3,9 +3,13 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use bankai_types::api::blocks::{
-    BlockDetailDto, BlockStatusDto, BlockSummaryDto, LatestBlockQueryDto,
+    BankaiBlockProofRequestDto, BankaiMmrProofRequestDto, BlockDetailDto, BlockStatusDto,
+    BlockSummaryDto, LatestBlockQueryDto,
 };
-use bankai_types::api::proofs::{BankaiBlockProofDto, BlockProofPayloadDto, ProofFormatDto};
+use bankai_types::api::proofs::{
+    BankaiBlockProofDto, BankaiBlockProofWithMmrDto, BankaiMmrProofDto, BlockProofPayloadDto,
+    ProofFormatDto,
+};
 use bankai_types::api::stats::PageDto;
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use cairo_air::utils::{deserialize_proof_from_file, ProofFormat};
@@ -95,6 +99,26 @@ impl BlocksApi {
     pub async fn proof_by_query(&self, query: &BlockProofQuery) -> SdkResult<BankaiBlockProofDto> {
         let url = format!("{}/v1/blocks/get_proof", self.core.base_url);
         let response = self.core.client.get(&url).query(query).send().await?;
+        handle_response(response).await
+    }
+
+    /// Fetches a Bankai MMR proof for a target historical block.
+    pub async fn mmr_proof(
+        &self,
+        request: &BankaiMmrProofRequestDto,
+    ) -> SdkResult<BankaiMmrProofDto> {
+        let url = format!("{}/v1/blocks/mmr_proof", self.core.base_url);
+        let response = self.core.client.post(&url).json(request).send().await?;
+        handle_response(response).await
+    }
+
+    /// Fetches a Bankai block proof bundle (block proof + Bankai MMR proof).
+    pub async fn block_proof(
+        &self,
+        request: &BankaiBlockProofRequestDto,
+    ) -> SdkResult<BankaiBlockProofWithMmrDto> {
+        let url = format!("{}/v1/blocks/block_proof", self.core.base_url);
+        let response = self.core.client.post(&url).json(request).send().await?;
         handle_response(response).await
     }
 }

@@ -200,7 +200,22 @@ impl Bankai {
         ethereum_execution_rpc: Option<String>,
         ethereum_beacon_rpc: Option<String>,
     ) -> Self {
-        let api = ApiClient::new(network);
+        Self::new_with_base_url(
+            network,
+            network.api_url().to_string(),
+            ethereum_execution_rpc,
+            ethereum_beacon_rpc,
+        )
+    }
+
+    /// Creates a new Bankai SDK instance using an explicit API base URL.
+    pub fn new_with_base_url(
+        network: Network,
+        api_base_url: String,
+        ethereum_execution_rpc: Option<String>,
+        ethereum_beacon_rpc: Option<String>,
+    ) -> Self {
+        let api = ApiClient::new_with_base_url(api_base_url);
         let execution = ethereum_execution_rpc.map(|rpc| {
             ExecutionChainFetcher::new(api.clone(), rpc, network.execution_network_id())
         });

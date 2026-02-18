@@ -23,10 +23,15 @@ pub(crate) struct ApiCore {
 
 impl ApiClient {
     pub fn new(network: Network) -> Self {
+        Self::new_with_base_url(network.api_url())
+    }
+
+    pub fn new_with_base_url(base_url: impl Into<String>) -> Self {
+        let base_url = base_url.into().trim_end_matches('/').to_string();
         Self {
             core: Arc::new(ApiCore {
                 client: reqwest::Client::new(),
-                base_url: network.api_url().to_string(),
+                base_url,
             }),
         }
     }
