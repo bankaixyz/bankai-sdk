@@ -3,8 +3,11 @@ use utoipa::ToSchema;
 
 use crate::api::{
     ethereum::BankaiBlockFilterDto,
-    proofs::{BankaiBlockProofDto, HashingFunctionDto, ProofFormatDto},
+    op_stack::OpChainsSummaryDto,
+    proofs::BankaiBlockProofDto,
+    stats::ChainSnapshotSummaryDto,
 };
+use crate::common::{HashingFunction, ProofFormat};
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[schema(bound = "T: ToSchema")]
@@ -69,66 +72,9 @@ pub struct EthereumConsensusSummaryDto {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct ChainSnapshotSummaryDto {
-    pub chain_id: u64,
-    pub start_height: u64,
-    pub end_height: u64,
-    pub justified_height: u64,
-    pub finalized_height: u64,
-    pub mmr_roots: MmrRootsDto,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct MmrRootsDto {
     pub keccak_root: String,   // 0x…32
     pub poseidon_root: String, // 0x…32
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OpChainsSummaryDto {
-    pub n_clients: u64,
-    pub chains: Vec<OpChainSnapshotSummaryDto>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OpChainSnapshotSummaryDto {
-    pub chain_id: u64,
-    pub start_height: u64,
-    pub end_height: u64,
-    pub header_hash: String,
-    pub l1_submission_block: u64,
-    pub mmr_roots: MmrRootsDto,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OpMerkleProofDto {
-    pub bankai_block_number: u64,
-    pub chain_id: u64,
-    pub merkle_leaf_index: u64,
-    pub leaf_hash: String,
-    pub root: String,
-    pub path: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OpStackMerkleProofRequestDto {
-    pub filter: BankaiBlockFilterDto,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OpStackMmrProofRequestDto {
-    pub filter: BankaiBlockFilterDto,
-    pub hashing_function: HashingFunctionDto,
-    pub header_hash: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OpStackLightClientProofRequestDto {
-    pub filter: BankaiBlockFilterDto,
-    pub hashing_function: HashingFunctionDto,
-    pub header_hashes: Vec<String>,
-    #[serde(default)]
-    pub proof_format: ProofFormatDto,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -146,16 +92,16 @@ pub struct BankaiTargetBlockSelectorDto {
 pub struct BankaiMmrProofRequestDto {
     pub filter: BankaiBlockFilterDto,
     pub target_block: BankaiTargetBlockSelectorDto,
-    pub hashing_function: HashingFunctionDto,
+    pub hashing_function: HashingFunction,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct BankaiBlockProofRequestDto {
     pub filter: BankaiBlockFilterDto,
     pub target_block: BankaiTargetBlockSelectorDto,
-    pub hashing_function: HashingFunctionDto,
+    pub hashing_function: HashingFunction,
     #[serde(default)]
-    pub proof_format: ProofFormatDto,
+    pub proof_format: ProofFormat,
 }
 
 /// API envelope carrying canonical Bankai block hash + full block payload.

@@ -1,7 +1,7 @@
 use std::env;
 
 use anyhow::{anyhow, Context, Result};
-use bankai_sdk::{Bankai, HashingFunctionDto, Network};
+use bankai_sdk::{Bankai, HashingFunction, Network};
 use bankai_types::api::blocks::{
     BankaiBlockProofRequestDto, BankaiMmrProofRequestDto, BankaiTargetBlockSelectorDto,
     BlockStatusDto, LatestBlockQueryDto,
@@ -10,7 +10,7 @@ use bankai_types::api::ethereum::{
     BankaiBlockFilterDto, BankaiBlockSelectorDto, EthereumLightClientProofRequestDto,
     EthereumMmrProofRequestDto,
 };
-use bankai_types::api::proofs::ProofFormatDto;
+use bankai_types::common::ProofFormat;
 
 #[derive(Debug, Clone)]
 pub struct NamedFilterCase {
@@ -21,7 +21,7 @@ pub struct NamedFilterCase {
 #[derive(Debug, Clone)]
 pub struct NamedProofFormatCase {
     pub label: String,
-    pub proof_format: ProofFormatDto,
+    pub proof_format: ProofFormat,
 }
 
 #[derive(Debug, Clone)]
@@ -33,7 +33,7 @@ pub struct NamedTargetBlockCase {
 #[derive(Debug, Clone)]
 pub struct NamedHashingCase {
     pub label: String,
-    pub hashing_function: HashingFunctionDto,
+    pub hashing_function: HashingFunction,
 }
 
 pub struct CompatContext {
@@ -149,11 +149,11 @@ impl CompatContext {
         vec![
             NamedProofFormatCase {
                 label: "proof_format=bin".to_string(),
-                proof_format: ProofFormatDto::Bin,
+                proof_format: ProofFormat::Bin,
             },
             NamedProofFormatCase {
                 label: "proof_format=json".to_string(),
-                proof_format: ProofFormatDto::Json,
+                proof_format: ProofFormat::Json,
             },
         ]
     }
@@ -161,14 +161,14 @@ impl CompatContext {
     pub fn hashing_cases_core(&self) -> Vec<NamedHashingCase> {
         vec![NamedHashingCase {
             label: "hashing_function=keccak".to_string(),
-            hashing_function: HashingFunctionDto::Keccak,
+            hashing_function: HashingFunction::Keccak,
         }]
     }
 
     pub fn hashing_cases_edge(&self) -> Vec<NamedHashingCase> {
         vec![NamedHashingCase {
             label: "hashing_function=poseidon".to_string(),
-            hashing_function: HashingFunctionDto::Poseidon,
+            hashing_function: HashingFunction::Poseidon,
         }]
     }
 
@@ -211,7 +211,7 @@ impl CompatContext {
             .mmr_proof(&BankaiMmrProofRequestDto {
                 filter: filter.clone(),
                 target_block: number_selector.clone(),
-                hashing_function: HashingFunctionDto::Keccak,
+                hashing_function: HashingFunction::Keccak,
             })
             .await
             .context("failed to derive target block hash from mmr_proof")?
@@ -297,7 +297,7 @@ impl CompatContext {
     pub async fn execution_mmr_proof_request_for(
         &self,
         filter: &BankaiBlockFilterDto,
-        hashing_function: HashingFunctionDto,
+        hashing_function: HashingFunction,
     ) -> Result<EthereumMmrProofRequestDto> {
         let snapshot = self.execution_snapshot_for_filter(filter).await?;
         Ok(EthereumMmrProofRequestDto {
@@ -310,7 +310,7 @@ impl CompatContext {
     pub async fn beacon_mmr_proof_request_for(
         &self,
         filter: &BankaiBlockFilterDto,
-        hashing_function: HashingFunctionDto,
+        hashing_function: HashingFunction,
     ) -> Result<EthereumMmrProofRequestDto> {
         let snapshot = self.beacon_snapshot_for_filter(filter).await?;
         Ok(EthereumMmrProofRequestDto {
@@ -323,8 +323,8 @@ impl CompatContext {
     pub async fn execution_light_client_request_for(
         &self,
         filter: &BankaiBlockFilterDto,
-        hashing_function: HashingFunctionDto,
-        proof_format: ProofFormatDto,
+        hashing_function: HashingFunction,
+        proof_format: ProofFormat,
     ) -> Result<EthereumLightClientProofRequestDto> {
         let snapshot = self.execution_snapshot_for_filter(filter).await?;
         Ok(EthereumLightClientProofRequestDto {
@@ -338,8 +338,8 @@ impl CompatContext {
     pub async fn beacon_light_client_request_for(
         &self,
         filter: &BankaiBlockFilterDto,
-        hashing_function: HashingFunctionDto,
-        proof_format: ProofFormatDto,
+        hashing_function: HashingFunction,
+        proof_format: ProofFormat,
     ) -> Result<EthereumLightClientProofRequestDto> {
         let snapshot = self.beacon_snapshot_for_filter(filter).await?;
         Ok(EthereumLightClientProofRequestDto {
@@ -354,7 +354,7 @@ impl CompatContext {
         &self,
         filter: BankaiBlockFilterDto,
         target_block: BankaiTargetBlockSelectorDto,
-        hashing_function: HashingFunctionDto,
+        hashing_function: HashingFunction,
     ) -> BankaiMmrProofRequestDto {
         BankaiMmrProofRequestDto {
             filter,
@@ -367,8 +367,8 @@ impl CompatContext {
         &self,
         filter: BankaiBlockFilterDto,
         target_block: BankaiTargetBlockSelectorDto,
-        hashing_function: HashingFunctionDto,
-        proof_format: ProofFormatDto,
+        hashing_function: HashingFunction,
+        proof_format: ProofFormat,
     ) -> BankaiBlockProofRequestDto {
         BankaiBlockProofRequestDto {
             filter,
@@ -379,12 +379,12 @@ impl CompatContext {
     }
 
     pub async fn execution_mmr_proof_request(&self) -> Result<EthereumMmrProofRequestDto> {
-        self.execution_mmr_proof_request_for(&self.finalized_filter(), HashingFunctionDto::Keccak)
+        self.execution_mmr_proof_request_for(&self.finalized_filter(), HashingFunction::Keccak)
             .await
     }
 
     pub async fn beacon_mmr_proof_request(&self) -> Result<EthereumMmrProofRequestDto> {
-        self.beacon_mmr_proof_request_for(&self.finalized_filter(), HashingFunctionDto::Keccak)
+        self.beacon_mmr_proof_request_for(&self.finalized_filter(), HashingFunction::Keccak)
             .await
     }
 
@@ -393,8 +393,8 @@ impl CompatContext {
     ) -> Result<EthereumLightClientProofRequestDto> {
         self.execution_light_client_request_for(
             &self.finalized_filter(),
-            HashingFunctionDto::Keccak,
-            ProofFormatDto::Bin,
+            HashingFunction::Keccak,
+            ProofFormat::Bin,
         )
         .await
     }
@@ -402,8 +402,8 @@ impl CompatContext {
     pub async fn beacon_light_client_request(&self) -> Result<EthereumLightClientProofRequestDto> {
         self.beacon_light_client_request_for(
             &self.finalized_filter(),
-            HashingFunctionDto::Keccak,
-            ProofFormatDto::Bin,
+            HashingFunction::Keccak,
+            ProofFormat::Bin,
         )
         .await
     }
@@ -416,7 +416,7 @@ impl CompatContext {
                 block_number: Some(target_block),
                 block_hash: None,
             },
-            HashingFunctionDto::Keccak,
+            HashingFunction::Keccak,
         ))
     }
 

@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use bankai_types::api::blocks::{
-    OpChainSnapshotSummaryDto, OpMerkleProofDto, OpStackLightClientProofRequestDto,
-    OpStackMerkleProofRequestDto, OpStackMmrProofRequestDto,
+use bankai_types::api::op_stack::{
+    OpChainSnapshotSummaryDto, OpMerkleProofDto, OpStackLightClientProofDto,
+    OpStackLightClientProofRequestDto, OpStackMerkleProofRequestDto, OpStackMmrProofDto,
+    OpStackMmrProofRequestDto,
 };
 use bankai_types::api::ethereum::{BankaiBlockFilterDto, HeightDto};
-use bankai_types::api::proofs::{OpStackLightClientProofDto, OpStackMmrProofDto};
 
 use crate::errors::SdkResult;
 use crate::fetch::api::{handle_response, ApiCore};

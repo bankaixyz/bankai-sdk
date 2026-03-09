@@ -8,18 +8,19 @@
 //!
 //! ## Modules
 //!
-//! - [`proofs`] - Core proof types (MMR proofs, hashing functions) - works in `no_std`
+//! - [`common`] - Shared enums used across API, SDK, and verification
 //! - [`api`] - API request/response types (requires `std` and `api` feature)
 //! - [`utils`] - Utility functions (MMR operations)
 //! - [`block`] - Bankai block representations with beacon and execution client data
-//! - [`fetch`] - Types for proof fetching and wrapping (requires `verifier-types` feature)
-//! - [`verify`] - Types for verification results (requires `verifier-types` feature)
+//! - [`inputs`] - Typed verification inputs assembled by the SDK
+//! - [`results`] - Verified outputs returned by the verifier
 //!
 //! ## Feature Flags
 //!
 //! - `std` (default) - Enable standard library support
 //! - `api` - Enable API types (requires `std`)
-//! - `verifier-types` - Enable verifier-specific types (fetch/verify modules)
+//! - `inputs` - Enable typed verifier input types
+//! - `results` - Enable typed verification result types
 //! - `serde` - Enable serde serialization support
 //! - `utoipa` - Enable OpenAPI schema generation
 
@@ -27,11 +28,7 @@
 
 extern crate alloc;
 
-/// Core proof types for MMR proofs and hashing functions
-///
-/// These types are available in both `std` and `no_std` environments,
-/// making them suitable for use in ZK circuits and smart contracts.
-pub mod proofs;
+pub mod common;
 
 /// API request and response types
 ///
@@ -56,27 +53,13 @@ pub mod utils;
 ///
 /// Defines the structure of Bankai blocks, which contain verified
 /// beacon and execution chain data with their respective MMR roots.
-#[cfg(any(feature = "default", feature = "api", feature = "verifier-types"))]
 pub mod block;
 
-/// Proof fetching types
-///
-/// Types used for fetching and wrapping proofs from the Bankai API,
-/// including EVM-specific proof structures. The main type is [`fetch::ProofBundle`],
-/// which bundles together all proofs needed for batch verification.
-///
-/// Requires the `verifier-types` feature flag.
-#[cfg(feature = "verifier-types")]
-pub mod fetch;
+#[cfg(feature = "inputs")]
+pub mod inputs;
 
-/// Verification result types
-///
-/// Types representing verified data after successful proof verification,
-/// including batch results and EVM-specific verified data.
-///
-/// Requires the `verifier-types` feature flag.
-#[cfg(feature = "verifier-types")]
-pub mod verify;
+#[cfg(feature = "results")]
+pub mod results;
 
-#[cfg(feature = "verifier-types")]
-pub use fetch::ProofBundle;
+#[cfg(feature = "inputs")]
+pub use inputs::ProofBundle;

@@ -12,11 +12,14 @@ pub mod chains;
 /// API error types
 pub mod error;
 
-/// Proof request and response types (re-exports from root proofs module)
+/// Proof request and response types
 pub mod proofs;
 
 /// Ethereum light-client API types
 pub mod ethereum;
+
+/// OP Stack proof request and response types
+pub mod op_stack;
 
 /// Chain statistics and metrics
 pub mod stats;

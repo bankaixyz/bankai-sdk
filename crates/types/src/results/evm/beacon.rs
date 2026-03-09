@@ -1,9 +1,7 @@
 use alloy_primitives::FixedBytes;
+use alloy_rpc_types_beacon::header::HeaderResponse;
 use serde::{Deserialize, Serialize};
 use tree_hash_derive::TreeHash;
-
-#[cfg(feature = "verifier-types")]
-use alloy_rpc_types_beacon::header::HeaderResponse;
 
 #[derive(TreeHash, Clone, Debug, Serialize, Deserialize)]
 pub struct BeaconHeader {
@@ -14,7 +12,6 @@ pub struct BeaconHeader {
     pub body_root: FixedBytes<32>,
 }
 
-#[cfg(feature = "verifier-types")]
 impl From<HeaderResponse> for BeaconHeader {
     fn from(header: HeaderResponse) -> Self {
         Self {

@@ -9,8 +9,8 @@ use alloy_primitives::FixedBytes;
 use anyhow::{anyhow, Result};
 use bankai_types::api::blocks::BankaiMmrProofRequestDto;
 use bankai_types::api::proofs::MmrProofDto;
-use bankai_types::fetch::evm::MmrProof;
-use bankai_types::proofs::BankaiMmrProofDto;
+use bankai_types::api::proofs::BankaiMmrProofDto;
+use bankai_types::inputs::evm::MmrProof;
 
 use crate::compat::case::{
     ApiErrorSource, CompatArea, CompatCaseDef, CompatCaseId, CompatKind, MatrixScope, SdkCallSpec,

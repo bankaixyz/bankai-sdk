@@ -1,5 +1,5 @@
 use bankai_core::mmr;
-use bankai_types::{fetch::evm::MmrProof, proofs::HashingFunctionDto, utils::mmr::hash_to_leaf};
+use bankai_types::{common::HashingFunction, inputs::evm::MmrProof, utils::mmr::hash_to_leaf};
 
 use crate::VerifyError;
 
@@ -18,10 +18,10 @@ impl MmrVerifier {
 
         // Ensure the merkle path recreates a specific peak hash
         let valid = match proof.hashing_function {
-            HashingFunctionDto::Keccak => {
+            HashingFunction::Keccak => {
                 mmr::verify_proof_stateless(&mmr::KeccakHasher::new(), &mmr_proof, leaf)
             }
-            HashingFunctionDto::Poseidon => {
+            HashingFunction::Poseidon => {
                 mmr::verify_proof_stateless(&mmr::PoseidonHasher::new(), &mmr_proof, leaf)
             }
         }
@@ -33,12 +33,12 @@ impl MmrVerifier {
 
         // ensure the peaks create the expected root
         let computed_root = match proof.hashing_function {
-            HashingFunctionDto::Keccak => mmr::calculate_root_hash(
+            HashingFunction::Keccak => mmr::calculate_root_hash(
                 &mmr::KeccakHasher::new(),
                 proof.elements_count,
                 &mmr_proof.peaks_hashes,
             ),
-            HashingFunctionDto::Poseidon => mmr::calculate_root_hash(
+            HashingFunction::Poseidon => mmr::calculate_root_hash(
                 &mmr::PoseidonHasher::new(),
                 proof.elements_count,
                 &mmr_proof.peaks_hashes,
@@ -75,14 +75,14 @@ mod tests {
 
     use super::*;
 
-    fn base_proof(hashing_function: HashingFunctionDto) -> MmrProof {
+    fn base_proof(hashing_function: HashingFunction) -> MmrProof {
         let header_hash = FixedBytes::from([7u8; 32]);
         let leaf = hash_to_leaf(header_hash, &hashing_function).0;
         let root = match hashing_function {
-            HashingFunctionDto::Keccak => {
+            HashingFunction::Keccak => {
                 mmr::calculate_root_hash(&mmr::KeccakHasher::new(), 1, &[leaf]).unwrap()
             }
-            HashingFunctionDto::Poseidon => {
+            HashingFunction::Poseidon => {
                 mmr::calculate_root_hash(&mmr::PoseidonHasher::new(), 1, &[leaf]).unwrap()
             }
         };
@@ -102,19 +102,19 @@ mod tests {
 
     #[test]
     fn verifies_valid_keccak_proof() {
-        let proof = base_proof(HashingFunctionDto::Keccak);
+        let proof = base_proof(HashingFunction::Keccak);
         assert_eq!(MmrVerifier::verify_mmr_proof(&proof), Ok(true));
     }
 
     #[test]
     fn verifies_valid_poseidon_proof() {
-        let proof = base_proof(HashingFunctionDto::Poseidon);
+        let proof = base_proof(HashingFunction::Poseidon);
         assert_eq!(MmrVerifier::verify_mmr_proof(&proof), Ok(true));
     }
 
     #[test]
     fn wrong_root_maps_to_invalid_mmr_root() {
-        let mut proof = base_proof(HashingFunctionDto::Keccak);
+        let mut proof = base_proof(HashingFunction::Keccak);
         proof.root = FixedBytes::from([9u8; 32]);
         assert_eq!(
             MmrVerifier::verify_mmr_proof(&proof),
@@ -124,7 +124,7 @@ mod tests {
 
     #[test]
     fn invalid_peaks_count_maps_to_invalid_mmr_tree() {
-        let mut proof = base_proof(HashingFunctionDto::Keccak);
+        let mut proof = base_proof(HashingFunction::Keccak);
         proof.peaks.clear();
         assert_eq!(
             MmrVerifier::verify_mmr_proof(&proof),
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn invalid_element_count_maps_to_invalid_mmr_tree() {
-        let mut proof = base_proof(HashingFunctionDto::Keccak);
+        let mut proof = base_proof(HashingFunction::Keccak);
         proof.elements_count = 2;
         assert_eq!(
             MmrVerifier::verify_mmr_proof(&proof),
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn invalid_element_index_maps_to_invalid_mmr_proof() {
-        let mut proof = base_proof(HashingFunctionDto::Keccak);
+        let mut proof = base_proof(HashingFunction::Keccak);
         proof.elements_index = 0;
         assert_eq!(
             MmrVerifier::verify_mmr_proof(&proof),
@@ -161,13 +161,13 @@ mod tests {
         let other_hash = FixedBytes::from([4u8; 32]);
         let third_hash = FixedBytes::from([5u8; 32]);
 
-        tree.append(hash_to_leaf(header_hash, &HashingFunctionDto::Keccak).0)
+        tree.append(hash_to_leaf(header_hash, &HashingFunction::Keccak).0)
             .await
             .unwrap();
-        tree.append(hash_to_leaf(other_hash, &HashingFunctionDto::Keccak).0)
+        tree.append(hash_to_leaf(other_hash, &HashingFunction::Keccak).0)
             .await
             .unwrap();
-        tree.append(hash_to_leaf(third_hash, &HashingFunctionDto::Keccak).0)
+        tree.append(hash_to_leaf(third_hash, &HashingFunction::Keccak).0)
             .await
             .unwrap();
 
@@ -179,7 +179,7 @@ mod tests {
         let proof = MmrProof {
             network_id: 1,
             block_number: 1,
-            hashing_function: HashingFunctionDto::Keccak,
+            hashing_function: HashingFunction::Keccak,
             header_hash,
             root: FixedBytes::from(root),
             elements_index: generated.element_index,

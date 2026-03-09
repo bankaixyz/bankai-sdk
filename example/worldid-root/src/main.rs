@@ -1,5 +1,5 @@
 use alloy_primitives::{hex::FromHex, Address, FixedBytes, U256};
-use bankai_sdk::{errors::SdkError, Bankai, HashingFunctionDto, Network};
+use bankai_sdk::{errors::SdkError, Bankai, HashingFunction, Network};
 use bankai_verify::verify_batch_proof;
 use dotenv::from_filename;
 
@@ -14,7 +14,7 @@ async fn main() -> Result<(), SdkError> {
 
     println!("Initializing Batch...");
     let batch = bankai
-        .init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
+        .init_batch(Network::Sepolia, None, HashingFunction::Keccak)
         .await?;
 
     println!("Fetching Proof Data...");

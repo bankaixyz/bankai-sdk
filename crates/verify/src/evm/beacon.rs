@@ -1,8 +1,8 @@
 extern crate alloc;
 
 use alloy_primitives::FixedBytes;
-use bankai_types::fetch::evm::beacon::BeaconHeaderProof;
-use bankai_types::verify::evm::beacon::BeaconHeader;
+use bankai_types::inputs::evm::beacon::BeaconHeaderProof;
+use bankai_types::results::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
 use crate::bankai::mmr::MmrVerifier;
@@ -50,7 +50,7 @@ impl BeaconVerifier {
     ///
     /// ```no_run
     /// use bankai_verify::evm::beacon::BeaconVerifier;
-    /// use bankai_types::fetch::evm::beacon::BeaconHeaderProof;
+    /// use bankai_types::inputs::evm::beacon::BeaconHeaderProof;
     /// use alloy_primitives::FixedBytes;
     ///
     /// # fn example(proof: BeaconHeaderProof, mmr_root: FixedBytes<32>) -> Result<(), Box<dyn std::error::Error>> {
@@ -70,11 +70,12 @@ impl BeaconVerifier {
 
         MmrVerifier::verify_mmr_proof(&proof.mmr_proof.clone())?;
 
-        let hash = proof.header.tree_hash_root();
+        let header = BeaconHeader::from(proof.header.clone());
+        let hash = header.tree_hash_root();
         if hash != proof.mmr_proof.header_hash {
             return Err(VerifyError::InvalidHeaderHash);
         }
 
-        Ok(proof.header.clone())
+        Ok(header)
     }
 }

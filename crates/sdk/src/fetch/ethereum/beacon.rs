@@ -1,7 +1,8 @@
 use alloy_primitives::hex::ToHexExt;
 use bankai_types::api::ethereum::{BankaiBlockFilterDto, EthereumMmrProofRequestDto};
-use bankai_types::verify::evm::beacon::BeaconHeader;
-use bankai_types::{api::proofs::HashingFunctionDto, fetch::evm::beacon::BeaconHeaderProof};
+use bankai_types::common::HashingFunction;
+use bankai_types::inputs::evm::beacon::BeaconHeaderProof;
+use bankai_types::results::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
 use crate::errors::SdkResult;
@@ -57,11 +58,11 @@ impl BeaconChainFetcher {
     pub async fn header(
         &self,
         slot: u64,
-        hashing_function: HashingFunctionDto,
+        hashing_function: HashingFunction,
         filter: BankaiBlockFilterDto,
     ) -> SdkResult<BeaconHeaderProof> {
         let header_response = self.beacon_client.fetch_header(slot).await?;
-        let header: BeaconHeader = header_response.into();
+        let header: BeaconHeader = header_response.clone().into();
         let header_root = header.tree_hash_root();
         let header_root_string = format!("0x{}", header_root.encode_hex());
         let request = EthereumMmrProofRequestDto {
@@ -76,7 +77,7 @@ impl BeaconChainFetcher {
             .mmr_proof(&request)
             .await?;
         Ok(BeaconHeaderProof {
-            header,
+            header: header_response,
             mmr_proof: mmr_proof.into(),
         })
     }
@@ -85,10 +86,8 @@ impl BeaconChainFetcher {
     ///
     /// Used internally by the batch builder. For verification purposes, use `header()` instead
     /// to get the header with its MMR proof.
-    pub async fn header_only(&self, slot: u64) -> SdkResult<BeaconHeader> {
-        let header_response = self.beacon_client.fetch_header(slot).await?;
-        let header: BeaconHeader = header_response.into();
-        Ok(header)
+    pub async fn header_only(&self, slot: u64) -> SdkResult<alloy_rpc_types_beacon::header::HeaderResponse> {
+        self.beacon_client.fetch_header(slot).await
     }
 
     /// Returns the network ID for this fetcher

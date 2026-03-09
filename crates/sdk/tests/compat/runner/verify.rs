@@ -1,10 +1,11 @@
 use anyhow::{anyhow, Context, Result};
 use bankai_sdk::parse_block_proof_payload;
 use bankai_types::api::ethereum::BankaiBlockFilterDto;
-use bankai_types::api::proofs::{LightClientProofDto, ProofFormatDto};
-use bankai_types::fetch::evm::MmrProof;
+use bankai_types::api::proofs::LightClientProofDto;
+use bankai_types::common::{HashingFunction, ProofFormat};
+use bankai_types::inputs::evm::MmrProof;
 use bankai_verify::bankai::mmr::MmrVerifier;
-use bankai_verify::bankai::stwo::verify_stwo_proof_hash_output;
+use bankai_verify::bankai::stwo::verify_stwo_proof;
 
 use crate::compat::case::{
     BankaiMmrProofSource, LightClientProofSource, MatrixScope, MmrProofSource, ProofHashSource,
@@ -91,12 +92,9 @@ pub(super) async fn run_proof_hash_consistency(
                                 .with_context(|| {
                                     format!("failed to parse block proof payload for {variant}")
                                 })?;
-                            let _ =
-                                verify_stwo_proof_hash_output(stwo_proof).with_context(|| {
-                                    format!(
-                                        "STWO proof hash-output verification failed for {variant}"
-                                    )
-                                })?;
+                            let _ = verify_stwo_proof(stwo_proof).with_context(|| {
+                                format!("STWO proof hash-output verification failed for {variant}")
+                            })?;
 
                             let standalone_mmr_request = ctx.bankai_mmr_request_for(
                                 request.filter.clone(),
@@ -478,12 +476,12 @@ fn verify_light_client_bundle(
     proof: &LightClientProofDto,
     requested_header_hashes: &[String],
     expected_mmr_root: &str,
-    expected_hashing_function: bankai_types::api::proofs::HashingFunctionDto,
+    expected_hashing_function: HashingFunction,
     variant: &str,
 ) -> Result<()> {
     let stwo_proof = parse_block_proof_payload(proof.block_proof.proof.clone())
         .with_context(|| format!("failed to parse block proof payload for {variant}"))?;
-    let _ = verify_stwo_proof_hash_output(stwo_proof)
+    let _ = verify_stwo_proof(stwo_proof)
         .with_context(|| format!("STWO proof hash-output verification failed for {variant}"))?;
 
     if proof.mmr_proofs.is_empty() {
@@ -534,12 +532,12 @@ fn verify_light_client_bundle(
 
 fn assert_block_proof_payload_matches(
     payload: &bankai_types::api::proofs::BlockProofPayloadDto,
-    expected: ProofFormatDto,
+    expected: ProofFormat,
     variant: &str,
 ) -> Result<()> {
     match (expected, payload) {
-        (ProofFormatDto::Bin, bankai_types::api::proofs::BlockProofPayloadDto::Bin(_)) => Ok(()),
-        (ProofFormatDto::Json, bankai_types::api::proofs::BlockProofPayloadDto::Json(_)) => Ok(()),
+        (ProofFormat::Bin, bankai_types::api::proofs::BlockProofPayloadDto::Bin(_)) => Ok(()),
+        (ProofFormat::Json, bankai_types::api::proofs::BlockProofPayloadDto::Json(_)) => Ok(()),
         (expected, actual) => Err(anyhow!(
             "proof payload format mismatch for {variant}: expected {:?}, got {:?}",
             expected,

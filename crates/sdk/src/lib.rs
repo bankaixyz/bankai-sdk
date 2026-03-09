@@ -15,7 +15,7 @@
 //!
 //! ```no_run
 //! use alloy_primitives::{Address, FixedBytes, U256};
-//! use bankai_sdk::{Bankai, HashingFunctionDto, Network};
+//! use bankai_sdk::{Bankai, HashingFunction, Network};
 //! use bankai_verify::verify_batch_proof;
 //!
 //! #[tokio::main]
@@ -29,7 +29,7 @@
 //!
 //!     // Step 2: Build and fetch a batch with multiple proof requests
 //!     let proof_batch = bankai
-//!         .init_batch(Network::Sepolia, None, HashingFunctionDto::Keccak)
+//!         .init_batch(Network::Sepolia, None, HashingFunction::Keccak)
 //!         .await?
 //!         .ethereum_beacon_header(8_551_383)
 //!         .ethereum_execution_header(9_231_247)
@@ -68,11 +68,11 @@
 //! Direct access to the Bankai API for low-level operations:
 //!
 //! ```no_run
-//! use bankai_sdk::{Bankai, Network, HashingFunctionDto};
+//! use bankai_sdk::{Bankai, HashingFunction, Network};
 //! use bankai_types::api::ethereum::{
 //!     BankaiBlockFilterDto, EthereumLightClientProofRequestDto, EthereumMmrProofRequestDto,
 //! };
-//! use bankai_types::api::proofs::ProofFormatDto;
+//! use bankai_types::common::ProofFormat;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! # let sdk = Bankai::new(Network::Sepolia, None, None);
@@ -87,7 +87,7 @@
 //! let filter = BankaiBlockFilterDto::with_bankai_block_number(latest_block);
 //! let mmr_request = EthereumMmrProofRequestDto {
 //!     filter: filter.clone(),
-//!     hashing_function: HashingFunctionDto::Keccak,
+//!     hashing_function: HashingFunction::Keccak,
 //!     header_hash: "0x...".to_string(),
 //! };
 //! let mmr_proof = sdk.api.ethereum().execution().mmr_proof(&mmr_request).await?;
@@ -95,9 +95,9 @@
 //! // Fetch batch light client proof (STWO proof + multiple MMR proofs)
 //! let lc_request = EthereumLightClientProofRequestDto {
 //!     filter,
-//!     hashing_function: HashingFunctionDto::Keccak,
+//!     hashing_function: HashingFunction::Keccak,
 //!     header_hashes: vec!["0x...".to_string()],
-//!     proof_format: ProofFormatDto::Bin, // default if omitted by backend
+//!     proof_format: ProofFormat::Bin, // default if omitted by backend
 //! };
 //! let light_client_proof = sdk.api.ethereum().execution().light_client_proof(&lc_request).await?;
 //! # Ok(())
@@ -107,9 +107,8 @@
 pub mod errors;
 
 // Re-export common types from bankai_types
-pub use bankai_types::api::proofs::HashingFunctionDto;
-pub use bankai_types::fetch::ProofBundle;
-pub use bankai_types::verify::evm::beacon::BeaconHeader;
+pub use bankai_types::common::HashingFunction;
+pub use bankai_types::inputs::ProofBundle;
 
 pub use crate::fetch::api::blocks::parse_block_proof_payload;
 
@@ -240,12 +239,12 @@ impl Bankai {
     ///
     /// * `network` - The blockchain network (e.g., `Network::Sepolia`)
     /// * `bankai_block_number` - Optional Bankai block number (uses latest if `None`)
-    /// * `hashing` - The hashing function for MMR proofs (Keccak, Poseidon, or Blake3)
+    /// * `hashing` - The hashing function for MMR proofs
     pub async fn init_batch(
         &self,
         network: Network,
         bankai_block_number: Option<u64>,
-        hashing: HashingFunctionDto,
+        hashing: HashingFunction,
     ) -> SdkResult<batch::ProofBatchBuilder> {
         let block_number = match bankai_block_number {
             Some(bn) => bn,

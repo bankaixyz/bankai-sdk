@@ -2,7 +2,7 @@ use crate::errors::{SdkError, SdkResult};
 use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types_eth::{EIP1186AccountProofResponse, Header as ExecutionHeader};
-use bankai_types::fetch::evm::execution::TxProof;
+use bankai_types::inputs::evm::execution::TxProof;
 use eth_trie_proofs::tx_trie::TxsMptHandler;
 use url::Url;
 

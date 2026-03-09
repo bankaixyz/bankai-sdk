@@ -3,7 +3,6 @@
 use alloc::vec::Vec;
 
 use alloy_primitives::{FixedBytes, Keccak256, keccak256};
-use cairo_air::utils::VerificationOutput;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -117,7 +116,7 @@ pub struct ExecutionClient {
     pub mmr_root_poseidon: FixedBytes<32>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct OpChainsCommitment {
     pub root: FixedBytes<32>,
@@ -236,14 +235,6 @@ impl BankaiBlock {
         FixedBytes::from_slice(keccak256(preimage).as_slice())
     }
 
-    /// Deprecated for current Cairo output shape.
-    ///
-    /// Cairo output now returns only `block_hash`, so full block reconstruction
-    /// from verification output is intentionally unsupported.
-    pub fn from_verication_output(output: &VerificationOutput) -> Option<Self> {
-        let _ = output;
-        None
-    }
 }
 
 impl OpChainClient {
@@ -301,7 +292,7 @@ impl BankaiBlockFull {
 }
 
 impl BankaiBlockHashOutput {
-    pub fn from_verication_output(output: &VerificationOutput) -> Option<Self> {
+    pub fn from_verification_output(output: &cairo_air::utils::VerificationOutput) -> Option<Self> {
         let output = &output.output;
         if output.len() < 2 {
             return None;
@@ -319,5 +310,47 @@ impl BankaiBlockHashOutput {
         Some(Self {
             block_hash: bytes32_from_limbs(&get_felt(0)?[16..], &get_felt(1)?[16..]),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        BankaiBlockFull, BeaconClient, ExecutionClient, OpChainClient, OpChainsCommitment,
+    };
+    use alloy_primitives::FixedBytes;
+
+    #[test]
+    fn single_op_chain_round_trips_into_block_commitment() {
+        let op_chain = OpChainClient {
+            chain_id: 10,
+            block_number: 42,
+            header_hash: FixedBytes::from([7u8; 32]),
+            l1_submission_block: 99,
+            mmr_root_keccak: FixedBytes::from([8u8; 32]),
+            mmr_root_poseidon: FixedBytes::from([9u8; 32]),
+        };
+        let full = BankaiBlockFull {
+            version: 1,
+            program_hash: FixedBytes::from([1u8; 32]),
+            prev_block_hash: FixedBytes::from([2u8; 32]),
+            bankai_mmr_root_keccak: FixedBytes::from([3u8; 32]),
+            bankai_mmr_root_poseidon: FixedBytes::from([4u8; 32]),
+            block_number: 5,
+            beacon: BeaconClient::default(),
+            execution: ExecutionClient::default(),
+            op_chains: vec![op_chain.clone()],
+        };
+
+        let block = full.to_block();
+
+        assert_eq!(
+            block.op_chains,
+            OpChainsCommitment {
+                root: op_chain.commitment_leaf_hash(),
+                n_clients: 1,
+            }
+        );
+        assert_eq!(block.compute_block_hash_keccak(), full.to_block().compute_block_hash_keccak());
     }
 }

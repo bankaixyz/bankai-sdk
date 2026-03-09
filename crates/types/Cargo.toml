@@ -35,5 +35,8 @@ std = [
 # API types (requires std)
 api = ["std", "serde", "serde_json", "utoipa"]
 
-# Verifier types for proof handling
-verifier-types = ["serde", "serde_json", "alloy-rpc-types-eth", "alloy-rpc-types-beacon"]
+# Typed proof inputs assembled by the SDK
+inputs = ["serde", "serde_json", "alloy-rpc-types-eth", "alloy-rpc-types-beacon"]
+
+# Verified outputs returned by the verifier
+results = []

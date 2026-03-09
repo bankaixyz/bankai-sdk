@@ -2,8 +2,8 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use alloy_rlp::{Decodable, Encodable};
-use bankai_types::fetch::evm::execution::{AccountProof, ExecutionHeaderProof, TxProof};
-use bankai_types::verify::evm::execution::{Account, ExecutionHeader, TxEnvelope};
+use bankai_types::inputs::evm::execution::{AccountProof, ExecutionHeaderProof, TxProof};
+use bankai_types::results::evm::execution::{Account, ExecutionHeader, TxEnvelope};
 
 use alloy_primitives::{keccak256, FixedBytes};
 use alloy_rlp::encode as rlp_encode;
@@ -50,7 +50,7 @@ impl ExecutionVerifier {
     ///
     /// ```no_run
     /// use bankai_verify::evm::execution::ExecutionVerifier;
-    /// use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
+    /// use bankai_types::inputs::evm::execution::ExecutionHeaderProof;
     /// use alloy_primitives::FixedBytes;
     ///
     /// # fn example(proof: ExecutionHeaderProof, mmr_root: FixedBytes<32>) -> Result<(), Box<dyn std::error::Error>> {
@@ -110,8 +110,8 @@ impl ExecutionVerifier {
     ///
     /// ```no_run
     /// use bankai_verify::evm::execution::ExecutionVerifier;
-    /// use bankai_types::fetch::evm::execution::AccountProof;
-    /// use bankai_types::verify::evm::execution::ExecutionHeader;
+    /// use bankai_types::inputs::evm::execution::AccountProof;
+    /// use bankai_types::results::evm::execution::ExecutionHeader;
     ///
     /// # fn example(
     /// #     account_proof: AccountProof,
@@ -182,8 +182,8 @@ impl ExecutionVerifier {
     ///
     /// ```no_run
     /// use bankai_verify::evm::execution::ExecutionVerifier;
-    /// use bankai_types::fetch::evm::execution::StorageSlotProof;
-    /// use bankai_types::verify::evm::execution::ExecutionHeader;
+    /// use bankai_types::inputs::evm::execution::StorageSlotProof;
+    /// use bankai_types::results::evm::execution::ExecutionHeader;
     ///
     /// # fn example(
     /// #     slot_proof: StorageSlotProof,
@@ -197,7 +197,7 @@ impl ExecutionVerifier {
     /// # }
     /// ```
     pub fn verify_storage_slot_proof(
-        slot_proof: &bankai_types::fetch::evm::execution::StorageSlotProof,
+        slot_proof: &bankai_types::inputs::evm::execution::StorageSlotProof,
         headers: &[ExecutionHeader],
     ) -> Result<Vec<(alloy_primitives::U256, alloy_primitives::U256)>, VerifyError> {
         let header = headers
@@ -292,8 +292,8 @@ impl ExecutionVerifier {
     ///
     /// ```no_run
     /// use bankai_verify::evm::execution::ExecutionVerifier;
-    /// use bankai_types::fetch::evm::execution::TxProof;
-    /// use bankai_types::verify::evm::execution::ExecutionHeader;
+    /// use bankai_types::inputs::evm::execution::TxProof;
+    /// use bankai_types::results::evm::execution::ExecutionHeader;
     ///
     /// # fn example(
     /// #     tx_proof: TxProof,

@@ -8,11 +8,11 @@ use bankai_types::api::blocks::{
 };
 use bankai_types::api::proofs::{
     BankaiBlockProofDto, BankaiBlockProofWithMmrDto, BankaiMmrProofDto, BlockProofPayloadDto,
-    ProofFormatDto,
 };
+use bankai_types::common::ProofFormat;
 use bankai_types::api::stats::PageDto;
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
-use cairo_air::utils::{deserialize_proof_from_file, ProofFormat};
+use cairo_air::utils::{deserialize_proof_from_file, ProofFormat as CairoProofFormat};
 use cairo_air::CairoProof;
 use serde::Serialize;
 use starknet_ff::FieldElement;
@@ -33,7 +33,7 @@ pub struct BlocksQuery {
 pub struct BlockProofQuery {
     pub block_number: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub proof_format: Option<ProofFormatDto>,
+    pub proof_format: Option<ProofFormat>,
 }
 
 pub struct BlocksApi {
@@ -93,7 +93,7 @@ impl BlocksApi {
     pub async fn proof_with_format(
         &self,
         height: u64,
-        proof_format: ProofFormatDto,
+        proof_format: ProofFormat,
     ) -> SdkResult<BankaiBlockProofDto> {
         let query = BlockProofQuery {
             block_number: Some(height),
@@ -178,7 +178,7 @@ fn parse_binary_block_proof_payload(value: &str) -> SdkResult<CairoProof<Blake2s
     })?;
 
     let parsed =
-        deserialize_proof_from_file::<Blake2sMerkleHasher>(&proof_path, ProofFormat::Binary)
+        deserialize_proof_from_file::<Blake2sMerkleHasher>(&proof_path, CairoProofFormat::Binary)
             .map_err(|e| {
                 SdkError::InvalidInput(format!("failed to deserialize binary block proof: {e}"))
             });
@@ -247,8 +247,8 @@ mod tests {
 
         let payload = BlockProofPayloadDto::Bin(BASE64_STANDARD.encode(bytes.as_ref()));
         let proof = parse_block_proof_payload(payload).expect("failed to parse proof payload");
-        let block = bankai_verify::bankai::stwo::verify_stwo_proof(proof)
+        let hash_output = bankai_verify::bankai::stwo::verify_stwo_proof(proof)
             .expect("proof verification failed");
-        assert_eq!(block.block_number, 400);
+        assert_ne!(hash_output.block_hash, alloy_primitives::FixedBytes::ZERO);
     }
 }

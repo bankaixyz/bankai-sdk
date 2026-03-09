@@ -1,18 +1,14 @@
 extern crate alloc;
+
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use alloy_primitives::{Address, Bytes, FixedBytes, U256};
+use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[cfg(feature = "verifier-types")]
-use crate::fetch::evm::MmrProof;
-#[cfg(feature = "verifier-types")]
-use alloy_primitives::U256;
-use alloy_primitives::{Address, Bytes, FixedBytes};
+use crate::inputs::evm::MmrProof;
 
-#[cfg(feature = "verifier-types")]
-use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
-
-// Custom serialization for ExecutionHeader to work with bincode
 fn serialize_execution_header<S>(header: &ExecutionHeader, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -25,13 +21,10 @@ fn deserialize_execution_header<'de, D>(deserializer: D) -> Result<ExecutionHead
 where
     D: Deserializer<'de>,
 {
-    // Deserialize as JSON string first
     let json_str = String::deserialize(deserializer)?;
-    // Then parse the JSON string to ExecutionHeader
     serde_json::from_str(&json_str).map_err(serde::de::Error::custom)
 }
 
-#[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ExecutionHeaderProof {
@@ -43,7 +36,6 @@ pub struct ExecutionHeaderProof {
     pub mmr_proof: MmrProof,
 }
 
-#[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct AccountProof {
@@ -55,7 +47,6 @@ pub struct AccountProof {
     pub mpt_proof: Vec<Bytes>,
 }
 
-#[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct TxProof {
@@ -67,8 +58,6 @@ pub struct TxProof {
     pub encoded_tx: Vec<u8>,
 }
 
-/// A single storage slot with its key, value, and MPT proof
-#[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct StorageSlotEntry {
@@ -77,9 +66,6 @@ pub struct StorageSlotEntry {
     pub storage_mpt_proof: Vec<Bytes>,
 }
 
-/// Proof for one or more storage slots from the same contract in a single block.
-/// The account proof is shared across all slots.
-#[cfg(feature = "verifier-types")]
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct StorageSlotProof {

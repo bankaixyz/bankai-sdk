@@ -1,12 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use bankai_sdk::errors::SdkError;
-use bankai_sdk::HashingFunctionDto;
-use bankai_types::api::blocks::{
-    LatestBlockQueryDto, OpStackLightClientProofRequestDto, OpStackMerkleProofRequestDto,
-    OpStackMmrProofRequestDto,
-};
+use bankai_sdk::HashingFunction;
+use bankai_types::api::blocks::LatestBlockQueryDto;
 use bankai_types::api::ethereum::BankaiBlockSelectorDto;
-use bankai_types::api::proofs::{BlockProofPayloadDto, ProofFormatDto};
+use bankai_types::api::op_stack::{
+    OpStackLightClientProofRequestDto, OpStackMerkleProofRequestDto, OpStackMmrProofRequestDto,
+};
+use bankai_types::api::proofs::BlockProofPayloadDto;
+use bankai_types::common::ProofFormat;
 
 use crate::compat::assertions::{
     assert_beacon_snapshot_invariants, assert_execution_snapshot_invariants,
@@ -766,7 +767,7 @@ async fn run_op_stack_mmr_proof_decode(ctx: &CompatContext, scope: MatrixScope) 
         })?;
     let request = OpStackMmrProofRequestDto {
         filter: filter.clone(),
-        hashing_function: HashingFunctionDto::Keccak,
+        hashing_function: HashingFunction::Keccak,
         header_hash: snapshot.header_hash.clone(),
     };
     let proof = ctx
@@ -813,9 +814,9 @@ async fn run_op_stack_light_client_proof_decode(
         })?;
     let request = OpStackLightClientProofRequestDto {
         filter,
-        hashing_function: HashingFunctionDto::Keccak,
+        hashing_function: HashingFunction::Keccak,
         header_hashes: vec![snapshot.header_hash.clone()],
-        proof_format: ProofFormatDto::Bin,
+        proof_format: ProofFormat::Bin,
     };
     let proof = ctx
         .sdk
@@ -1161,11 +1162,11 @@ fn assert_block_proof_payload_format(
     endpoint: &str,
     label: &str,
     payload: &BlockProofPayloadDto,
-    expected_format: bankai_types::api::proofs::ProofFormatDto,
+    expected_format: ProofFormat,
 ) -> Result<()> {
     match (expected_format, payload) {
-        (bankai_types::api::proofs::ProofFormatDto::Bin, BlockProofPayloadDto::Bin(_)) => Ok(()),
-        (bankai_types::api::proofs::ProofFormatDto::Json, BlockProofPayloadDto::Json(_)) => Ok(()),
+        (ProofFormat::Bin, BlockProofPayloadDto::Bin(_)) => Ok(()),
+        (ProofFormat::Json, BlockProofPayloadDto::Json(_)) => Ok(()),
         (expected, actual) => Err(anyhow!(
             "{endpoint} returned payload format mismatch for {label}: expected {:?}, got {:?}",
             expected,

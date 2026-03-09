@@ -42,7 +42,7 @@
 //!
 //! ```no_run
 //! use bankai_verify::verify_batch_proof;
-//! use bankai_types::fetch::ProofBundle;
+//! use bankai_types::inputs::ProofBundle;
 //!
 //! # fn example(proof_bundle: ProofBundle) -> Result<(), Box<dyn std::error::Error>> {
 //! // Verify an entire batch of proofs at once
@@ -62,7 +62,7 @@
 //!
 //! ### Verify Block Proof Only
 //!
-//! If you only need the verified Bankai block (with MMR roots), you can verify just the STWO proof:
+//! If you only need the trusted block hash from Cairo output, you can verify just the STWO proof:
 //!
 //! ```no_run
 //! use bankai_verify::bankai::stwo::verify_stwo_proof;
@@ -70,13 +70,8 @@
 //! use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 //!
 //! # fn example(block_proof: CairoProof<Blake2sMerkleHasher>) -> Result<(), Box<dyn std::error::Error>> {
-//! // Verify the STWO proof and extract the Bankai block
-//! let bankai_block = verify_stwo_proof(block_proof)?;
-//!
-//! // Access the verified MMR roots
-//! println!("Execution MMR root (Keccak): {:?}", bankai_block.execution.mmr_root_keccak);
-//! println!("Beacon MMR root (Keccak): {:?}", bankai_block.beacon.mmr_root_keccak);
-//! println!("Block number: {}", bankai_block.block_number);
+//! let block_hash_output = verify_stwo_proof(block_proof)?;
+//! println!("Trusted block hash: {:?}", block_hash_output.block_hash);
 //! # Ok(())
 //! # }
 //! ```
@@ -87,7 +82,7 @@
 //!
 //! ```no_run
 //! use bankai_verify::bankai::mmr::MmrVerifier;
-//! use bankai_types::fetch::evm::MmrProof;
+//! use bankai_types::inputs::evm::MmrProof;
 //!
 //! # fn example(mmr_proof: MmrProof) -> Result<(), Box<dyn std::error::Error>> {
 //! // Verify that a header is committed in the MMR
@@ -104,7 +99,7 @@
 //! ```no_run
 //! use bankai_verify::evm::beacon::BeaconVerifier;
 //! use bankai_verify::evm::execution::ExecutionVerifier;
-//! use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
+//! use bankai_types::inputs::evm::execution::ExecutionHeaderProof;
 //! use alloy_primitives::FixedBytes;
 //!
 //! # fn example(
@@ -127,8 +122,8 @@
 //!
 //! ```no_run
 //! use bankai_verify::evm::execution::ExecutionVerifier;
-//! use bankai_types::fetch::evm::execution::{AccountProof, TxProof};
-//! use bankai_types::verify::evm::execution::ExecutionHeader;
+//! use bankai_types::inputs::evm::execution::{AccountProof, TxProof};
+//! use bankai_types::results::evm::execution::ExecutionHeader;
 //!
 //! # fn example(
 //! #     account_proof: AccountProof,
@@ -176,6 +171,9 @@ pub mod bankai;
 /// After verification, all returned data is cryptographically guaranteed valid.
 pub mod evm;
 
+/// OP Stack verification components.
+pub mod op_stack;
+
 // ============================================================================
 // Public API
 // ============================================================================
@@ -186,7 +184,7 @@ pub mod evm;
 pub use crate::batch::verify_batch_proof;
 
 // Re-export common types from bankai_types for convenience
-pub use bankai_types::verify::{evm::EvmResults, BatchResults};
+pub use bankai_types::results::{evm::EvmResults, BatchResults};
 
 // ============================================================================
 // Error Types
@@ -202,6 +200,9 @@ pub enum VerifyError {
     /// The STWO zero-knowledge proof is invalid or malformed
     InvalidStwoProof,
 
+    /// The provided full block witness does not match the trusted block hash
+    InvalidBlockHash,
+
     /// An MMR inclusion proof failed verification
     InvalidMmrProof,
 
@@ -210,6 +211,9 @@ pub enum VerifyError {
 
     /// The MMR root in the proof doesn't match the expected root from the STWO proof
     InvalidMmrRoot,
+
+    /// A Merkle proof failed verification
+    InvalidMerkleProof,
 
     /// The header hash doesn't match the committed value in the MMR
     InvalidHeaderHash,
@@ -240,9 +244,11 @@ impl core::fmt::Display for VerifyError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::InvalidStwoProof => write!(f, "Invalid STWO proof"),
+            Self::InvalidBlockHash => write!(f, "Invalid block hash"),
             Self::InvalidMmrProof => write!(f, "Invalid MMR proof"),
             Self::InvalidMmrTree => write!(f, "Invalid MMR tree"),
             Self::InvalidMmrRoot => write!(f, "Invalid MMR root"),
+            Self::InvalidMerkleProof => write!(f, "Invalid Merkle proof"),
             Self::InvalidHeaderHash => write!(f, "Invalid header hash"),
             Self::InvalidTxProof => write!(f, "Invalid transaction proof"),
             Self::InvalidAccountProof => write!(f, "Invalid account proof"),
