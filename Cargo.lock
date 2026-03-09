@@ -1159,6 +1159,7 @@ dependencies = [
  "alloy-primitives 1.4.1",
  "bankai-types",
  "cairo-vm-base",
+ "mmr",
  "serde",
  "sha2",
  "starknet-crypto 0.8.1",
@@ -1234,11 +1235,14 @@ dependencies = [
  "alloy-primitives 1.4.1",
  "alloy-rlp",
  "alloy-trie",
+ "bankai-core",
  "bankai-types",
  "cairo-air",
  "ethereum_hashing",
+ "mmr",
  "starknet-crypto 0.8.1",
  "stwo",
+ "tokio",
  "tree_hash",
 ]
 
@@ -4406,6 +4410,18 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "mmr"
+version = "0.1.0"
+source = "git+https://github.com/bankaixyz/mmr?rev=fe39e44cf2e3a8fe8052112c3dea6d4fbbc4c108#fe39e44cf2e3a8fe8052112c3dea6d4fbbc4c108"
+dependencies = [
+ "hex",
+ "starknet",
+ "starknet-crypto 0.6.2",
+ "thiserror 1.0.69",
+ "tiny-keccak",
 ]
 
 [[package]]

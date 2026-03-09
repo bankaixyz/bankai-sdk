@@ -11,6 +11,7 @@ starknet-crypto.workspace = true
 alloy-primitives.workspace = true
 sha2.workspace = true
 tiny-keccak.workspace = true
+mmr.workspace = true
 
 [dev-dependencies]
 bankai-types = { path = "../types" }

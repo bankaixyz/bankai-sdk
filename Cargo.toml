@@ -17,6 +17,9 @@ alloy-rpc-types-beacon = { version = "1.0.29", default-features = false }
 alloy-trie = { version = "0.9.1", default-features = false }
 alloy-rlp = { version = "0.3.12", default-features = false }
 
+mmr = { git = "https://github.com/bankaixyz/mmr", rev = "fe39e44cf2e3a8fe8052112c3dea6d4fbbc4c108" }
+
+
 eth-trie-proofs = { git = "https://github.com/HerodotusDev/trie-proofs", package = "eth-trie-proofs", rev = "e7aac1a" }
 url = { version = "2.4.0" }
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }

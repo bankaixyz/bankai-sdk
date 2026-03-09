@@ -1,5 +1,7 @@
 //! Bankai block representation.
 
+use alloc::vec::Vec;
+
 use alloy_primitives::{FixedBytes, Keccak256, keccak256};
 use cairo_air::utils::VerificationOutput;
 
