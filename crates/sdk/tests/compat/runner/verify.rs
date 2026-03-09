@@ -58,12 +58,9 @@ pub(super) async fn run_proof_hash_consistency(
                                 scope,
                             );
 
-                            let pinned_filter = pinned_filter_for_consistency(
-                                ctx,
-                                &filter_case.filter,
-                                scope,
-                            )
-                            .await?;
+                            let pinned_filter =
+                                pinned_filter_for_consistency(ctx, &filter_case.filter, scope)
+                                    .await?;
 
                             let request = ctx.bankai_block_proof_request_for(
                                 pinned_filter.clone(),

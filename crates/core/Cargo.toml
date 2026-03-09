@@ -1,0 +1,16 @@
+[package]
+name = "bankai-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cairo-vm-base = { git = "https://github.com/bankaixyz/cairo-vm-base.git"}
+serde.workspace = true
+thiserror.workspace = true
+starknet-crypto.workspace = true
+alloy-primitives.workspace = true
+sha2.workspace = true
+tiny-keccak.workspace = true
+
+[dev-dependencies]
+bankai-types = { path = "../types" }
