@@ -22,6 +22,8 @@ pub struct BlockDetailDto {
     pub program_hash: String,
     pub status: BlockStatusDto,
     pub ethereum: Option<EthereumConsensusSummaryDto>,
+    #[serde(default)]
+    pub op_chains: Option<OpChainsSummaryDto>,
     pub zk_proof_available: bool,
 }
 
@@ -53,6 +55,8 @@ pub struct BlockSummaryDto {
     pub program_hash: String,
     pub status: BlockStatusDto,
     pub ethereum: Option<EthereumConsensusSummaryDto>,
+    #[serde(default)]
+    pub op_chains: Option<OpChainsSummaryDto>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -78,6 +82,53 @@ pub struct ChainSnapshotSummaryDto {
 pub struct MmrRootsDto {
     pub keccak_root: String,   // 0x…32
     pub poseidon_root: String, // 0x…32
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct OpChainsSummaryDto {
+    pub n_clients: u64,
+    pub chains: Vec<OpChainSnapshotSummaryDto>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct OpChainSnapshotSummaryDto {
+    pub chain_id: u64,
+    pub start_height: u64,
+    pub end_height: u64,
+    pub header_hash: String,
+    pub l1_submission_block: u64,
+    pub mmr_roots: MmrRootsDto,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct OpMerkleProofDto {
+    pub bankai_block_number: u64,
+    pub chain_id: u64,
+    pub merkle_leaf_index: u64,
+    pub leaf_hash: String,
+    pub root: String,
+    pub path: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct OpStackMerkleProofRequestDto {
+    pub filter: BankaiBlockFilterDto,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct OpStackMmrProofRequestDto {
+    pub filter: BankaiBlockFilterDto,
+    pub hashing_function: HashingFunctionDto,
+    pub header_hash: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct OpStackLightClientProofRequestDto {
+    pub filter: BankaiBlockFilterDto,
+    pub hashing_function: HashingFunctionDto,
+    pub header_hashes: Vec<String>,
+    #[serde(default)]
+    pub proof_format: ProofFormatDto,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -109,6 +160,9 @@ pub struct BankaiBlockProofRequestDto {
 
 /// API envelope carrying canonical Bankai block hash + full block payload.
 pub type BankaiBlockOutputDto = crate::block::BankaiBlockOutput;
+
+/// API envelope carrying canonical Bankai block hash + full block payload with OP chain clients.
+pub type BankaiBlockFullOutputDto = crate::block::BankaiBlockFullOutput;
 
 /// Compatibility payload used by `/v1/blocks/block_proof`.
 #[derive(Debug, Clone, Serialize, Deserialize)]

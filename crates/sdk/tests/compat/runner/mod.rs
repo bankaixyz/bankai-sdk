@@ -297,6 +297,7 @@ pub(super) fn area_name(area: CompatArea) -> &'static str {
         CompatArea::EthereumBeacon => "ethereum_beacon",
         CompatArea::EthereumExecution => "ethereum_execution",
         CompatArea::EthereumRoot => "ethereum_root",
+        CompatArea::OpStack => "op_stack",
     }
 }
 
@@ -527,11 +528,17 @@ fn planned_matrix_variants(case: &CompatCaseDef) -> usize {
             | SdkCallSpec::BlocksList
             | SdkCallSpec::BlocksLatestCompleted
             | SdkCallSpec::BlocksByHeightFromLatest
+            | SdkCallSpec::BlocksFullByHeightFromLatest
             | SdkCallSpec::BlocksProofByHeightFromLatest
             | SdkCallSpec::StatsOverview
             | SdkCallSpec::StatsBlockDetailFromLatest
             | SdkCallSpec::EthereumEpochByNumberFromEpoch
-            | SdkCallSpec::EthereumSyncCommitteeFromEpoch => 1,
+            | SdkCallSpec::EthereumSyncCommitteeFromEpoch
+            | SdkCallSpec::OpStackHeightFinalized
+            | SdkCallSpec::OpStackSnapshotFinalized
+            | SdkCallSpec::OpStackMerkleProofFromSnapshot
+            | SdkCallSpec::OpStackMmrProofFromSnapshot
+            | SdkCallSpec::OpStackLightClientProofFromSnapshot => 1,
             SdkCallSpec::BlocksProofByQueryFromLatest => PROOF_FORMATS_CORE,
             SdkCallSpec::EthereumEpochFinalized => match scope {
                 MatrixScope::Core => FILTERS_CORE,

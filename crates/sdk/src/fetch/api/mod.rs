@@ -9,6 +9,7 @@ pub mod blocks;
 pub mod chains;
 pub mod ethereum;
 pub mod health;
+pub mod op_stack;
 pub mod stats;
 
 #[derive(Clone)]
@@ -54,6 +55,10 @@ impl ApiClient {
 
     pub fn ethereum(&self) -> ethereum::EthereumApi {
         ethereum::EthereumApi::new(Arc::clone(&self.core))
+    }
+
+    pub fn op_stack(&self) -> op_stack::OpStackApi {
+        op_stack::OpStackApi::new(Arc::clone(&self.core))
     }
 }
 

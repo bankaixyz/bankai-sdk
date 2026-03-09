@@ -1,8 +1,12 @@
 use anyhow::{anyhow, Context, Result};
 use bankai_sdk::errors::SdkError;
-use bankai_types::api::blocks::LatestBlockQueryDto;
+use bankai_sdk::HashingFunctionDto;
+use bankai_types::api::blocks::{
+    LatestBlockQueryDto, OpStackLightClientProofRequestDto, OpStackMerkleProofRequestDto,
+    OpStackMmrProofRequestDto,
+};
 use bankai_types::api::ethereum::BankaiBlockSelectorDto;
-use bankai_types::api::proofs::BlockProofPayloadDto;
+use bankai_types::api::proofs::{BlockProofPayloadDto, ProofFormatDto};
 
 use crate::compat::assertions::{
     assert_beacon_snapshot_invariants, assert_execution_snapshot_invariants,
@@ -99,6 +103,7 @@ pub(super) async fn run_sdk_decode(
                 .await
                 .context("blocks by_height failed")?;
         }
+        SdkCallSpec::BlocksFullByHeightFromLatest => run_blocks_full_decode(ctx, scope).await?,
         SdkCallSpec::BlocksProofByQueryFromLatest => {
             ensure_core_only(scope, "blocks.proof_by_query")?;
             let latest = ctx
@@ -226,6 +231,17 @@ pub(super) async fn run_sdk_decode(
         }
         SdkCallSpec::EthereumExecutionLightClientProofFromSnapshot => {
             run_execution_light_client_decode(ctx, scope).await?
+        }
+        SdkCallSpec::OpStackHeightFinalized => run_op_stack_height_decode(ctx, scope).await?,
+        SdkCallSpec::OpStackSnapshotFinalized => run_op_stack_snapshot_decode(ctx, scope).await?,
+        SdkCallSpec::OpStackMerkleProofFromSnapshot => {
+            run_op_stack_merkle_proof_decode(ctx, scope).await?
+        }
+        SdkCallSpec::OpStackMmrProofFromSnapshot => {
+            run_op_stack_mmr_proof_decode(ctx, scope).await?
+        }
+        SdkCallSpec::OpStackLightClientProofFromSnapshot => {
+            run_op_stack_light_client_proof_decode(ctx, scope).await?
         }
     }
 
@@ -646,6 +662,202 @@ async fn run_blocks_block_proof_decode(ctx: &CompatContext, scope: MatrixScope) 
         }
     }
 
+    Ok(())
+}
+
+async fn run_blocks_full_decode(ctx: &CompatContext, scope: MatrixScope) -> Result<()> {
+    ensure_core_only(scope, "blocks.full_by_height")?;
+    let latest = ctx
+        .sdk
+        .api
+        .blocks()
+        .latest_number()
+        .await
+        .context("latest block number failed")?;
+    let full = ctx
+        .sdk
+        .api
+        .blocks()
+        .full(latest)
+        .await
+        .context("blocks full by_height failed")?;
+    if full.block.block_number != latest {
+        return Err(anyhow!(
+            "blocks full returned mismatched block number: expected {latest}, got {}",
+            full.block.block_number
+        ));
+    }
+    Ok(())
+}
+
+async fn run_op_stack_height_decode(ctx: &CompatContext, scope: MatrixScope) -> Result<()> {
+    ensure_core_only(scope, "op_stack.height")?;
+    let name = ctx.op_chain_name().await?;
+    let filter = ctx.finalized_filter();
+    let _ = ctx
+        .sdk
+        .api
+        .op_stack()
+        .height(&name, &filter)
+        .await
+        .with_context(|| format!("op_stack height failed for chain={name}"))?;
+    Ok(())
+}
+
+async fn run_op_stack_snapshot_decode(ctx: &CompatContext, scope: MatrixScope) -> Result<()> {
+    ensure_core_only(scope, "op_stack.snapshot")?;
+    let name = ctx.op_chain_name().await?;
+    let filter = ctx.finalized_filter();
+    let _ = ctx
+        .sdk
+        .api
+        .op_stack()
+        .snapshot(&name, &filter)
+        .await
+        .with_context(|| format!("op_stack snapshot failed for chain={name}"))?;
+    Ok(())
+}
+
+async fn run_op_stack_merkle_proof_decode(ctx: &CompatContext, scope: MatrixScope) -> Result<()> {
+    ensure_core_only(scope, "op_stack.merkle_proof")?;
+    let name = ctx.op_chain_name().await?;
+    let filter = ctx.finalized_filter();
+    let snapshot = ctx
+        .sdk
+        .api
+        .op_stack()
+        .snapshot(&name, &filter)
+        .await
+        .with_context(|| {
+            format!("op_stack snapshot failed while building merkle request for chain={name}")
+        })?;
+    let request = OpStackMerkleProofRequestDto {
+        filter: filter.clone(),
+    };
+    let proof = ctx
+        .sdk
+        .api
+        .op_stack()
+        .merkle_proof(&name, &request)
+        .await
+        .with_context(|| format!("op_stack merkle_proof failed for chain={name}"))?;
+    if proof.chain_id != snapshot.chain_id {
+        return Err(anyhow!(
+            "op_stack merkle_proof chain_id mismatch for chain={name}: expected {}, got {}",
+            snapshot.chain_id,
+            proof.chain_id
+        ));
+    }
+    Ok(())
+}
+
+async fn run_op_stack_mmr_proof_decode(ctx: &CompatContext, scope: MatrixScope) -> Result<()> {
+    ensure_core_only(scope, "op_stack.mmr_proof")?;
+    let name = ctx.op_chain_name().await?;
+    let filter = ctx.finalized_filter();
+    let snapshot = ctx
+        .sdk
+        .api
+        .op_stack()
+        .snapshot(&name, &filter)
+        .await
+        .with_context(|| {
+            format!("op_stack snapshot failed while building mmr request for chain={name}")
+        })?;
+    let request = OpStackMmrProofRequestDto {
+        filter: filter.clone(),
+        hashing_function: HashingFunctionDto::Keccak,
+        header_hash: snapshot.header_hash.clone(),
+    };
+    let proof = ctx
+        .sdk
+        .api
+        .op_stack()
+        .mmr_proof(&name, &request)
+        .await
+        .with_context(|| format!("op_stack mmr_proof failed for chain={name}"))?;
+    if proof.merkle_proof.chain_id != snapshot.chain_id {
+        return Err(anyhow!(
+            "op_stack mmr_proof merkle chain_id mismatch for chain={name}: expected {}, got {}",
+            snapshot.chain_id,
+            proof.merkle_proof.chain_id
+        ));
+    }
+    validate_mmr_proof_contract(&proof.mmr_proof, &request.header_hash)
+        .with_context(|| format!("op_stack mmr contract invalid for chain={name}"))?;
+    if proof.mmr_proof.hashing_function != request.hashing_function {
+        return Err(anyhow!(
+            "op_stack mmr_proof hashing_function mismatch for chain={name}: expected {:?}, got {:?}",
+            request.hashing_function,
+            proof.mmr_proof.hashing_function
+        ));
+    }
+    Ok(())
+}
+
+async fn run_op_stack_light_client_proof_decode(
+    ctx: &CompatContext,
+    scope: MatrixScope,
+) -> Result<()> {
+    ensure_core_only(scope, "op_stack.light_client_proof")?;
+    let name = ctx.op_chain_name().await?;
+    let filter = ctx.finalized_filter();
+    let snapshot = ctx
+        .sdk
+        .api
+        .op_stack()
+        .snapshot(&name, &filter)
+        .await
+        .with_context(|| {
+            format!("op_stack snapshot failed while building light client request for chain={name}")
+        })?;
+    let request = OpStackLightClientProofRequestDto {
+        filter,
+        hashing_function: HashingFunctionDto::Keccak,
+        header_hashes: vec![snapshot.header_hash.clone()],
+        proof_format: ProofFormatDto::Bin,
+    };
+    let proof = ctx
+        .sdk
+        .api
+        .op_stack()
+        .light_client_proof(&name, &request)
+        .await
+        .with_context(|| format!("op_stack light_client_proof failed for chain={name}"))?;
+    if proof.merkle_proof.chain_id != snapshot.chain_id {
+        return Err(anyhow!(
+            "op_stack light_client_proof merkle chain_id mismatch for chain={name}: expected {}, got {}",
+            snapshot.chain_id,
+            proof.merkle_proof.chain_id
+        ));
+    }
+    if proof.mmr_proofs.len() != request.header_hashes.len() {
+        return Err(anyhow!(
+            "op_stack light_client_proof mmr_proofs length mismatch for chain={name}: expected {}, got {}",
+            request.header_hashes.len(),
+            proof.mmr_proofs.len()
+        ));
+    }
+    for (index, mmr) in proof.mmr_proofs.iter().enumerate() {
+        if mmr.hashing_function != request.hashing_function {
+            return Err(anyhow!(
+                "op_stack light_client_proof hashing_function mismatch for chain={name} at index {index}: expected {:?}, got {:?}",
+                request.hashing_function,
+                mmr.hashing_function
+            ));
+        }
+        validate_mmr_proof_contract(mmr, &request.header_hashes[index]).with_context(|| {
+            format!(
+                "op_stack light_client_proof mmr contract invalid for chain={name}, index={index}"
+            )
+        })?;
+    }
+    assert_block_proof_payload_format(
+        "op/light_client_proof",
+        &name,
+        &proof.block_proof.proof,
+        request.proof_format,
+    )?;
     Ok(())
 }
 

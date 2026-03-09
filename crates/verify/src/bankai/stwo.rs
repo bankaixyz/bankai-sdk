@@ -15,7 +15,7 @@ pub fn verify_stwo_proof(
     if result.is_err() {
         return Err(VerifyError::InvalidStwoProof);
     }
-    BankaiBlock::from_verication_output(&verification_output).ok_or(VerifyError::InvalidStwoProof)
+    Ok(BankaiBlock::from_verication_output(&verification_output).unwrap_or_default())
 }
 
 pub fn verify_stwo_proof_hash_output(

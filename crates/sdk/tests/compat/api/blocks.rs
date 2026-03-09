@@ -45,6 +45,19 @@ pub fn cases() -> Vec<CompatCaseDef> {
             required: true,
         },
         CompatCaseDef {
+            id: CompatCaseId("blocks.full_by_height.decode"),
+            area: CompatArea::Blocks,
+            kind: CompatKind::SdkCallDecode {
+                call: SdkCallSpec::BlocksFullByHeightFromLatest,
+                scope: MatrixScope::Core,
+            },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/blocks/{height}/full",
+            }),
+            required: true,
+        },
+        CompatCaseDef {
             id: CompatCaseId("blocks.proof_by_query.decode"),
             area: CompatArea::Blocks,
             kind: CompatKind::SdkCallDecode {

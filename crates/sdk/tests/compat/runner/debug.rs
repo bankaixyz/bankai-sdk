@@ -60,6 +60,15 @@ async fn debug_curl_for_sdk_call(
             ),
             "curl -sS 'http://<api>/v1/blocks/<height>'"
         ),
+        SdkCallSpec::BlocksFullByHeightFromLatest => format!(
+            "{}\n{}",
+            build_curl_command(
+                HttpMethod::Get,
+                &format_url_with_query(ctx, "/v1/blocks/latest", &[("status", "completed")]),
+                None
+            ),
+            "curl -sS 'http://<api>/v1/blocks/<height>/full'"
+        ),
         SdkCallSpec::BlocksProofByQueryFromLatest => {
             "curl -sS 'http://<api>/v1/blocks/get_proof?block_number=<height>&proof_format=<bin|json>'"
                 .to_string()
@@ -142,6 +151,21 @@ async fn debug_curl_for_sdk_call(
                 scope,
             )
             .await
+        }
+        SdkCallSpec::OpStackHeightFinalized => {
+            "curl -sS 'http://<api>/v1/op/<name>/height?selector=finalized'".to_string()
+        }
+        SdkCallSpec::OpStackSnapshotFinalized => {
+            "curl -sS 'http://<api>/v1/op/<name>/snapshot?selector=finalized'".to_string()
+        }
+        SdkCallSpec::OpStackMerkleProofFromSnapshot => {
+            "curl -sS -X POST 'http://<api>/v1/op/<name>/merkle_proof' -H 'content-type: application/json' --data '{\"filter\":{\"selector\":\"finalized\"}}'".to_string()
+        }
+        SdkCallSpec::OpStackMmrProofFromSnapshot => {
+            "curl -sS -X POST 'http://<api>/v1/op/<name>/mmr_proof' -H 'content-type: application/json' --data '{\"filter\":{\"selector\":\"finalized\"},\"hashing_function\":\"keccak\",\"header_hash\":\"<header_hash>\"}'".to_string()
+        }
+        SdkCallSpec::OpStackLightClientProofFromSnapshot => {
+            "curl -sS -X POST 'http://<api>/v1/op/<name>/light_client_proof' -H 'content-type: application/json' --data '{\"filter\":{\"selector\":\"finalized\"},\"hashing_function\":\"keccak\",\"header_hashes\":[\"<header_hash>\"],\"proof_format\":\"bin\"}'".to_string()
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::env;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use bankai_sdk::{Bankai, HashingFunctionDto, Network};
 use bankai_types::api::blocks::{
     BankaiBlockProofRequestDto, BankaiMmrProofRequestDto, BankaiTargetBlockSelectorDto,
@@ -62,6 +62,38 @@ impl CompatContext {
 
     pub fn finalized_filter(&self) -> BankaiBlockFilterDto {
         BankaiBlockFilterDto::finalized()
+    }
+
+    pub async fn op_chain_name(&self) -> Result<String> {
+        let chains = self
+            .sdk
+            .api
+            .chains()
+            .list()
+            .await
+            .context("failed to fetch chain list while resolving op chain name")?;
+
+        let active_names = chains
+            .into_iter()
+            .filter(|chain| chain.active)
+            .map(|chain| chain.name)
+            .collect::<Vec<_>>();
+
+        if active_names.is_empty() {
+            return Err(anyhow!("no active chains available in /v1/chains"));
+        }
+
+        if let Some(name) = active_names
+            .iter()
+            .find(|name| is_probably_op_chain_name(name))
+        {
+            return Ok(name.clone());
+        }
+
+        Err(anyhow!(
+            "unable to infer OP chain name from active chains: {}",
+            active_names.join(", ")
+        ))
     }
 
     pub async fn latest_completed_height(&self) -> Result<u64> {
@@ -403,4 +435,11 @@ impl CompatContext {
         )?;
         Ok((reference_block, target_block))
     }
+}
+
+fn is_probably_op_chain_name(name: &str) -> bool {
+    let normalized = name.trim().to_ascii_lowercase();
+    !normalized.contains("ethereum")
+        && !normalized.contains("beacon")
+        && !normalized.contains("execution")
 }

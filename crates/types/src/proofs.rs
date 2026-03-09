@@ -172,6 +172,28 @@ pub struct LightClientProofDto {
     pub mmr_proofs: Vec<MmrProofDto>,
 }
 
+/// MMR proof bundled with the merkle decommitment that links the MMR root
+/// back to op_chains.root in the Bankai block.
+#[cfg(feature = "api")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct OpStackMmrProofDto {
+    pub merkle_proof: crate::api::blocks::OpMerkleProofDto,
+    pub mmr_proof: MmrProofDto,
+}
+
+/// Full self-contained light client proof for an OP chain header.
+#[cfg(feature = "api")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct OpStackLightClientProofDto {
+    pub block_proof: BankaiBlockProofDto,
+    pub merkle_proof: crate::api::blocks::OpMerkleProofDto,
+    pub mmr_proofs: Vec<MmrProofDto>,
+}
+
 /// Combined response for Bankai block proof endpoint.
 #[cfg(feature = "api")]
 #[derive(Debug, Clone)]

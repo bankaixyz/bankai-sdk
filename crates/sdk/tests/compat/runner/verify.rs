@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use bankai_sdk::parse_block_proof_payload;
+use bankai_types::api::ethereum::BankaiBlockFilterDto;
 use bankai_types::api::proofs::{LightClientProofDto, ProofFormatDto};
 use bankai_types::fetch::evm::MmrProof;
 use bankai_verify::bankai::mmr::MmrVerifier;
@@ -57,8 +58,15 @@ pub(super) async fn run_proof_hash_consistency(
                                 scope,
                             );
 
+                            let pinned_filter = pinned_filter_for_consistency(
+                                ctx,
+                                &filter_case.filter,
+                                scope,
+                            )
+                            .await?;
+
                             let request = ctx.bankai_block_proof_request_for(
-                                filter_case.filter.clone(),
+                                pinned_filter.clone(),
                                 target_case.target_block.clone(),
                                 hashing_case.hashing_function,
                                 proof_case.proof_format,
@@ -133,6 +141,22 @@ pub(super) async fn run_proof_hash_consistency(
     }
 
     Ok(())
+}
+
+async fn pinned_filter_for_consistency(
+    ctx: &CompatContext,
+    filter: &BankaiBlockFilterDto,
+    scope: MatrixScope,
+) -> Result<BankaiBlockFilterDto> {
+    match scope {
+        MatrixScope::Core => {
+            let reference_block = ctx.resolved_reference_block_for_filter(filter).await?;
+            Ok(BankaiBlockFilterDto::with_bankai_block_number(
+                reference_block,
+            ))
+        }
+        MatrixScope::Edge => Ok(filter.clone()),
+    }
 }
 
 pub(super) async fn run_mmr_verify(

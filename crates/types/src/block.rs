@@ -1,6 +1,6 @@
 //! Bankai block representation.
 
-use alloy_primitives::{FixedBytes, keccak256};
+use alloy_primitives::{FixedBytes, Keccak256, keccak256};
 use cairo_air::utils::VerificationOutput;
 
 #[cfg(feature = "serde")]
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// This is the foundation of stateless verification - once you have a verified
 /// Bankai block, you can trustlessly verify any header in its MMRs.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BankaiBlock {
     /// Bankai program version
@@ -36,6 +36,8 @@ pub struct BankaiBlock {
     pub beacon: BeaconClient,
     /// Execution layer state at this Bankai block
     pub execution: ExecutionClient,
+    /// Op chains commitment at this Bankai block
+    pub op_chains: OpChainsCommitment,
 }
 
 /// Canonical Bankai output returned by verification.
@@ -46,6 +48,14 @@ pub struct BankaiBlock {
 pub struct BankaiBlockOutput {
     pub block_hash: FixedBytes<32>,
     pub block: BankaiBlock,
+}
+
+/// Canonical Bankai output with the full OP chains payload.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct BankaiBlockFullOutput {
+    pub block_hash: FixedBytes<32>,
+    pub block: BankaiBlockFull,
 }
 
 /// Canonical Cairo public output for Bankai OS.
@@ -60,7 +70,7 @@ pub struct BankaiBlockHashOutput {
 /// Beacon chain state in a Bankai block
 ///
 /// Contains the beacon chain's MMR roots and consensus information.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BeaconClient {
     /// Latest beacon slot processed
@@ -88,7 +98,7 @@ pub struct BeaconClient {
 /// Execution layer state in a Bankai block
 ///
 /// Contains the execution chain's MMR roots and block information.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ExecutionClient {
     /// Latest execution block processed
@@ -103,6 +113,72 @@ pub struct ExecutionClient {
     pub mmr_root_keccak: FixedBytes<32>,
     /// MMR root using Poseidon hash
     pub mmr_root_poseidon: FixedBytes<32>,
+}
+
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct OpChainsCommitment {
+    pub root: FixedBytes<32>,
+    pub n_clients: u64,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct OpChainClient {
+    pub chain_id: u64,
+    pub block_number: u64,
+    pub header_hash: FixedBytes<32>,
+    pub l1_submission_block: u64,
+    pub mmr_root_keccak: FixedBytes<32>,
+    pub mmr_root_poseidon: FixedBytes<32>,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct BankaiBlockFull {
+    /// Bankai program version
+    pub version: u64,
+    /// Program hash that produced this proof
+    pub program_hash: FixedBytes<32>,
+    /// Hash of previous Bankai block payload
+    #[cfg_attr(feature = "serde", serde(alias = "prev_hash"))]
+    pub prev_block_hash: FixedBytes<32>,
+    /// Bankai MMR root using Keccak hash
+    #[cfg_attr(feature = "serde", serde(alias = "mmr_root_keccak"))]
+    pub bankai_mmr_root_keccak: FixedBytes<32>,
+    /// Bankai MMR root using Poseidon hash
+    #[cfg_attr(feature = "serde", serde(alias = "mmr_root_poseidon"))]
+    pub bankai_mmr_root_poseidon: FixedBytes<32>,
+    /// Bankai block number (sequential)
+    pub block_number: u64,
+    /// Beacon chain state at this Bankai block
+    pub beacon: BeaconClient,
+    /// Execution layer state at this Bankai block
+    pub execution: ExecutionClient,
+    /// OP chains full outputs committed by this block
+    pub op_chains: Vec<OpChainClient>,
+}
+
+fn compute_op_chains_merkle_root(leaves: &[FixedBytes<32>]) -> FixedBytes<32> {
+    if leaves.is_empty() {
+        return FixedBytes::from([0u8; 32]);
+    }
+
+    let mut level = leaves.to_vec();
+    level.resize(level.len().next_power_of_two(), FixedBytes::from([0u8; 32]));
+
+    while level.len() > 1 {
+        let mut next = Vec::with_capacity(level.len() / 2);
+        for pair in level.chunks_exact(2) {
+            let mut preimage = [0u8; 64];
+            preimage[..32].copy_from_slice(pair[0].as_slice());
+            preimage[32..].copy_from_slice(pair[1].as_slice());
+            next.push(FixedBytes::from_slice(keccak256(preimage).as_slice()));
+        }
+        level = next;
+    }
+
+    level[0]
 }
 
 impl BankaiBlock {
@@ -122,7 +198,6 @@ impl BankaiBlock {
             out
         }
 
-        let mut preimage = Vec::with_capacity(22 * 32);
         let words = [
             u64_to_word(self.version),
             bytes32_to_word(&self.program_hash),
@@ -146,7 +221,11 @@ impl BankaiBlock {
             u64_to_word(self.execution.finalized_height),
             bytes32_to_word(&self.execution.mmr_root_keccak),
             bytes32_to_word(&self.execution.mmr_root_poseidon),
+            bytes32_to_word(&self.op_chains.root),
+            u64_to_word(self.op_chains.n_clients),
         ];
+
+        let mut preimage = Vec::with_capacity(words.len() * 32);
 
         for word in words {
             preimage.extend_from_slice(&word);
@@ -162,6 +241,60 @@ impl BankaiBlock {
     pub fn from_verication_output(output: &VerificationOutput) -> Option<Self> {
         let _ = output;
         None
+    }
+}
+
+impl OpChainClient {
+    pub fn hash(&self) -> FixedBytes<32> {
+        let mut hasher = Keccak256::new();
+        hasher.update(self.chain_id.to_be_bytes());
+        hasher.update(self.block_number.to_be_bytes());
+        hasher.update(self.header_hash.as_slice());
+        hasher.update(self.l1_submission_block.to_be_bytes());
+        hasher.update(self.mmr_root_keccak.as_slice());
+        hasher.update(self.mmr_root_poseidon.as_slice());
+
+        hasher.finalize()
+    }
+
+    pub fn commitment_leaf_hash(&self) -> FixedBytes<32> {
+        if self.chain_id == 0
+            && self.block_number == 0
+            && self.header_hash == FixedBytes::from([0u8; 32])
+            && self.l1_submission_block == 0
+            && self.mmr_root_keccak == FixedBytes::from([0u8; 32])
+            && self.mmr_root_poseidon == FixedBytes::from([0u8; 32])
+        {
+            FixedBytes::from([0u8; 32])
+        } else {
+            self.hash()
+        }
+    }
+}
+
+impl BankaiBlockFull {
+    pub fn to_block(&self) -> BankaiBlock {
+        let leaves = self
+            .op_chains
+            .iter()
+            .map(OpChainClient::commitment_leaf_hash)
+            .collect::<Vec<_>>();
+        let root = compute_op_chains_merkle_root(&leaves);
+
+        BankaiBlock {
+            version: self.version,
+            program_hash: self.program_hash,
+            prev_block_hash: self.prev_block_hash,
+            bankai_mmr_root_keccak: self.bankai_mmr_root_keccak,
+            bankai_mmr_root_poseidon: self.bankai_mmr_root_poseidon,
+            block_number: self.block_number,
+            beacon: self.beacon.clone(),
+            execution: self.execution.clone(),
+            op_chains: OpChainsCommitment {
+                root,
+                n_clients: self.op_chains.len() as u64,
+            },
+        }
     }
 }
 

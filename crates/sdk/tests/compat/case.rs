@@ -10,6 +10,7 @@ pub enum CompatArea {
     EthereumBeacon,
     EthereumExecution,
     EthereumRoot,
+    OpStack,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,6 +33,7 @@ pub enum SdkCallSpec {
     BlocksList,
     BlocksLatestCompleted,
     BlocksByHeightFromLatest,
+    BlocksFullByHeightFromLatest,
     BlocksProofByQueryFromLatest,
     BlocksProofByHeightFromLatest,
     BlocksMmrProofFromLatest,
@@ -51,6 +53,11 @@ pub enum SdkCallSpec {
     EthereumExecutionMmrRootFinalized,
     EthereumExecutionMmrProofFromSnapshot,
     EthereumExecutionLightClientProofFromSnapshot,
+    OpStackHeightFinalized,
+    OpStackSnapshotFinalized,
+    OpStackMerkleProofFromSnapshot,
+    OpStackMmrProofFromSnapshot,
+    OpStackLightClientProofFromSnapshot,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

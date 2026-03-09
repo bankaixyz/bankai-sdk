@@ -73,5 +73,6 @@ fn area_label(area: CompatArea) -> &'static str {
         CompatArea::EthereumBeacon => "ethereum_beacon",
         CompatArea::EthereumExecution => "ethereum_execution",
         CompatArea::EthereumRoot => "ethereum_root",
+        CompatArea::OpStack => "op_stack",
     }
 }

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use bankai_types::api::blocks::{
-    BankaiBlockProofRequestDto, BankaiMmrProofRequestDto, BlockDetailDto, BlockStatusDto,
-    BlockSummaryDto, LatestBlockQueryDto,
+    BankaiBlockFullOutputDto, BankaiBlockProofRequestDto, BankaiMmrProofRequestDto, BlockDetailDto,
+    BlockStatusDto, BlockSummaryDto, LatestBlockQueryDto,
 };
 use bankai_types::api::proofs::{
     BankaiBlockProofDto, BankaiBlockProofWithMmrDto, BankaiMmrProofDto, BlockProofPayloadDto,
@@ -71,6 +71,13 @@ impl BlocksApi {
     /// Fetches a block by height.
     pub async fn by_height(&self, height: u64) -> SdkResult<BlockDetailDto> {
         let url = format!("{}/v1/blocks/{}", self.core.base_url, height);
+        let response = self.core.client.get(&url).send().await?;
+        handle_response(response).await
+    }
+
+    /// Fetches a full block payload by height, including OP chain snapshots.
+    pub async fn full(&self, height: u64) -> SdkResult<BankaiBlockFullOutputDto> {
+        let url = format!("{}/v1/blocks/{}/full", self.core.base_url, height);
         let response = self.core.client.get(&url).send().await?;
         handle_response(response).await
     }
