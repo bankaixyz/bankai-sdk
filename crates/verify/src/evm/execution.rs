@@ -2,8 +2,12 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use alloy_rlp::{Decodable, Encodable};
-use bankai_types::inputs::evm::execution::{AccountProof, ExecutionHeaderProof, TxProof};
-use bankai_types::results::evm::execution::{Account, ExecutionHeader, TxEnvelope};
+use bankai_types::inputs::evm::execution::{
+    AccountProof, ExecutionHeaderProof, ReceiptProof, TxProof,
+};
+use bankai_types::results::evm::execution::{
+    Account, ExecutionHeader, ReceiptEnvelope, TxEnvelope,
+};
 
 use alloy_primitives::{keccak256, FixedBytes};
 use alloy_rlp::encode as rlp_encode;
@@ -127,10 +131,7 @@ impl ExecutionVerifier {
         account_proof: &AccountProof,
         headers: &[ExecutionHeader],
     ) -> Result<Account, VerifyError> {
-        let header = headers
-            .iter()
-            .find(|h| h.number == account_proof.block_number)
-            .ok_or(VerifyError::InvalidExecutionHeaderProof)?;
+        let header = Self::header_for_block(headers, account_proof.block_number)?;
 
         if header.state_root != account_proof.state_root {
             return Err(VerifyError::InvalidStateRoot);
@@ -200,10 +201,7 @@ impl ExecutionVerifier {
         slot_proof: &bankai_types::inputs::evm::execution::StorageSlotProof,
         headers: &[ExecutionHeader],
     ) -> Result<Vec<(alloy_primitives::U256, alloy_primitives::U256)>, VerifyError> {
-        let header = headers
-            .iter()
-            .find(|h| h.number == slot_proof.block_number)
-            .ok_or(VerifyError::InvalidExecutionHeaderProof)?;
+        let header = Self::header_for_block(headers, slot_proof.block_number)?;
 
         if header.state_root != slot_proof.state_root {
             return Err(VerifyError::InvalidStateRoot);
@@ -308,10 +306,7 @@ impl ExecutionVerifier {
         proof: &TxProof,
         headers: &[ExecutionHeader],
     ) -> Result<TxEnvelope, VerifyError> {
-        let header = headers
-            .iter()
-            .find(|h| h.number == proof.block_number)
-            .ok_or(VerifyError::InvalidExecutionHeaderProof)?;
+        let header = Self::header_for_block(headers, proof.block_number)?;
 
         let mut rlp_tx_index = Vec::new();
         proof.tx_index.encode(&mut rlp_tx_index);
@@ -329,5 +324,96 @@ impl ExecutionVerifier {
             .map_err(|_| VerifyError::InvalidRlpDecode)?;
 
         Ok(tx)
+    }
+
+    pub fn verify_receipt_proof(
+        proof: &ReceiptProof,
+        headers: &[ExecutionHeader],
+    ) -> Result<ReceiptEnvelope, VerifyError> {
+        let header = Self::header_for_block(headers, proof.block_number)?;
+
+        let mut rlp_tx_index = Vec::new();
+        proof.tx_index.encode(&mut rlp_tx_index);
+        let key = Nibbles::unpack(&rlp_tx_index);
+
+        mpt_verify(
+            header.receipts_root,
+            key,
+            Some(proof.encoded_receipt.clone()),
+            proof.proof.iter(),
+        )
+        .map_err(|_| VerifyError::InvalidReceiptProof)?;
+
+        let receipt = ReceiptEnvelope::decode(&mut proof.encoded_receipt.as_slice())
+            .map_err(|_| VerifyError::InvalidRlpDecode)?;
+
+        Ok(receipt)
+    }
+
+    fn header_for_block<'a>(
+        headers: &'a [ExecutionHeader],
+        block_number: u64,
+    ) -> Result<&'a ExecutionHeader, VerifyError> {
+        headers
+            .iter()
+            .find(|h| h.number == block_number)
+            .ok_or(VerifyError::InvalidExecutionHeaderProof)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloy_consensus::{
+        proofs::calculate_receipt_root, Receipt, ReceiptEnvelope, ReceiptWithBloom,
+    };
+    use alloy_primitives::{Bloom, FixedBytes};
+    use eth_trie_proofs::{tx_receipt::ConsensusTxReceipt, tx_receipt_trie::TxReceiptsMptHandler};
+    use url::Url;
+
+    use super::*;
+
+    #[test]
+    fn verifies_receipt_proof_against_receipts_root() {
+        let receipt = ReceiptEnvelope::Eip1559(ReceiptWithBloom {
+            receipt: Receipt {
+                status: true.into(),
+                cumulative_gas_used: 21_000,
+                logs: vec![],
+            },
+            logs_bloom: Bloom::ZERO,
+        });
+        let receipts_root = calculate_receipt_root(&[receipt.clone()]);
+
+        let mut trie =
+            TxReceiptsMptHandler::new(Url::parse("http://localhost:8545").unwrap()).unwrap();
+        trie.build_trie(vec![ConsensusTxReceipt(receipt.clone())], receipts_root)
+            .unwrap();
+
+        let proof_nodes = trie.get_proof(0).unwrap();
+        let encoded_receipt = trie.verify_proof(0, proof_nodes.clone()).unwrap();
+
+        let proof = ReceiptProof {
+            network_id: 1,
+            block_number: 7,
+            tx_hash: FixedBytes::ZERO,
+            tx_index: 0,
+            proof: proof_nodes.into_iter().map(Into::into).collect(),
+            encoded_receipt: encoded_receipt.clone(),
+        };
+        let header = ExecutionHeader {
+            number: 7,
+            receipts_root,
+            ..Default::default()
+        };
+
+        let verified = ExecutionVerifier::verify_receipt_proof(&proof, &[header]).unwrap();
+        match verified {
+            ReceiptEnvelope::Eip1559(receipt) => {
+                assert_eq!(receipt.receipt.cumulative_gas_used, 21_000);
+                assert_eq!(receipt.receipt.status, true.into());
+                assert!(receipt.receipt.logs.is_empty());
+            }
+            other => panic!("expected EIP-1559 receipt, got {other:?}"),
+        }
     }
 }

@@ -1,14 +1,25 @@
+use alloy_primitives::{hex::FromHex, FixedBytes};
 use anyhow::{anyhow, Context, Result};
 use bankai_sdk::parse_block_proof_payload;
+use bankai_types::api::blocks::BankaiBlockFullOutputDto;
 use bankai_types::api::ethereum::BankaiBlockFilterDto;
+use bankai_types::api::op_stack::{
+    OpChainSnapshotSummaryDto, OpMerkleProofDto, OpStackLightClientProofDto,
+    OpStackLightClientProofRequestDto, OpStackMerkleProofRequestDto, OpStackMmrProofRequestDto,
+};
+use bankai_types::api::proofs::BankaiBlockProofDto;
 use bankai_types::api::proofs::LightClientProofDto;
+use bankai_types::block::OpChainClient;
 use bankai_types::common::{HashingFunction, ProofFormat};
+use bankai_types::inputs::evm::op_stack::OpStackMerkleProof;
 use bankai_types::inputs::evm::MmrProof;
 use bankai_verify::bankai::mmr::MmrVerifier;
 use bankai_verify::bankai::stwo::verify_stwo_proof;
+use bankai_verify::evm::op_stack::OpStackVerifier;
 
 use crate::compat::case::{
-    BankaiMmrProofSource, LightClientProofSource, MatrixScope, MmrProofSource, ProofHashSource,
+    BankaiMmrProofSource, LightClientProofSource, MatrixScope, MerkleProofSource, MmrProofSource,
+    ProofHashSource,
 };
 use crate::compat::context::CompatContext;
 
@@ -154,6 +165,75 @@ async fn pinned_filter_for_consistency(
     }
 }
 
+pub(super) async fn run_merkle_proof_verify(
+    ctx: &CompatContext,
+    source: MerkleProofSource,
+    scope: MatrixScope,
+) -> Result<()> {
+    match source {
+        MerkleProofSource::OpStackFromSnapshot => {
+            let filters = match scope {
+                MatrixScope::Core => ctx.filter_cases_core().await?,
+                MatrixScope::Edge => ctx.filter_cases_edge().await?,
+            };
+
+            let name = ctx.op_chain_name().await?;
+
+            for filter_case in filters {
+                let variant = format_variant(&filter_case.label, scope);
+                let request = OpStackMerkleProofRequestDto {
+                    filter: filter_case.filter.clone(),
+                };
+                let proof = ctx
+                    .sdk
+                    .api
+                    .op_stack()
+                    .merkle_proof(&name, &request)
+                    .await
+                    .with_context(|| {
+                        format!("op_stack merkle_proof failed for chain={name}, {variant}")
+                    })?;
+
+                let snapshot = ctx
+                    .sdk
+                    .api
+                    .op_stack()
+                    .snapshot(&name, &filter_case.filter)
+                    .await
+                    .with_context(|| {
+                        format!(
+                            "op_stack snapshot failed while building merkle verification request for chain={name}, {variant}"
+                        )
+                    })?;
+                let op_chains_root = trusted_op_chains_root_for_block(
+                    ctx,
+                    proof.bankai_block_number,
+                    None,
+                    &variant,
+                )
+                .await?;
+                let trusted_snapshot = op_snapshot_summary_to_client(&snapshot, &name, &variant)?;
+                let merkle_proof = op_merkle_dto_to_input(&proof)
+                    .with_context(|| format!("invalid OP merkle proof payload for {variant}"))?;
+
+                if trusted_snapshot.commitment_leaf_hash() != merkle_proof.leaf_hash {
+                    return Err(anyhow!(
+                        "op_stack merkle leaf mismatch for chain={name}, {variant}: expected {}, got {}",
+                        trusted_snapshot.commitment_leaf_hash(),
+                        merkle_proof.leaf_hash
+                    ));
+                }
+
+                OpStackVerifier::verify_merkle_proof(&merkle_proof, op_chains_root).with_context(
+                    || format!("op_stack merkle verification failed for chain={name}, {variant}"),
+                )?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub(super) async fn run_mmr_verify(
     ctx: &CompatContext,
     source: MmrProofSource,
@@ -254,6 +334,92 @@ pub(super) async fn run_mmr_verify(
                     }
                     api_mmr_dto_to_mmr(&proof).with_context(|| {
                         format!("failed converting execution mmr proof for {variant}")
+                    })?
+                }
+                MmrProofSource::OpStackFromSnapshot => {
+                    let name = ctx.op_chain_name().await?;
+                    let snapshot = ctx
+                        .sdk
+                        .api
+                        .op_stack()
+                        .snapshot(&name, &filter_case.filter)
+                        .await
+                        .with_context(|| {
+                            format!(
+                                "op_stack snapshot failed while building mmr verification request for chain={name}, {variant}"
+                            )
+                        })?;
+                    let request = OpStackMmrProofRequestDto {
+                        filter: filter_case.filter.clone(),
+                        hashing_function: hashing_case.hashing_function,
+                        header_hash: snapshot.header_hash.clone(),
+                    };
+                    let proof = ctx
+                        .sdk
+                        .api
+                        .op_stack()
+                        .mmr_proof(&name, &request)
+                        .await
+                        .with_context(|| {
+                            format!("op_stack mmr_proof failed for chain={name}, {variant}")
+                        })?;
+
+                    validate_mmr_proof_contract(&proof.mmr_proof, &request.header_hash)
+                        .with_context(|| {
+                            format!("op_stack mmr contract invalid for chain={name}, {variant}")
+                        })?;
+                    if proof.mmr_proof.hashing_function != request.hashing_function {
+                        return Err(anyhow!(
+                            "op_stack mmr hashing_function mismatch for chain={name}, {variant}: expected {:?}, got {:?}",
+                            request.hashing_function,
+                            proof.mmr_proof.hashing_function
+                        ));
+                    }
+
+                    let op_chains_root = trusted_op_chains_root_for_block(
+                        ctx,
+                        proof.merkle_proof.bankai_block_number,
+                        None,
+                        &variant,
+                    )
+                    .await?;
+                    let trusted_snapshot =
+                        op_snapshot_summary_to_client(&snapshot, &name, &variant)?;
+                    let merkle_proof = op_merkle_dto_to_input(&proof.merkle_proof).with_context(
+                        || {
+                            format!(
+                                "failed converting op_stack merkle proof for chain={name}, {variant}"
+                            )
+                        },
+                    )?;
+
+                    if trusted_snapshot.commitment_leaf_hash() != merkle_proof.leaf_hash {
+                        return Err(anyhow!(
+                            "op_stack merkle leaf mismatch for chain={name}, {variant}: expected {}, got {}",
+                            trusted_snapshot.commitment_leaf_hash(),
+                            merkle_proof.leaf_hash
+                        ));
+                    }
+
+                    OpStackVerifier::verify_merkle_proof(&merkle_proof, op_chains_root)
+                        .with_context(|| {
+                            format!(
+                                "op_stack merkle verification failed for chain={name}, {variant}"
+                            )
+                        })?;
+
+                    let expected_snapshot_root =
+                        snapshot_mmr_root(&trusted_snapshot, request.hashing_function);
+                    if proof.mmr_proof.root != expected_snapshot_root.to_string() {
+                        return Err(anyhow!(
+                            "op_stack mmr root mismatch for chain={name}, {variant}: expected {}, got {}",
+                            expected_snapshot_root,
+                            proof.mmr_proof.root
+                        ));
+                    }
+
+                    api_mmr_dto_to_mmr(&proof.mmr_proof).with_context(|| {
+                        format!("failed converting op_stack mmr proof for chain={name}, {variant}")
                     })?
                 }
             };
@@ -464,6 +630,48 @@ pub(super) async fn run_light_client_proof_verify(
                             &variant,
                         )?;
                     }
+                    LightClientProofSource::OpStackFromSnapshot => {
+                        let name = ctx.op_chain_name().await?;
+                        let snapshot = ctx
+                            .sdk
+                            .api
+                            .op_stack()
+                            .snapshot(&name, &filter_case.filter)
+                            .await
+                            .with_context(|| {
+                                format!(
+                                    "op_stack snapshot failed while building light client request for chain={name}, {variant}"
+                                )
+                            })?;
+                        let request = OpStackLightClientProofRequestDto {
+                            filter: filter_case.filter.clone(),
+                            hashing_function: hashing_case.hashing_function,
+                            header_hashes: vec![snapshot.header_hash.clone()],
+                            proof_format: proof_case.proof_format,
+                        };
+                        let proof = ctx
+                            .sdk
+                            .api
+                            .op_stack()
+                            .light_client_proof(&name, &request)
+                            .await
+                            .with_context(|| {
+                                format!(
+                                    "op_stack light_client_proof failed for chain={name}, {variant}"
+                                )
+                            })?;
+
+                        verify_op_stack_light_client_bundle(
+                            ctx,
+                            &name,
+                            &snapshot,
+                            &proof,
+                            &request.header_hashes,
+                            request.hashing_function,
+                            &variant,
+                        )
+                        .await?;
+                    }
                 }
             }
         }
@@ -528,6 +736,196 @@ fn verify_light_client_bundle(
     }
 
     Ok(())
+}
+
+async fn verify_op_stack_light_client_bundle(
+    ctx: &CompatContext,
+    name: &str,
+    snapshot: &OpChainSnapshotSummaryDto,
+    proof: &OpStackLightClientProofDto,
+    requested_header_hashes: &[String],
+    expected_hashing_function: HashingFunction,
+    variant: &str,
+) -> Result<()> {
+    if proof.merkle_proof.bankai_block_number != proof.block_proof.block_number {
+        return Err(anyhow!(
+            "OP light_client_proof bankai block mismatch for {variant}: merkle_proof={}, block_proof={}",
+            proof.merkle_proof.bankai_block_number,
+            proof.block_proof.block_number
+        ));
+    }
+    let _op_chains_root = trusted_op_chains_root_for_block(
+        ctx,
+        proof.block_proof.block_number,
+        Some(&proof.block_proof),
+        variant,
+    )
+    .await?;
+
+    if proof.mmr_proofs.len() != requested_header_hashes.len() {
+        return Err(anyhow!(
+            "OP light_client_proof returned {} MMR proofs for {variant}; expected {}",
+            proof.mmr_proofs.len(),
+            requested_header_hashes.len()
+        ));
+    }
+
+    let trusted_snapshot = op_snapshot_summary_to_client(snapshot, name, variant)?;
+
+    let merkle_proof = op_merkle_dto_to_input(&proof.merkle_proof)
+        .with_context(|| format!("invalid OP merkle proof payload for {variant}"))?;
+    if trusted_snapshot.commitment_leaf_hash() != merkle_proof.leaf_hash {
+        return Err(anyhow!(
+            "OP light_client_proof merkle leaf mismatch for chain={name}, {variant}: expected {}, got {}",
+            trusted_snapshot.commitment_leaf_hash(),
+            merkle_proof.leaf_hash
+        ));
+    }
+
+    for mmr_dto in &proof.mmr_proofs {
+        if !requested_header_hashes
+            .iter()
+            .any(|header| hex_eq(header, &mmr_dto.header_hash))
+        {
+            return Err(anyhow!(
+                "OP light_client_proof returned unexpected header hash {} for {variant}",
+                mmr_dto.header_hash
+            ));
+        }
+        if mmr_dto.hashing_function != expected_hashing_function {
+            return Err(anyhow!(
+                "OP light_client_proof hashing_function mismatch for {variant}: expected {:?}, got {:?}",
+                expected_hashing_function,
+                mmr_dto.hashing_function
+            ));
+        }
+
+        let expected_snapshot_root =
+            snapshot_mmr_root(&trusted_snapshot, expected_hashing_function);
+        if !hex_eq(&mmr_dto.root, &expected_snapshot_root.to_string()) {
+            return Err(anyhow!(
+                "OP light_client_proof root mismatch for {variant}: expected {}, got {}",
+                expected_snapshot_root,
+                mmr_dto.root
+            ));
+        }
+
+        let mmr = api_mmr_dto_to_mmr(mmr_dto).with_context(|| {
+            format!("failed converting OP light client MMR proof for {variant}")
+        })?;
+        let valid = MmrVerifier::verify_mmr_proof(&mmr)
+            .with_context(|| format!("OP light client mmr verification failed for {variant}"))?;
+        if !valid {
+            return Err(anyhow!(
+                "OP light client MMR verifier returned false for {variant}"
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+async fn trusted_op_chains_root_for_block(
+    ctx: &CompatContext,
+    block_number: u64,
+    block_proof: Option<&BankaiBlockProofDto>,
+    variant: &str,
+) -> Result<FixedBytes<32>> {
+    let full_block: BankaiBlockFullOutputDto = ctx
+        .sdk
+        .api
+        .blocks()
+        .full(block_number)
+        .await
+        .with_context(|| format!("failed to fetch full block {block_number} for {variant}"))?;
+    let trusted_block = full_block.block.to_block();
+    let block_proof = match block_proof {
+        Some(block_proof) => block_proof.clone(),
+        None => ctx
+            .sdk
+            .api
+            .blocks()
+            .proof(block_number)
+            .await
+            .with_context(|| format!("failed to fetch block proof {block_number} for {variant}"))?,
+    };
+
+    let stwo_proof = parse_block_proof_payload(block_proof.proof)
+        .with_context(|| format!("failed to parse block proof payload for {variant}"))?;
+    let hash_output = verify_stwo_proof(stwo_proof)
+        .with_context(|| format!("STWO proof hash-output verification failed for {variant}"))?;
+    let expected_block_hash = trusted_block.compute_block_hash_keccak();
+    if hash_output.block_hash != expected_block_hash {
+        return Err(anyhow!(
+            "block hash mismatch for {variant}: expected {}, got {}",
+            expected_block_hash,
+            hash_output.block_hash
+        ));
+    }
+
+    Ok(trusted_block.op_chains.root)
+}
+
+fn op_snapshot_summary_to_client(
+    snapshot: &OpChainSnapshotSummaryDto,
+    name: &str,
+    variant: &str,
+) -> Result<OpChainClient> {
+    Ok(OpChainClient {
+        chain_id: snapshot.chain_id,
+        block_number: snapshot.end_height,
+        header_hash: FixedBytes::from_hex(&snapshot.header_hash).map_err(|_| {
+            anyhow!(
+                "invalid OP snapshot header_hash for chain={name}, {variant}: {}",
+                snapshot.header_hash
+            )
+        })?,
+        l1_submission_block: snapshot.l1_submission_block,
+        mmr_root_keccak: FixedBytes::from_hex(&snapshot.mmr_roots.keccak_root).map_err(|_| {
+            anyhow!(
+                "invalid OP snapshot keccak root for chain={name}, {variant}: {}",
+                snapshot.mmr_roots.keccak_root
+            )
+        })?,
+        mmr_root_poseidon: FixedBytes::from_hex(&snapshot.mmr_roots.poseidon_root).map_err(
+            |_| {
+                anyhow!(
+                    "invalid OP snapshot poseidon root for chain={name}, {variant}: {}",
+                    snapshot.mmr_roots.poseidon_root
+                )
+            },
+        )?,
+    })
+}
+
+fn snapshot_mmr_root(
+    snapshot: &OpChainClient,
+    hashing_function: HashingFunction,
+) -> FixedBytes<32> {
+    match hashing_function {
+        HashingFunction::Keccak => snapshot.mmr_root_keccak,
+        HashingFunction::Poseidon => snapshot.mmr_root_poseidon,
+    }
+}
+
+fn op_merkle_dto_to_input(dto: &OpMerkleProofDto) -> Result<OpStackMerkleProof> {
+    let leaf_hash = FixedBytes::from_hex(&dto.leaf_hash)
+        .map_err(|_| anyhow!("invalid OP leaf_hash {}", dto.leaf_hash))?;
+    let root =
+        FixedBytes::from_hex(&dto.root).map_err(|_| anyhow!("invalid OP root {}", dto.root))?;
+    let path = dto
+        .path
+        .iter()
+        .map(|item| FixedBytes::from_hex(item).map_err(|_| anyhow!("invalid OP path {item}")))
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(OpStackMerkleProof {
+        chain_id: dto.chain_id,
+        merkle_leaf_index: dto.merkle_leaf_index,
+        leaf_hash,
+        root,
+        path,
+    })
 }
 
 fn assert_block_proof_payload_matches(

@@ -8,8 +8,8 @@ use alloy_primitives::hex::FromHex;
 use alloy_primitives::FixedBytes;
 use anyhow::{anyhow, Result};
 use bankai_types::api::blocks::BankaiMmrProofRequestDto;
-use bankai_types::api::proofs::MmrProofDto;
 use bankai_types::api::proofs::BankaiMmrProofDto;
+use bankai_types::api::proofs::MmrProofDto;
 use bankai_types::inputs::evm::MmrProof;
 
 use crate::compat::case::{
@@ -87,6 +87,9 @@ async fn run_case_inner(ctx: &CompatContext, case: CompatCaseDef) -> Result<()> 
         CompatKind::MmrProofVerify { source, scope } => {
             verify::run_mmr_verify(ctx, source, scope).await
         }
+        CompatKind::MerkleProofVerify { source, scope } => {
+            verify::run_merkle_proof_verify(ctx, source, scope).await
+        }
         CompatKind::BankaiMmrProofVerify { source, scope } => {
             verify::run_bankai_mmr_verify(ctx, source, scope).await
         }
@@ -109,6 +112,7 @@ pub fn case_in_phase(case: &CompatCaseDef, phase: SuitePhase) -> bool {
             case.kind,
             CompatKind::ProofHashConsistency { .. }
                 | CompatKind::MmrProofVerify { .. }
+                | CompatKind::MerkleProofVerify { .. }
                 | CompatKind::BankaiMmrProofVerify { .. }
                 | CompatKind::LightClientProofVerify { .. }
         ),
@@ -583,6 +587,10 @@ fn planned_matrix_variants(case: &CompatCaseDef) -> usize {
         CompatKind::MmrProofVerify { scope, .. } => match scope {
             MatrixScope::Core => FILTERS_CORE * HASHINGS_CORE,
             MatrixScope::Edge => FILTERS_EDGE * HASHINGS_EDGE,
+        },
+        CompatKind::MerkleProofVerify { scope, .. } => match scope {
+            MatrixScope::Core => FILTERS_CORE,
+            MatrixScope::Edge => FILTERS_EDGE,
         },
         CompatKind::BankaiMmrProofVerify { scope, .. } => match scope {
             MatrixScope::Core => FILTERS_CORE * TARGETS_CORE * HASHINGS_CORE,

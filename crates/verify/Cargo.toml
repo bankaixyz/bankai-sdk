@@ -18,3 +18,7 @@ starknet-crypto = { workspace = true, default-features = false }
 [dev-dependencies]
 mmr.workspace = true
 tokio.workspace = true
+alloy-consensus.workspace = true
+alloy-rpc-types-eth.workspace = true
+eth-trie-proofs.workspace = true
+url.workspace = true

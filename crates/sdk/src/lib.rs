@@ -25,6 +25,7 @@
 //!         Network::Sepolia,
 //!         Some("https://sepolia.infura.io/v3/YOUR_KEY".to_string()),  // Execution RPC
 //!         Some("https://sepolia.beacon-api.example.com".to_string()), // Beacon RPC
+//!         None, // OP Stack RPCs by chain name
 //!     );
 //!
 //!     // Step 2: Build and fetch a batch with multiple proof requests
@@ -36,6 +37,7 @@
 //!         .ethereum_account(9_231_247, Address::ZERO)
 //!         .ethereum_storage_slot(9_231_247, Address::ZERO, vec![U256::from(0)])
 //!         .ethereum_tx(FixedBytes::from([0u8; 32]))
+//!         .ethereum_receipt(FixedBytes::from([0u8; 32]))
 //!         .execute()
 //!         .await?;
 //!
@@ -58,6 +60,12 @@
 //!     for tx in &results.evm.tx {
 //!         println!("✓ Verified transaction: {:?}", tx);
 //!     }
+//!     for receipt in &results.evm.receipt {
+//!         println!("✓ Verified receipt: {:?}", receipt);
+//!     }
+//!     for header in &results.op_stack.header {
+//!         println!("✓ Verified OP Stack header at block {}", header.number);
+//!     }
 //!
 //!     Ok(())
 //! }
@@ -75,7 +83,7 @@
 //! use bankai_types::common::ProofFormat;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let sdk = Bankai::new(Network::Sepolia, None, None);
+//! # let sdk = Bankai::new(Network::Sepolia, None, None, None);
 //!
 //! // Get latest Bankai block number
 //! let latest_block = sdk.api.blocks().latest_number().await?;
@@ -106,7 +114,10 @@
 
 pub mod errors;
 
+use std::collections::BTreeMap;
+
 // Re-export common types from bankai_types
+pub use crate::fetch::evm::op_stack::OpStackChainFetcher;
 pub use bankai_types::common::HashingFunction;
 pub use bankai_types::inputs::ProofBundle;
 
@@ -165,7 +176,7 @@ pub mod batch {
 mod fetch;
 
 use crate::errors::{SdkError, SdkResult};
-use crate::fetch::ethereum::{beacon::BeaconChainFetcher, execution::ExecutionChainFetcher};
+use crate::fetch::evm::{beacon::BeaconChainFetcher, execution::ExecutionChainFetcher};
 
 // ============================================================================
 // Main SDK Struct
@@ -177,12 +188,17 @@ struct EthereumNamespace {
     beacon: Option<BeaconChainFetcher>,
 }
 
+struct OpStackNamespace {
+    chains: BTreeMap<String, OpStackChainFetcher>,
+}
+
 /// Main entry point for the Bankai SDK
 pub struct Bankai {
     /// Direct access to the Bankai API client
     pub api: ApiClient,
     /// Ethereum execution and beacon chain fetchers (internal)
     ethereum: EthereumNamespace,
+    op_stack: OpStackNamespace,
     network: Network,
 }
 
@@ -194,16 +210,19 @@ impl Bankai {
     /// * `network` - The blockchain network (e.g., `Network::Sepolia`)
     /// * `ethereum_execution_rpc` - Optional execution layer RPC endpoint
     /// * `ethereum_beacon_rpc` - Optional beacon chain API endpoint
+    /// * `op_stack_execution_rpcs` - Optional OP Stack RPC endpoints keyed by chain name
     pub fn new(
         network: Network,
         ethereum_execution_rpc: Option<String>,
         ethereum_beacon_rpc: Option<String>,
+        op_stack_execution_rpcs: Option<BTreeMap<String, String>>,
     ) -> Self {
         Self::new_with_base_url(
             network,
             network.api_url().to_string(),
             ethereum_execution_rpc,
             ethereum_beacon_rpc,
+            op_stack_execution_rpcs,
         )
     }
 
@@ -213,6 +232,7 @@ impl Bankai {
         api_base_url: String,
         ethereum_execution_rpc: Option<String>,
         ethereum_beacon_rpc: Option<String>,
+        op_stack_execution_rpcs: Option<BTreeMap<String, String>>,
     ) -> Self {
         let api = ApiClient::new_with_base_url(api_base_url);
         let execution = ethereum_execution_rpc.map(|rpc| {
@@ -220,10 +240,21 @@ impl Bankai {
         });
         let beacon = ethereum_beacon_rpc
             .map(|rpc| BeaconChainFetcher::new(api.clone(), rpc, network.beacon_network_id()));
+        let op_stack = OpStackNamespace {
+            chains: op_stack_execution_rpcs
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(chain_name, rpc)| {
+                    let fetcher = OpStackChainFetcher::new(api.clone(), chain_name.clone(), rpc);
+                    (chain_name, fetcher)
+                })
+                .collect(),
+        };
 
         Bankai {
             api: api.clone(),
             ethereum: EthereumNamespace { execution, beacon },
+            op_stack,
             network,
         }
     }
@@ -231,6 +262,14 @@ impl Bankai {
     /// Returns the network this SDK instance is configured for
     pub fn network(&self) -> Network {
         self.network
+    }
+
+    /// Returns the configured OP Stack fetcher for a chain name.
+    pub fn op_stack(&self, chain_name: &str) -> SdkResult<&OpStackChainFetcher> {
+        self.op_stack
+            .chains
+            .get(chain_name)
+            .ok_or_else(|| SdkError::NotConfigured(format!("OP Stack fetcher for {chain_name}")))
     }
 
     /// Initialize a new batch proof builder
@@ -276,5 +315,20 @@ impl EthereumNamespace {
         self.beacon
             .as_ref()
             .ok_or_else(|| SdkError::NotConfigured("Ethereum beacon fetcher".to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Bankai, Network};
+    use crate::errors::SdkError;
+
+    #[test]
+    fn op_stack_fetcher_requires_configuration() {
+        let sdk = Bankai::new(Network::Local, None, None, None);
+        assert!(matches!(
+            sdk.op_stack("base"),
+            Err(SdkError::NotConfigured(_))
+        ));
     }
 }

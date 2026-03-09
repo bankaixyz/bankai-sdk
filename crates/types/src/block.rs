@@ -234,7 +234,6 @@ impl BankaiBlock {
 
         FixedBytes::from_slice(keccak256(preimage).as_slice())
     }
-
 }
 
 impl OpChainClient {
@@ -351,6 +350,9 @@ mod tests {
                 n_clients: 1,
             }
         );
-        assert_eq!(block.compute_block_hash_keccak(), full.to_block().compute_block_hash_keccak());
+        assert_eq!(
+            block.compute_block_hash_keccak(),
+            full.to_block().compute_block_hash_keccak()
+        );
     }
 }

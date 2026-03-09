@@ -86,7 +86,10 @@ impl BeaconChainFetcher {
     ///
     /// Used internally by the batch builder. For verification purposes, use `header()` instead
     /// to get the header with its MMR proof.
-    pub async fn header_only(&self, slot: u64) -> SdkResult<alloy_rpc_types_beacon::header::HeaderResponse> {
+    pub async fn header_only(
+        &self,
+        slot: u64,
+    ) -> SdkResult<alloy_rpc_types_beacon::header::HeaderResponse> {
         self.beacon_client.fetch_header(slot).await
     }
 

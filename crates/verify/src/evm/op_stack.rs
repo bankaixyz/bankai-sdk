@@ -1,9 +1,9 @@
 use alloy_primitives::FixedBytes;
 use bankai_core::merkle::KeccakHasher;
-use bankai_types::block::OpChainClient;
 use bankai_types::common::HashingFunction;
+use bankai_types::inputs::evm::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
 use bankai_types::inputs::evm::MmrProof;
-use bankai_types::inputs::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
+use bankai_types::results::evm::execution::ExecutionHeader;
 
 use crate::bankai::mmr::MmrVerifier;
 use crate::VerifyError;
@@ -30,7 +30,7 @@ impl OpStackVerifier {
         proof: &OpStackHeaderProof,
         op_chains_root: FixedBytes<32>,
         hashing_function: HashingFunction,
-    ) -> Result<OpChainClient, VerifyError> {
+    ) -> Result<ExecutionHeader, VerifyError> {
         let computed_leaf = proof.snapshot.commitment_leaf_hash();
         if computed_leaf != proof.merkle_proof.leaf_hash {
             return Err(VerifyError::InvalidMerkleProof);
@@ -46,7 +46,12 @@ impl OpStackVerifier {
         verify_snapshot_mmr_root(&proof.mmr_proof, mmr_root)?;
         MmrVerifier::verify_mmr_proof(&proof.mmr_proof)?;
 
-        Ok(proof.snapshot.clone())
+        let header_hash = proof.header.hash_slow();
+        if header_hash != proof.snapshot.header_hash || header_hash != proof.mmr_proof.header_hash {
+            return Err(VerifyError::InvalidHeaderHash);
+        }
+
+        Ok(proof.header.clone().into())
     }
 }
 
@@ -59,11 +64,12 @@ fn verify_snapshot_mmr_root(proof: &MmrProof, mmr_root: FixedBytes<32>) -> Resul
 
 #[cfg(test)]
 mod tests {
+    use alloy_primitives::Sealable;
     use bankai_core::mmr;
     use bankai_types::block::OpChainClient;
     use bankai_types::common::HashingFunction;
+    use bankai_types::inputs::evm::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
     use bankai_types::inputs::evm::MmrProof;
-    use bankai_types::inputs::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
     use bankai_types::utils::mmr::hash_to_leaf;
 
     use super::*;
@@ -109,10 +115,17 @@ mod tests {
     #[test]
     fn verifies_snapshot_membership_and_mmr_proof() {
         let mut snapshot = snapshot();
-        let mmr_proof = single_leaf_mmr_proof(FixedBytes::from([11u8; 32]), HashingFunction::Keccak);
+        let mut consensus_header = alloy_consensus::Header::default();
+        consensus_header.number = 42;
+        let header: alloy_rpc_types_eth::Header<alloy_consensus::Header> =
+            alloy_rpc_types_eth::Header::from_consensus(consensus_header.seal_slow(), None, None);
+        let header_hash = header.hash_slow();
+        let mmr_proof = single_leaf_mmr_proof(header_hash, HashingFunction::Keccak);
         snapshot.mmr_root_keccak = mmr_proof.root;
+        snapshot.header_hash = header_hash;
         let leaf_hash = snapshot.commitment_leaf_hash();
         let proof = OpStackHeaderProof {
+            header,
             snapshot: snapshot.clone(),
             merkle_proof: OpStackMerkleProof {
                 chain_id: snapshot.chain_id,
@@ -124,15 +137,11 @@ mod tests {
             mmr_proof,
         };
 
-        let verified = OpStackVerifier::verify_header_proof(
-            &proof,
-            leaf_hash,
-            HashingFunction::Keccak,
-        )
-        .unwrap();
+        let verified =
+            OpStackVerifier::verify_header_proof(&proof, leaf_hash, HashingFunction::Keccak)
+                .unwrap();
 
-        assert_eq!(verified.chain_id, snapshot.chain_id);
-        assert_eq!(verified.block_number, snapshot.block_number);
+        assert_eq!(verified.number, snapshot.block_number);
     }
 
     #[test]

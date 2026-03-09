@@ -8,7 +8,7 @@ use crate::errors::SdkResult;
 use crate::fetch::{api::ApiClient, clients::execution_client::ExecutionFetcher};
 use alloy_rpc_types_eth::Account as AlloyAccount;
 use bankai_types::inputs::evm::execution::{
-    ExecutionHeaderProof, StorageSlotEntry, StorageSlotProof, TxProof,
+    ExecutionHeaderProof, ReceiptProof, StorageSlotEntry, StorageSlotProof, TxProof,
 };
 
 /// Fetcher for Ethereum execution layer data with MMR proofs
@@ -145,6 +145,17 @@ impl ExecutionChainFetcher {
     pub async fn tx_proof(&self, tx_hash: FixedBytes<32>) -> SdkResult<TxProof> {
         let proof = ExecutionFetcher::new(self.rpc_url.clone(), self.network_id)
             .fetch_tx_proof(tx_hash)
+            .await?;
+        Ok(proof)
+    }
+
+    /// Fetches a transaction receipt proof for a specific transaction hash.
+    ///
+    /// Returns the receipt data together with a Merkle proof that can be verified against the
+    /// header's receipts root once the header itself has been decommitted and verified.
+    pub async fn receipt_proof(&self, tx_hash: FixedBytes<32>) -> SdkResult<ReceiptProof> {
+        let proof = ExecutionFetcher::new(self.rpc_url.clone(), self.network_id)
+            .fetch_receipt_proof(tx_hash)
             .await?;
         Ok(proof)
     }

@@ -50,7 +50,7 @@ impl CompatContext {
             .to_string();
 
         Self {
-            sdk: Bankai::new_with_base_url(Network::Local, api_base_url.clone(), None, None),
+            sdk: Bankai::new_with_base_url(Network::Local, api_base_url.clone(), None, None, None),
             api_base_url,
             http: reqwest::Client::new(),
         }

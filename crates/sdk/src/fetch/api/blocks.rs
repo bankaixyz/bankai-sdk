@@ -9,8 +9,8 @@ use bankai_types::api::blocks::{
 use bankai_types::api::proofs::{
     BankaiBlockProofDto, BankaiBlockProofWithMmrDto, BankaiMmrProofDto, BlockProofPayloadDto,
 };
-use bankai_types::common::ProofFormat;
 use bankai_types::api::stats::PageDto;
+use bankai_types::common::ProofFormat;
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use cairo_air::utils::{deserialize_proof_from_file, ProofFormat as CairoProofFormat};
 use cairo_air::CairoProof;

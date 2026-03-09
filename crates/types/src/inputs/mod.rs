@@ -6,10 +6,9 @@ use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 
 use crate::block::BankaiBlock;
 use crate::common::HashingFunction;
-use crate::inputs::{evm::EvmProofs, op_stack::OpStackProofs};
+use crate::inputs::evm::{EvmProofs, op_stack::OpStackProofs};
 
 pub mod evm;
-pub mod op_stack;
 
 #[derive(Serialize, Deserialize)]
 pub struct ProofBundle {

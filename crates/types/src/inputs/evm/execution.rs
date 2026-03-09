@@ -60,6 +60,17 @@ pub struct TxProof {
 
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
+pub struct ReceiptProof {
+    pub network_id: u64,
+    pub block_number: u64,
+    pub tx_hash: FixedBytes<32>,
+    pub tx_index: u64,
+    pub proof: Vec<Bytes>,
+    pub encoded_receipt: Vec<u8>,
+}
+
+#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct StorageSlotEntry {
     pub slot_key: U256,
     pub slot_value: U256,

@@ -1,6 +1,6 @@
 use crate::compat::case::{
     ApiErrorSource, CompatCaseDef, CompatKind, HttpMethod, LightClientProofSource, MatrixScope,
-    MmrProofSource, ProofHashSource, SdkCallSpec,
+    MerkleProofSource, MmrProofSource, ProofHashSource, SdkCallSpec,
 };
 use crate::compat::context::CompatContext;
 
@@ -19,6 +19,9 @@ pub(super) async fn debug_curl_for_case(ctx: &CompatContext, case: &CompatCaseDe
         }
         CompatKind::MmrProofVerify { source, scope } => {
             debug_curl_for_mmr_verify(ctx, source, scope).await
+        }
+        CompatKind::MerkleProofVerify { source, scope } => {
+            debug_curl_for_merkle_verify(ctx, source, scope).await
         }
         CompatKind::BankaiMmrProofVerify { .. } => {
             debug_blocks_body_call(ctx, "/v1/blocks/mmr_proof", MatrixScope::Core).await
@@ -226,6 +229,51 @@ async fn debug_curl_for_mmr_verify(
                 req.as_ref(),
             )
         }
+        MmrProofSource::OpStackFromSnapshot => {
+            let body = if scope == MatrixScope::Edge {
+                serde_json::json!({
+                    "filter": { "selector": "finalized", "bankai_block_number": "<latest>" },
+                    "hashing_function": "poseidon",
+                    "header_hash": "<op_header_hash>"
+                })
+            } else {
+                serde_json::json!({
+                    "filter": { "selector": "finalized" },
+                    "hashing_function": "keccak",
+                    "header_hash": "<op_header_hash>"
+                })
+            };
+            build_curl_command(
+                HttpMethod::Post,
+                &ctx.url("/v1/op/<name>/mmr_proof"),
+                Some(&body),
+            )
+        }
+    }
+}
+
+async fn debug_curl_for_merkle_verify(
+    ctx: &CompatContext,
+    source: MerkleProofSource,
+    scope: MatrixScope,
+) -> String {
+    match source {
+        MerkleProofSource::OpStackFromSnapshot => {
+            let body = if scope == MatrixScope::Edge {
+                serde_json::json!({
+                    "filter": { "selector": "finalized", "bankai_block_number": "<latest>" }
+                })
+            } else {
+                serde_json::json!({
+                    "filter": { "selector": "finalized" }
+                })
+            };
+            build_curl_command(
+                HttpMethod::Post,
+                &ctx.url("/v1/op/<name>/merkle_proof"),
+                Some(&body),
+            )
+        }
     }
 }
 
@@ -266,6 +314,28 @@ async fn debug_curl_for_light_client_verify(
                 HttpMethod::Post,
                 &ctx.url("/v1/ethereum/execution/light_client_proof"),
                 req.as_ref(),
+            )
+        }
+        LightClientProofSource::OpStackFromSnapshot => {
+            let body = if scope == MatrixScope::Edge {
+                serde_json::json!({
+                    "filter": { "selector": "finalized", "bankai_block_number": "<latest>" },
+                    "hashing_function": "poseidon",
+                    "header_hashes": ["<op_header_hash>"],
+                    "proof_format": "json"
+                })
+            } else {
+                serde_json::json!({
+                    "filter": { "selector": "finalized" },
+                    "hashing_function": "keccak",
+                    "header_hashes": ["<op_header_hash>"],
+                    "proof_format": "bin"
+                })
+            };
+            build_curl_command(
+                HttpMethod::Post,
+                &ctx.url("/v1/op/<name>/light_client_proof"),
+                Some(&body),
             )
         }
     }

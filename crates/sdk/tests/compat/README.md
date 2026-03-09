@@ -57,6 +57,12 @@ All SDK-facing endpoints are exercised in decode mode:
   - `/v1/ethereum/execution/mmr_root`
   - `/v1/ethereum/execution/mmr_proof`
   - `/v1/ethereum/execution/light_client_proof`
+- OP stack:
+  - `/v1/op/{name}/height`
+  - `/v1/op/{name}/snapshot`
+  - `/v1/op/{name}/merkle_proof`
+  - `/v1/op/{name}/mmr_proof`
+  - `/v1/op/{name}/light_client_proof`
 
 ### 2) Verify coverage
 
@@ -68,6 +74,10 @@ Verify mode checks cryptographic and contract-level consistency:
 - Light-client proof bundle checks, including:
   - STWO payload parse + hash-output verification.
   - returned MMR proof consistency with requested headers and expected roots.
+- OP Stack proof verification:
+  - merkle proof verification against the committed OP chains root in `/v1/blocks/{height}/full`
+  - header proof verification via `bankai_verify::evm::op_stack::OpStackVerifier`
+  - light-client bundle verification against the committed OP snapshot witness and block hash
 
 ### 3) OpenAPI coverage guard
 

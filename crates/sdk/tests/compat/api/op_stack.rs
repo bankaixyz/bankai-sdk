@@ -1,6 +1,6 @@
 use crate::compat::case::{
-    CompatArea, CompatCaseDef, CompatCaseId, CompatEndpoint, CompatKind, HttpMethod, MatrixScope,
-    SdkCallSpec,
+    CompatArea, CompatCaseDef, CompatCaseId, CompatEndpoint, CompatKind, HttpMethod,
+    LightClientProofSource, MatrixScope, MerkleProofSource, MmrProofSource, SdkCallSpec,
 };
 
 pub fn cases() -> Vec<CompatCaseDef> {
@@ -68,6 +68,36 @@ pub fn cases() -> Vec<CompatCaseDef> {
                 method: HttpMethod::Post,
                 path: "/v1/op/{name}/light_client_proof",
             }),
+            required: true,
+        },
+        CompatCaseDef {
+            id: CompatCaseId("op_stack.merkle_proof.verify"),
+            area: CompatArea::OpStack,
+            kind: CompatKind::MerkleProofVerify {
+                source: MerkleProofSource::OpStackFromSnapshot,
+                scope: MatrixScope::Core,
+            },
+            endpoint: None,
+            required: true,
+        },
+        CompatCaseDef {
+            id: CompatCaseId("op_stack.mmr_proof.verify"),
+            area: CompatArea::OpStack,
+            kind: CompatKind::MmrProofVerify {
+                source: MmrProofSource::OpStackFromSnapshot,
+                scope: MatrixScope::Core,
+            },
+            endpoint: None,
+            required: true,
+        },
+        CompatCaseDef {
+            id: CompatCaseId("op_stack.light_client_proof.verify"),
+            area: CompatArea::OpStack,
+            kind: CompatKind::LightClientProofVerify {
+                source: LightClientProofSource::OpStackFromSnapshot,
+                scope: MatrixScope::Core,
+            },
+            endpoint: None,
             required: true,
         },
     ]

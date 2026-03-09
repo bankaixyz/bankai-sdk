@@ -21,6 +21,7 @@ This **stateless light client architecture** is fully trustless - no chains to s
 | **Beacon Headers** | ✅ | ❌ | Available |
 | **Execution Headers** | ✅ | ❌ | Available |
 | **Execution Accounts** | ✅ | ❌ | Available |
+| **Execution Receipts** | ✅ | ❌ | Available |
 | **Execution Storage Slots** | ✅ | ❌ | Available |
 | **Execution Transactions** | ✅ | ❌ | Available |
 
@@ -92,7 +93,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bankai = Bankai::new(
         Network::Sepolia,
         Some("https://sepolia.infura.io/v3/YOUR_KEY".to_string()),  // Execution RPC
-        Some("https://sepolia.beacon-api.example.com".to_string())  // Beacon RPC
+        Some("https://sepolia.beacon-api.example.com".to_string()), // Beacon RPC
+        None, // Optional OP Stack RPCs keyed by chain name
     );
 
     // Step 2: Build a batch with multiple proof requests
@@ -107,6 +109,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ethereum_beacon_header(8_551_383)                               // Request beacon header
         .ethereum_execution_header(9_231_247)                            // Request execution header
         .ethereum_account(9_231_247, Address::ZERO)                      // Request account state
+        .ethereum_receipt(FixedBytes::from([0u8; 32]))                   // Request receipt by tx hash
         .ethereum_storage_slot(9_231_247, Address::ZERO, vec![U256::from(0)]) // Request storage slot
         .ethereum_tx(FixedBytes::from([0u8; 32]))                        // Request transaction
         .execute()
@@ -137,6 +140,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("✓ Verified transaction: {:?}", tx);
     }
 
+    for receipt in &results.evm.receipt {
+        println!("✓ Verified receipt: {:?}", receipt);
+    }
+
+    for header in &results.op_stack.header {
+        println!("✓ Verified OP Stack block {}", header.number);
+    }
+
     Ok(())
 }
 ```
@@ -150,7 +161,7 @@ That's it! The data is now trustlessly verified and ready to use.
 Bankai SDK is composed of three crates that work together:
 
 ### 📦 `bankai-sdk` - Data Fetching
-Fetches blockchain data with cryptographic proofs from the Bankai API. Provides ergonomic batch builders and individual fetchers for headers, accounts, and transactions.
+Fetches blockchain data with cryptographic proofs from the Bankai API. Provides ergonomic batch builders and individual fetchers for headers, accounts, receipts, and transactions.
 
 ### ✅ `bankai-verify` - Trustless Verification
 Cryptographically verifies all fetched data. Once verified, data is guaranteed to be valid - no further checks needed. Handles block proof verification, MMR proof verification, and Merkle proof verification.
@@ -183,6 +194,7 @@ let tx_hash = FixedBytes::from([0u8; 32]);
 let result = batch
     .ethereum_beacon_header(8551383)                  // Beacon header
     .ethereum_execution_header(9231247)               // Execution header
+    .ethereum_receipt(tx_hash)                        // Receipt by transaction hash
     .ethereum_tx(tx_hash)                             // Transaction by hash
     .ethereum_account(9231247, Address::ZERO)         // Account proof
     .execute()
@@ -235,7 +247,8 @@ let light_client_proof = sdk.api.ethereum().execution().light_client_proof(&lc_r
 let sdk = Bankai::new(
     Network::Sepolia,                         // Network to connect to
     Some("https://eth-sepolia.rpc".to_string()),  // Execution RPC (optional)
-    Some("https://sepolia.beacon.api".to_string()) // Beacon RPC (optional)
+    Some("https://sepolia.beacon.api".to_string()), // Beacon RPC (optional)
+    None // OP Stack RPCs keyed by chain name (optional)
 );
 ```
 

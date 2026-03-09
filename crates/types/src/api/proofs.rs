@@ -105,4 +105,3 @@ pub struct HeaderRequestDto {
     pub network_id: u64,
     pub header_hash: String,
 }
-

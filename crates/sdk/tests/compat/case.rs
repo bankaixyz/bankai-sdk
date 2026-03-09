@@ -64,6 +64,7 @@ pub enum SdkCallSpec {
 pub enum MmrProofSource {
     EthereumBeaconFromSnapshot,
     EthereumExecutionFromSnapshot,
+    OpStackFromSnapshot,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,6 +76,12 @@ pub enum BankaiMmrProofSource {
 pub enum LightClientProofSource {
     EthereumBeaconFromSnapshot,
     EthereumExecutionFromSnapshot,
+    OpStackFromSnapshot,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MerkleProofSource {
+    OpStackFromSnapshot,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -100,6 +107,10 @@ pub enum CompatKind {
     },
     MmrProofVerify {
         source: MmrProofSource,
+        scope: MatrixScope,
+    },
+    MerkleProofVerify {
+        source: MerkleProofSource,
         scope: MatrixScope,
     },
     BankaiMmrProofVerify {

@@ -171,9 +171,6 @@ pub mod bankai;
 /// After verification, all returned data is cryptographically guaranteed valid.
 pub mod evm;
 
-/// OP Stack verification components.
-pub mod op_stack;
-
 // ============================================================================
 // Public API
 // ============================================================================
@@ -221,6 +218,9 @@ pub enum VerifyError {
     /// A transaction Merkle proof failed verification against the header's transactions root
     InvalidTxProof,
 
+    /// A receipt Merkle proof failed verification against the header's receipts root
+    InvalidReceiptProof,
+
     /// An account Merkle proof failed verification against the header's state root
     InvalidAccountProof,
 
@@ -251,6 +251,7 @@ impl core::fmt::Display for VerifyError {
             Self::InvalidMerkleProof => write!(f, "Invalid Merkle proof"),
             Self::InvalidHeaderHash => write!(f, "Invalid header hash"),
             Self::InvalidTxProof => write!(f, "Invalid transaction proof"),
+            Self::InvalidReceiptProof => write!(f, "Invalid receipt proof"),
             Self::InvalidAccountProof => write!(f, "Invalid account proof"),
             Self::InvalidStorageProof => write!(f, "Invalid storage proof"),
             Self::InvalidExecutionHeaderProof => write!(f, "Invalid execution header proof"),

@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::api::{
-    ethereum::BankaiBlockFilterDto,
-    op_stack::OpChainsSummaryDto,
-    proofs::BankaiBlockProofDto,
+    ethereum::BankaiBlockFilterDto, op_stack::OpChainsSummaryDto, proofs::BankaiBlockProofDto,
     stats::ChainSnapshotSummaryDto,
 };
 use crate::common::{HashingFunction, ProofFormat};

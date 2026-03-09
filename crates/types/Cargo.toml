@@ -23,7 +23,7 @@ alloy-rpc-types-eth = { workspace = true, default-features = false, optional = t
 alloy-rpc-types-beacon = { workspace = true, default-features = false, optional = true }
 
 [features]
-default = ["std"]
+default = ["std", "inputs", "results"]
 
 # Standard library support
 std = [
@@ -36,7 +36,7 @@ std = [
 api = ["std", "serde", "serde_json", "utoipa"]
 
 # Typed proof inputs assembled by the SDK
-inputs = ["serde", "serde_json", "alloy-rpc-types-eth", "alloy-rpc-types-beacon"]
+inputs = ["api", "serde", "serde_json", "alloy-rpc-types-eth", "alloy-rpc-types-beacon"]
 
 # Verified outputs returned by the verifier
 results = []

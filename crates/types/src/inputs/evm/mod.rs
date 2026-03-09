@@ -9,11 +9,12 @@ use crate::api::proofs::MmrProofDto;
 use crate::common::HashingFunction;
 use crate::inputs::evm::{
     beacon::BeaconHeaderProof,
-    execution::{AccountProof, ExecutionHeaderProof, StorageSlotProof, TxProof},
+    execution::{AccountProof, ExecutionHeaderProof, ReceiptProof, StorageSlotProof, TxProof},
 };
 
 pub mod beacon;
 pub mod execution;
+pub mod op_stack;
 
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Serialize, Deserialize)]
@@ -23,6 +24,7 @@ pub struct EvmProofs {
     pub account_proof: Option<Vec<AccountProof>>,
     pub storage_slot_proof: Option<Vec<StorageSlotProof>>,
     pub tx_proof: Option<Vec<TxProof>>,
+    pub receipt_proof: Option<Vec<ReceiptProof>>,
 }
 
 impl From<MmrProofDto> for MmrProof {
