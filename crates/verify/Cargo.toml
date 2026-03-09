@@ -3,6 +3,10 @@ name = "bankai-verify"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["std"]
+std = ["bankai-types/std"]
+
 [dependencies]
 bankai-core = { path = "../core" }
 bankai-types = { path = "../types", default-features = false, features = ["inputs", "results"] }

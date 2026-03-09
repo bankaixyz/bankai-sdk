@@ -78,7 +78,11 @@ impl BeaconChainFetcher {
             .await?;
         Ok(BeaconHeaderProof {
             header: header_response,
-            mmr_proof: mmr_proof.into(),
+            mmr_proof: mmr_proof.try_into().map_err(|e| {
+                crate::errors::SdkError::InvalidInput(format!(
+                    "invalid beacon MMR proof hex from API: {e}"
+                ))
+            })?,
         })
     }
 

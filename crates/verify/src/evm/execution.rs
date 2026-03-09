@@ -72,8 +72,7 @@ impl ExecutionVerifier {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        MmrVerifier::verify_mmr_proof(&proof.mmr_proof.clone())
-            .map_err(|_| VerifyError::InvalidMmrProof)?;
+        MmrVerifier::verify_mmr_proof(&proof.mmr_proof)?;
 
         let hash = proof.header.hash_slow();
         if hash != proof.mmr_proof.header_hash {

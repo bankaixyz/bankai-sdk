@@ -291,6 +291,7 @@ impl BankaiBlockFull {
 }
 
 impl BankaiBlockHashOutput {
+    #[cfg(feature = "inputs")]
     pub fn from_verification_output(output: &cairo_air::utils::VerificationOutput) -> Option<Self> {
         let output = &output.output;
         if output.len() < 2 {

@@ -33,9 +33,6 @@ pub enum SdkError {
         error_id: String,
     },
 
-    #[error("verification error: {0}")]
-    Verification(String),
-
     #[error("not found: {0}")]
     NotFound(String),
 

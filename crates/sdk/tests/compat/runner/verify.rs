@@ -424,11 +424,8 @@ pub(super) async fn run_mmr_verify(
                 }
             };
 
-            let valid = MmrVerifier::verify_mmr_proof(&mmr)
+            MmrVerifier::verify_mmr_proof(&mmr)
                 .with_context(|| format!("MMR proof verification failed for {variant}"))?;
-            if !valid {
-                return Err(anyhow!("MMR verifier returned false for {variant}"));
-            }
         }
     }
 
@@ -726,13 +723,8 @@ fn verify_light_client_bundle(
 
         let mmr = api_mmr_dto_to_mmr(mmr_dto)
             .with_context(|| format!("failed converting light client MMR proof for {variant}"))?;
-        let valid = MmrVerifier::verify_mmr_proof(&mmr)
+        MmrVerifier::verify_mmr_proof(&mmr)
             .with_context(|| format!("light client mmr proof verification failed for {variant}"))?;
-        if !valid {
-            return Err(anyhow!(
-                "light client MMR verifier returned false for {variant}"
-            ));
-        }
     }
 
     Ok(())
@@ -813,13 +805,8 @@ async fn verify_op_stack_light_client_bundle(
         let mmr = api_mmr_dto_to_mmr(mmr_dto).with_context(|| {
             format!("failed converting OP light client MMR proof for {variant}")
         })?;
-        let valid = MmrVerifier::verify_mmr_proof(&mmr)
+        MmrVerifier::verify_mmr_proof(&mmr)
             .with_context(|| format!("OP light client mmr verification failed for {variant}"))?;
-        if !valid {
-            return Err(anyhow!(
-                "OP light client MMR verifier returned false for {variant}"
-            ));
-        }
     }
 
     Ok(())

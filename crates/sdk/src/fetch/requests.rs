@@ -2,12 +2,12 @@ use alloy_primitives::{Address, FixedBytes, U256};
 
 #[derive(Debug, Default)]
 pub struct EvmProofsRequest {
-    pub execution_header: Option<Vec<ExecutionHeaderProofRequest>>,
-    pub beacon_header: Option<Vec<BeaconHeaderProofRequest>>,
-    pub account: Option<Vec<AccountProofRequest>>,
-    pub storage_slot: Option<Vec<StorageSlotProofRequest>>,
-    pub tx_proof: Option<Vec<TxProofRequest>>,
-    pub receipt_proof: Option<Vec<ReceiptProofRequest>>,
+    pub execution_header: Vec<ExecutionHeaderProofRequest>,
+    pub beacon_header: Vec<BeaconHeaderProofRequest>,
+    pub account: Vec<AccountProofRequest>,
+    pub storage_slot: Vec<StorageSlotProofRequest>,
+    pub tx_proof: Vec<TxProofRequest>,
+    pub receipt_proof: Vec<ReceiptProofRequest>,
 }
 
 #[derive(Debug, Default)]

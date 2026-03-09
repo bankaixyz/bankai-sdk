@@ -1,17 +1,27 @@
 use alloy_primitives::FixedBytes;
+#[cfg(feature = "inputs")]
 use alloy_rpc_types_beacon::header::HeaderResponse;
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use tree_hash_derive::TreeHash;
 
-#[derive(TreeHash, Clone, Debug, Serialize, Deserialize)]
+/// Verified Ethereum beacon header.
+#[derive(TreeHash, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BeaconHeader {
+    /// Beacon slot.
     pub slot: u64,
+    /// Beacon proposer index.
     pub proposer_index: u64,
+    /// Parent root committed by the beacon header.
     pub parent_root: FixedBytes<32>,
+    /// Beacon state root.
     pub state_root: FixedBytes<32>,
+    /// Beacon block body root.
     pub body_root: FixedBytes<32>,
 }
 
+#[cfg(feature = "inputs")]
 impl From<HeaderResponse> for BeaconHeader {
     fn from(header: HeaderResponse) -> Self {
         Self {

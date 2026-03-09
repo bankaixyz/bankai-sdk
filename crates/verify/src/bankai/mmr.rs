@@ -6,7 +6,7 @@ use crate::VerifyError;
 pub struct MmrVerifier;
 
 impl MmrVerifier {
-    pub fn verify_mmr_proof(proof: &MmrProof) -> Result<bool, VerifyError> {
+    pub fn verify_mmr_proof(proof: &MmrProof) -> Result<(), VerifyError> {
         let leaf = hash_to_leaf(proof.header_hash, &proof.hashing_function).0;
         let mmr_proof = mmr::Proof {
             element_index: proof.elements_index,
@@ -17,14 +17,11 @@ impl MmrVerifier {
         };
 
         // Ensure the merkle path recreates a specific peak hash
-        let valid = match proof.hashing_function {
-            HashingFunction::Keccak => {
-                mmr::verify_proof_stateless(&mmr::KeccakHasher::new(), &mmr_proof, leaf)
-            }
-            HashingFunction::Poseidon => {
-                mmr::verify_proof_stateless(&mmr::PoseidonHasher::new(), &mmr_proof, leaf)
-            }
-        }
+        let valid = with_hasher(
+            proof.hashing_function,
+            |hasher| mmr::verify_proof_stateless(hasher, &mmr_proof, leaf),
+            |hasher| mmr::verify_proof_stateless(hasher, &mmr_proof, leaf),
+        )
         .map_err(map_mmr_error)?;
 
         if !valid {
@@ -32,25 +29,41 @@ impl MmrVerifier {
         }
 
         // ensure the peaks create the expected root
-        let computed_root = match proof.hashing_function {
-            HashingFunction::Keccak => mmr::calculate_root_hash(
-                &mmr::KeccakHasher::new(),
+        let computed_root = with_hasher(
+            proof.hashing_function,
+            |hasher| mmr::calculate_root_hash(
+                hasher,
                 proof.elements_count,
                 &mmr_proof.peaks_hashes,
             ),
-            HashingFunction::Poseidon => mmr::calculate_root_hash(
-                &mmr::PoseidonHasher::new(),
+            |hasher| mmr::calculate_root_hash(
+                hasher,
                 proof.elements_count,
                 &mmr_proof.peaks_hashes,
             ),
-        }
+        )
         .map_err(map_mmr_error)?;
 
         if computed_root != proof.root.0 {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        Ok(true)
+        Ok(())
+    }
+}
+
+fn with_hasher<T, FKeccak, FPoseidon>(
+    hashing_function: HashingFunction,
+    keccak: FKeccak,
+    poseidon: FPoseidon,
+) -> T
+where
+    FKeccak: FnOnce(&mmr::KeccakHasher) -> T,
+    FPoseidon: FnOnce(&mmr::PoseidonHasher) -> T,
+{
+    match hashing_function {
+        HashingFunction::Keccak => keccak(&mmr::KeccakHasher::new()),
+        HashingFunction::Poseidon => poseidon(&mmr::PoseidonHasher::new()),
     }
 }
 
@@ -103,13 +116,13 @@ mod tests {
     #[test]
     fn verifies_valid_keccak_proof() {
         let proof = base_proof(HashingFunction::Keccak);
-        assert_eq!(MmrVerifier::verify_mmr_proof(&proof), Ok(true));
+        assert_eq!(MmrVerifier::verify_mmr_proof(&proof), Ok(()));
     }
 
     #[test]
     fn verifies_valid_poseidon_proof() {
         let proof = base_proof(HashingFunction::Poseidon);
-        assert_eq!(MmrVerifier::verify_mmr_proof(&proof), Ok(true));
+        assert_eq!(MmrVerifier::verify_mmr_proof(&proof), Ok(()));
     }
 
     #[test]

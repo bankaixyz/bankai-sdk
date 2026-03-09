@@ -1,43 +1,47 @@
 extern crate alloc;
 
-use alloc::string::String;
 use alloc::vec::Vec;
 
-use alloy_primitives::{FixedBytes, hex::FromHex};
+use alloy_primitives::FixedBytes;
+#[cfg(feature = "api")]
+use alloy_primitives::hex::FromHex;
 use alloy_rpc_types_eth::Header as ExecutionHeader;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "api")]
 use crate::api::op_stack::OpMerkleProofDto;
 use crate::block::OpChainClient;
+use crate::inputs::evm::header_serde::{
+    deserialize_execution_header, serialize_execution_header,
+};
 use crate::inputs::evm::{
     MmrProof,
     execution::{AccountProof, ReceiptProof, StorageSlotProof, TxProof},
 };
 
-fn serialize_execution_header<S>(header: &ExecutionHeader, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let json_str = serde_json::to_string(header).map_err(serde::ser::Error::custom)?;
-    json_str.serialize(serializer)
-}
-
-fn deserialize_execution_header<'de, D>(deserializer: D) -> Result<ExecutionHeader, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let json_str = String::deserialize(deserializer)?;
-    serde_json::from_str(&json_str).map_err(serde::de::Error::custom)
-}
-
 #[cfg_attr(feature = "std", derive(Debug))]
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct OpStackProofs {
-    pub header_proof: Option<Vec<OpStackHeaderProof>>,
-    pub account_proof: Option<Vec<AccountProof>>,
-    pub storage_slot_proof: Option<Vec<StorageSlotProof>>,
-    pub tx_proof: Option<Vec<TxProof>>,
-    pub receipt_proof: Option<Vec<ReceiptProof>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub header_proof: Vec<OpStackHeaderProof>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub account_proof: Vec<AccountProof>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub storage_slot_proof: Vec<StorageSlotProof>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tx_proof: Vec<TxProof>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub receipt_proof: Vec<ReceiptProof>,
+}
+
+impl OpStackProofs {
+    pub fn is_empty(&self) -> bool {
+        self.header_proof.is_empty()
+            && self.account_proof.is_empty()
+            && self.storage_slot_proof.is_empty()
+            && self.tx_proof.is_empty()
+            && self.receipt_proof.is_empty()
+    }
 }
 
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -63,23 +67,26 @@ pub struct OpStackMerkleProof {
     pub path: Vec<FixedBytes<32>>,
 }
 
-impl From<OpMerkleProofDto> for OpStackMerkleProof {
-    fn from(value: OpMerkleProofDto) -> Self {
-        OpStackMerkleProof {
+#[cfg(feature = "api")]
+impl TryFrom<OpMerkleProofDto> for OpStackMerkleProof {
+    type Error = alloy_primitives::hex::FromHexError;
+
+    fn try_from(value: OpMerkleProofDto) -> Result<Self, Self::Error> {
+        Ok(OpStackMerkleProof {
             chain_id: value.chain_id,
             merkle_leaf_index: value.merkle_leaf_index,
-            leaf_hash: FixedBytes::from_hex(value.leaf_hash).unwrap(),
-            root: FixedBytes::from_hex(value.root).unwrap(),
+            leaf_hash: FixedBytes::from_hex(value.leaf_hash)?,
+            root: FixedBytes::from_hex(value.root)?,
             path: value
                 .path
                 .into_iter()
-                .map(|node| FixedBytes::from_hex(node).unwrap())
-                .collect(),
-        }
+                .map(FixedBytes::from_hex)
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "api"))]
 mod tests {
     use super::OpStackMerkleProof;
     use crate::api::op_stack::OpMerkleProofDto;
@@ -98,7 +105,7 @@ mod tests {
             ],
         };
 
-        let proof = OpStackMerkleProof::from(dto);
+        let proof = OpStackMerkleProof::try_from(dto).unwrap();
 
         assert_eq!(proof.chain_id, 10);
         assert_eq!(proof.merkle_leaf_index, 2);

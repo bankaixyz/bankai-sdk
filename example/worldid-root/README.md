@@ -1,26 +1,24 @@
-# World ID Root (Sepolia) — Bankai SDK Example
+# World ID Root Example
 
-This example retrieves the **World ID root** at a **specific Sepolia execution block** and verifies it using Bankai proofs.
+This example shows a focused OP Stack flow:
 
-## What this demonstrates (end-to-end)
+1. connect to a local Bankai API
+2. fetch an OP Stack account proof for Base
+3. verify the proof bundle
+4. print the verified header and account balance
 
-- **Stateless light client architecture**: Bankai proofs are stateless light client proofs.
-- **Access by verification**: because of this construction, you can access on-chain data by verifying a Bankai proof.
-- **No destination-chain state**: crucially, these light client proofs are valid without relying on a smart contract to store state.
-- **Decommit arbitrary data via the SDK**: verify the proof, then decommit any data you want (here: the World ID root at a specific Sepolia block).
-- **Prove in a zkVM**: this verification + decommit can be proven inside a zkVM.
-- **Bring the zk proof anywhere**: the resulting zkVM proof can be verified on any chain (Solana, Sui, Avalanche, L3s/appchains) or in client-side circuits.
-- **No destination infra required**: because stateless light clients don’t require on-chain infrastructure, you can move the World ID root without deploying/maintaining a light client on the destination chain.
-- **Trustless root anywhere**: verify the zkVM proof anywhere and immediately have trustless access to the root.
+## Requirements
 
-## Run it
+- a Bankai API available at `http://localhost:8080`
+- `BASE_RPC` set to a Base RPC endpoint
 
-From the repo root:
+## Run
 
 ```bash
-export EXECUTION_RPC="https://sepolia.infura.io/v3/YOUR_KEY"
+export BASE_RPC="https://mainnet.base.org"
 cargo run -p bankai-example-worldid-root
 ```
 
-The program prints the **verified** World ID root value for the configured block.
+The example uses `Network::Local` on purpose so it is aligned with a local Bankai deployment.
 
+If you only want a local Bankai API endpoint but still need Sepolia semantics for Ethereum-side requests, use `Bankai::new_with_base_url(Network::Sepolia, "http://localhost:8080".to_string(), ...)` instead.

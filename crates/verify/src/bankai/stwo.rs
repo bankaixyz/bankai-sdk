@@ -22,11 +22,11 @@ pub fn verify_stwo_proof(
 pub fn verify_block_proof(
     proof: CairoProof<Blake2sMerkleHasher>,
     block: &BankaiBlock,
-) -> Result<BankaiBlock, VerifyError> {
+) -> Result<(), VerifyError> {
     let hash_output = verify_stwo_proof(proof)?;
     let expected_hash = block.compute_block_hash_keccak();
     if hash_output.block_hash != expected_hash {
         return Err(VerifyError::InvalidBlockHash);
     }
-    Ok(block.clone())
+    Ok(())
 }

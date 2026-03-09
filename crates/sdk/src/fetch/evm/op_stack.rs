@@ -12,6 +12,7 @@ use bankai_types::inputs::evm::{
 use crate::errors::{SdkError, SdkResult};
 use crate::fetch::{api::ApiClient, clients::op_stack_client::OpStackFetcher};
 
+/// Fetches OP Stack data and proof material for one configured chain.
 pub struct OpStackChainFetcher {
     api_client: ApiClient,
     chain_name: String,
@@ -19,6 +20,7 @@ pub struct OpStackChainFetcher {
 }
 
 impl OpStackChainFetcher {
+    /// Creates a fetcher for one OP Stack chain configuration.
     pub fn new(api_client: ApiClient, chain_name: String, rpc_url: String) -> Self {
         Self {
             api_client,
@@ -27,10 +29,12 @@ impl OpStackChainFetcher {
         }
     }
 
+    /// Returns the configured Bankai API chain name.
     pub fn chain_name(&self) -> &str {
         &self.chain_name
     }
 
+    /// Fetches an OP Stack header proof by block number.
     pub async fn header(
         &self,
         block_number: u64,
@@ -43,6 +47,7 @@ impl OpStackChainFetcher {
             .await
     }
 
+    /// Fetches an OP Stack header proof by header hash.
     pub async fn header_by_hash(
         &self,
         header_hash: FixedBytes<32>,
@@ -55,10 +60,12 @@ impl OpStackChainFetcher {
             .await
     }
 
+    /// Fetches the raw execution header from the configured OP RPC.
     pub async fn header_only(&self, block_number: u64) -> SdkResult<alloy_rpc_types_eth::Header> {
         self.op_stack_client.fetch_header(block_number).await
     }
 
+    /// Fetches the raw execution header by hash from the configured OP RPC.
     pub async fn header_only_by_hash(
         &self,
         header_hash: FixedBytes<32>,
@@ -66,6 +73,7 @@ impl OpStackChainFetcher {
         self.op_stack_client.fetch_header_by_hash(header_hash).await
     }
 
+    /// Fetches an account proof from the configured OP RPC.
     pub async fn account(
         &self,
         block_number: u64,
@@ -76,6 +84,7 @@ impl OpStackChainFetcher {
             .await
     }
 
+    /// Fetches a transaction proof from the configured OP RPC.
     pub async fn tx_proof(&self, tx_hash: FixedBytes<32>) -> SdkResult<TxProof> {
         let network_id = self.chain_id().await?;
         self.op_stack_client
@@ -83,6 +92,7 @@ impl OpStackChainFetcher {
             .await
     }
 
+    /// Fetches a receipt proof from the configured OP RPC.
     pub async fn receipt_proof(&self, tx_hash: FixedBytes<32>) -> SdkResult<ReceiptProof> {
         let network_id = self.chain_id().await?;
         self.op_stack_client
@@ -90,6 +100,7 @@ impl OpStackChainFetcher {
             .await
     }
 
+    /// Fetches a storage proof from the configured OP RPC.
     pub async fn storage_slot_proof(
         &self,
         block_number: u64,
@@ -131,10 +142,12 @@ impl OpStackChainFetcher {
         })
     }
 
+    /// Returns the configured OP chain ID from the RPC.
     pub async fn chain_id(&self) -> SdkResult<u64> {
         self.op_stack_client.fetch_chain_id().await
     }
 
+    /// Fetches the OP snapshot committed by the Bankai API for a filter.
     pub async fn snapshot(
         &self,
         filter: BankaiBlockFilterDto,
@@ -173,8 +186,12 @@ impl OpStackChainFetcher {
         Ok(OpStackHeaderProof {
             header,
             snapshot: snapshot_to_witness(snapshot)?,
-            merkle_proof: proof.merkle_proof.into(),
-            mmr_proof: mmr_proof.into(),
+            merkle_proof: proof.merkle_proof.try_into().map_err(|e| {
+                SdkError::InvalidInput(format!("invalid OP merkle proof hex from API: {e}"))
+            })?,
+            mmr_proof: mmr_proof.try_into().map_err(|e| {
+                SdkError::InvalidInput(format!("invalid OP MMR proof hex from API: {e}"))
+            })?,
         })
     }
 

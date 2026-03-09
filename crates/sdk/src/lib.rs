@@ -1,117 +1,48 @@
-//! Bankai SDK
+//! Bankai fetches proof bundles from the Bankai API and local RPC providers.
 //!
-//! **Trustless blockchain data access through zero-knowledge proofs**
+//! The intended flow is:
 //!
-//! ## How It Works
-//!
-//! 1. **Verify the Bankai block proof**: validate the STWO proof to establish trust in the MMR roots
-//! 2. **Verify MMR proofs**: decommit and verify headers against those trusted MMR roots
-//! 3. **Verify chain data**: verify accounts/transactions/storage against the verified headers
-//!
-//! ## Getting Started (Fetch + Verify)
-//!
-//! This example follows the full flow: fetch a proof batch via the SDK, then verify it with
-//! `bankai-verify`, and finally use the verified results.
+//! 1. configure [`Bankai`]
+//! 2. build a batch with [`Bankai::init_batch`]
+//! 3. call `.execute()` to get a [`ProofBundle`]
+//! 4. verify the bundle with `bankai-verify`
 //!
 //! ```no_run
-//! use alloy_primitives::{Address, FixedBytes, U256};
+//! use alloy_primitives::Address;
 //! use bankai_sdk::{Bankai, HashingFunction, Network};
 //! use bankai_verify::verify_batch_proof;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // Step 1: Initialize the SDK
 //!     let bankai = Bankai::new(
 //!         Network::Sepolia,
-//!         Some("https://sepolia.infura.io/v3/YOUR_KEY".to_string()),  // Execution RPC
-//!         Some("https://sepolia.beacon-api.example.com".to_string()), // Beacon RPC
-//!         None, // OP Stack RPCs by chain name
+//!         Some("https://sepolia.infura.io/v3/YOUR_KEY".to_string()),
+//!         Some("https://sepolia.beacon-api.example.com".to_string()),
+//!         None,
 //!     );
 //!
-//!     // Step 2: Build and fetch a batch with multiple proof requests
-//!     let proof_batch = bankai
+//!     let proof_bundle = bankai
 //!         .init_batch(Network::Sepolia, None, HashingFunction::Keccak)
 //!         .await?
-//!         .ethereum_beacon_header(8_551_383)
 //!         .ethereum_execution_header(9_231_247)
 //!         .ethereum_account(9_231_247, Address::ZERO)
-//!         .ethereum_storage_slot(9_231_247, Address::ZERO, vec![U256::from(0)])
-//!         .ethereum_tx(FixedBytes::from([0u8; 32]))
-//!         .ethereum_receipt(FixedBytes::from([0u8; 32]))
 //!         .execute()
 //!         .await?;
 //!
-//!     // Step 3: Verify everything (block proof + MMR proofs + Merkle proofs)
-//!     let results = verify_batch_proof(proof_batch)?;
-//!
-//!     // Step 4: Use the verified data (cryptographically guaranteed valid)
-//!     for header in &results.evm.execution_header {
-//!         println!("✓ Verified execution header at block {}", header.number);
-//!     }
-//!     for header in &results.evm.beacon_header {
-//!         println!("✓ Verified beacon slot {}", header.slot);
-//!     }
-//!     for account in &results.evm.account {
-//!         println!("✓ Verified account balance: {} wei", account.balance);
-//!     }
-//!     for slot in &results.evm.storage_slot {
-//!         println!("✓ Verified storage slot: {:?}", slot);
-//!     }
-//!     for tx in &results.evm.tx {
-//!         println!("✓ Verified transaction: {:?}", tx);
-//!     }
-//!     for receipt in &results.evm.receipt {
-//!         println!("✓ Verified receipt: {:?}", receipt);
-//!     }
-//!     for header in &results.op_stack.header {
-//!         println!("✓ Verified OP Stack header at block {}", header.number);
-//!     }
-//!
+//!     let results = verify_batch_proof(proof_bundle)?;
+//!     println!("Verified block {}", results.evm.execution_header[0].number);
+//!     println!("Verified balance {}", results.evm.account[0].balance);
 //!     Ok(())
 //! }
 //! ```
 //!
-//! # API Client
+//! Guides:
 //!
-//! Direct access to the Bankai API for low-level operations:
-//!
-//! ```no_run
-//! use bankai_sdk::{Bankai, HashingFunction, Network};
-//! use bankai_types::api::ethereum::{
-//!     BankaiBlockFilterDto, EthereumLightClientProofRequestDto, EthereumMmrProofRequestDto,
-//! };
-//! use bankai_types::common::ProofFormat;
-//!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let sdk = Bankai::new(Network::Sepolia, None, None, None);
-//!
-//! // Get latest Bankai block number
-//! let latest_block = sdk.api.blocks().latest_number().await?;
-//!
-//! // Fetch STWO block proof
-//! let block_proof = sdk.api.blocks().proof(latest_block).await?;
-//!
-//! // Fetch MMR proof for a specific header
-//! let filter = BankaiBlockFilterDto::with_bankai_block_number(latest_block);
-//! let mmr_request = EthereumMmrProofRequestDto {
-//!     filter: filter.clone(),
-//!     hashing_function: HashingFunction::Keccak,
-//!     header_hash: "0x...".to_string(),
-//! };
-//! let mmr_proof = sdk.api.ethereum().execution().mmr_proof(&mmr_request).await?;
-//!
-//! // Fetch batch light client proof (STWO proof + multiple MMR proofs)
-//! let lc_request = EthereumLightClientProofRequestDto {
-//!     filter,
-//!     hashing_function: HashingFunction::Keccak,
-//!     header_hashes: vec!["0x...".to_string()],
-//!     proof_format: ProofFormat::Bin, // default if omitted by backend
-//! };
-//! let light_client_proof = sdk.api.ethereum().execution().light_client_proof(&lc_request).await?;
-//! # Ok(())
-//! # }
-//! ```
+//! - [Core flow](https://github.com/bankaixyz/bankai-sdk/blob/main/docs/core-flow.md)
+//! - [OP Stack integration](https://github.com/bankaixyz/bankai-sdk/blob/main/docs/op-stack.md)
+//! - [API client overview](https://github.com/bankaixyz/bankai-sdk/blob/main/docs/api-client.md)
 
+/// SDK error types and result aliases.
 pub mod errors;
 
 use std::collections::BTreeMap;
@@ -150,9 +81,12 @@ impl Network {
         0
     }
 
-    /// Returns the execution layer network ID (always 1)
+    /// Returns the default execution layer chain ID for this network.
     pub const fn execution_network_id(&self) -> u64 {
-        11155111
+        match self {
+            Network::Sepolia => 11155111,
+            Network::Local => 11155111,
+        }
     }
 }
 
@@ -160,13 +94,12 @@ impl Network {
 // Public API Components
 // ============================================================================
 
-/// API client for interacting with Bankai's API
+/// API client for Bankai's low-level HTTP endpoints.
 pub use crate::fetch::api::ApiClient;
 
-/// Batch proof generation for efficient multi-proof operations
+/// Batch proof generation for the fetch-then-verify flow.
 ///
-/// Combine multiple proof requests into a single optimized operation.
-/// All proofs share the same STWO block proof and Bankai block number.
+/// All requests in a batch share the same Bankai block and block proof.
 pub mod batch {
 
     pub use crate::fetch::batch::ProofBatchBuilder;
@@ -192,7 +125,7 @@ struct OpStackNamespace {
     chains: BTreeMap<String, OpStackChainFetcher>,
 }
 
-/// Main entry point for the Bankai SDK
+/// Main entry point for configuring RPCs, fetching proof bundles, and accessing the API client.
 pub struct Bankai {
     /// Direct access to the Bankai API client
     pub api: ApiClient,
@@ -203,14 +136,10 @@ pub struct Bankai {
 }
 
 impl Bankai {
-    /// Creates a new Bankai SDK instance
+    /// Creates a new SDK instance using the default API URL for `network`.
     ///
-    /// # Arguments
-    ///
-    /// * `network` - The blockchain network (e.g., `Network::Sepolia`)
-    /// * `ethereum_execution_rpc` - Optional execution layer RPC endpoint
-    /// * `ethereum_beacon_rpc` - Optional beacon chain API endpoint
-    /// * `op_stack_execution_rpcs` - Optional OP Stack RPC endpoints keyed by chain name
+    /// Provide only the RPCs you need for the proofs you plan to request.
+    /// OP Stack RPCs are configured as `chain name -> rpc url`.
     pub fn new(
         network: Network,
         ethereum_execution_rpc: Option<String>,
@@ -226,7 +155,7 @@ impl Bankai {
         )
     }
 
-    /// Creates a new Bankai SDK instance using an explicit API base URL.
+    /// Creates a new SDK instance with an explicit Bankai API base URL.
     pub fn new_with_base_url(
         network: Network,
         api_base_url: String,
@@ -264,7 +193,9 @@ impl Bankai {
         self.network
     }
 
-    /// Returns the configured OP Stack fetcher for a chain name.
+    /// Returns the configured OP Stack fetcher for `chain_name`.
+    ///
+    /// The name must match the key passed in `op_stack_execution_rpcs`.
     pub fn op_stack(&self, chain_name: &str) -> SdkResult<&OpStackChainFetcher> {
         self.op_stack
             .chains
@@ -272,13 +203,9 @@ impl Bankai {
             .ok_or_else(|| SdkError::NotConfigured(format!("OP Stack fetcher for {chain_name}")))
     }
 
-    /// Initialize a new batch proof builder
+    /// Starts a proof batch anchored to a Bankai block.
     ///
-    /// # Arguments
-    ///
-    /// * `network` - The blockchain network (e.g., `Network::Sepolia`)
-    /// * `bankai_block_number` - Optional Bankai block number (uses latest if `None`)
-    /// * `hashing` - The hashing function for MMR proofs
+    /// Pass `None` to use the latest completed Bankai block.
     pub async fn init_batch(
         &self,
         network: Network,

@@ -68,7 +68,7 @@ impl BeaconVerifier {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        MmrVerifier::verify_mmr_proof(&proof.mmr_proof.clone())?;
+        MmrVerifier::verify_mmr_proof(&proof.mmr_proof)?;
 
         let header = BeaconHeader::from(proof.header.clone());
         let hash = header.tree_hash_root();

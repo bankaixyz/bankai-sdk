@@ -80,7 +80,11 @@ impl ExecutionChainFetcher {
             .await?;
         Ok(ExecutionHeaderProof {
             header,
-            mmr_proof: mmr_proof.into(),
+            mmr_proof: mmr_proof.try_into().map_err(|e| {
+                crate::errors::SdkError::InvalidInput(format!(
+                    "invalid execution MMR proof hex from API: {e}"
+                ))
+            })?,
         })
     }
 

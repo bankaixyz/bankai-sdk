@@ -1,29 +1,15 @@
 extern crate alloc;
 
-use alloc::string::String;
 use alloc::vec::Vec;
 
 use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
+use crate::inputs::evm::header_serde::{
+    deserialize_execution_header, serialize_execution_header,
+};
 use crate::inputs::evm::MmrProof;
-
-fn serialize_execution_header<S>(header: &ExecutionHeader, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let json_str = serde_json::to_string(header).map_err(serde::ser::Error::custom)?;
-    json_str.serialize(serializer)
-}
-
-fn deserialize_execution_header<'de, D>(deserializer: D) -> Result<ExecutionHeader, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let json_str = String::deserialize(deserializer)?;
-    serde_json::from_str(&json_str).map_err(serde::de::Error::custom)
-}
 
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Serialize, Deserialize)]
