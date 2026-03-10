@@ -121,12 +121,12 @@ async fn debug_curl_for_sdk_call(
                 .to_string()
         }
         SdkCallSpec::EthereumBeaconMmrProofFromSnapshot => {
-            debug_curl_for_mmr_verify(ctx, MmrProofSource::EthereumBeaconFromSnapshot, scope).await
+            debug_curl_for_mmr_verify(ctx, MmrProofSource::EthereumBeacon, scope).await
         }
         SdkCallSpec::EthereumBeaconLightClientProofFromSnapshot => {
             debug_curl_for_light_client_verify(
                 ctx,
-                LightClientProofSource::EthereumBeaconFromSnapshot,
+                LightClientProofSource::EthereumBeacon,
                 scope,
             )
             .await
@@ -144,13 +144,13 @@ async fn debug_curl_for_sdk_call(
                 .to_string()
         }
         SdkCallSpec::EthereumExecutionMmrProofFromSnapshot => {
-            debug_curl_for_mmr_verify(ctx, MmrProofSource::EthereumExecutionFromSnapshot, scope)
+            debug_curl_for_mmr_verify(ctx, MmrProofSource::EthereumExecution, scope)
                 .await
         }
         SdkCallSpec::EthereumExecutionLightClientProofFromSnapshot => {
             debug_curl_for_light_client_verify(
                 ctx,
-                LightClientProofSource::EthereumExecutionFromSnapshot,
+                LightClientProofSource::EthereumExecution,
                 scope,
             )
             .await
@@ -199,7 +199,7 @@ async fn debug_curl_for_mmr_verify(
     scope: MatrixScope,
 ) -> String {
     match source {
-        MmrProofSource::EthereumBeaconFromSnapshot => {
+        MmrProofSource::EthereumBeacon => {
             let mut req = serde_json::to_value(ctx.beacon_mmr_proof_request().await.ok()).ok();
             if scope == MatrixScope::Edge {
                 req = Some(serde_json::json!({
@@ -214,7 +214,7 @@ async fn debug_curl_for_mmr_verify(
                 req.as_ref(),
             )
         }
-        MmrProofSource::EthereumExecutionFromSnapshot => {
+        MmrProofSource::EthereumExecution => {
             let mut req = serde_json::to_value(ctx.execution_mmr_proof_request().await.ok()).ok();
             if scope == MatrixScope::Edge {
                 req = Some(serde_json::json!({
@@ -229,7 +229,7 @@ async fn debug_curl_for_mmr_verify(
                 req.as_ref(),
             )
         }
-        MmrProofSource::OpStackFromSnapshot => {
+        MmrProofSource::OpStack => {
             let body = if scope == MatrixScope::Edge {
                 serde_json::json!({
                     "filter": { "selector": "finalized", "bankai_block_number": "<latest>" },
@@ -283,7 +283,7 @@ async fn debug_curl_for_light_client_verify(
     scope: MatrixScope,
 ) -> String {
     match source {
-        LightClientProofSource::EthereumBeaconFromSnapshot => {
+        LightClientProofSource::EthereumBeacon => {
             let mut req = serde_json::to_value(ctx.beacon_light_client_request().await.ok()).ok();
             if scope == MatrixScope::Edge {
                 req = Some(serde_json::json!({
@@ -299,7 +299,7 @@ async fn debug_curl_for_light_client_verify(
                 req.as_ref(),
             )
         }
-        LightClientProofSource::EthereumExecutionFromSnapshot => {
+        LightClientProofSource::EthereumExecution => {
             let mut req =
                 serde_json::to_value(ctx.execution_light_client_request().await.ok()).ok();
             if scope == MatrixScope::Edge {
@@ -316,7 +316,7 @@ async fn debug_curl_for_light_client_verify(
                 req.as_ref(),
             )
         }
-        LightClientProofSource::OpStackFromSnapshot => {
+        LightClientProofSource::OpStack => {
             let body = if scope == MatrixScope::Edge {
                 serde_json::json!({
                     "filter": { "selector": "finalized", "bankai_block_number": "<latest>" },

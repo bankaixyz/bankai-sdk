@@ -1200,9 +1200,7 @@ fn assert_block_proof_payload_format(
         (ProofFormat::Bin, BlockProofPayloadDto::Bin(_)) => Ok(()),
         (ProofFormat::Json, BlockProofPayloadDto::Json(_)) => Ok(()),
         (expected, actual) => Err(anyhow!(
-            "{endpoint} returned payload format mismatch for {label}: expected {:?}, got {:?}",
-            expected,
-            actual
+            "{endpoint} returned payload format mismatch for {label}: expected {expected:?}, got {actual:?}"
         )),
     }
 }

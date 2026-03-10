@@ -349,10 +349,10 @@ impl ExecutionVerifier {
         Ok(receipt)
     }
 
-    fn header_for_block<'a>(
-        headers: &'a [ExecutionHeader],
+    fn header_for_block(
+        headers: &[ExecutionHeader],
         block_number: u64,
-    ) -> Result<&'a ExecutionHeader, VerifyError> {
+    ) -> Result<&ExecutionHeader, VerifyError> {
         headers
             .iter()
             .find(|h| h.number == block_number)

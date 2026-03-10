@@ -84,7 +84,7 @@ pub fn cases() -> Vec<CompatCaseDef> {
             id: CompatCaseId("op_stack.mmr_proof.verify"),
             area: CompatArea::OpStack,
             kind: CompatKind::MmrProofVerify {
-                source: MmrProofSource::OpStackFromSnapshot,
+                source: MmrProofSource::OpStack,
                 scope: MatrixScope::Core,
             },
             endpoint: None,
@@ -94,7 +94,7 @@ pub fn cases() -> Vec<CompatCaseDef> {
             id: CompatCaseId("op_stack.light_client_proof.verify"),
             area: CompatArea::OpStack,
             kind: CompatKind::LightClientProofVerify {
-                source: LightClientProofSource::OpStackFromSnapshot,
+                source: LightClientProofSource::OpStack,
                 scope: MatrixScope::Core,
             },
             endpoint: None,

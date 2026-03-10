@@ -74,7 +74,7 @@ pub fn cases() -> Vec<CompatCaseDef> {
             id: CompatCaseId("ethereum.execution.mmr_proof.verify"),
             area: CompatArea::EthereumExecution,
             kind: CompatKind::MmrProofVerify {
-                source: MmrProofSource::EthereumExecutionFromSnapshot,
+                source: MmrProofSource::EthereumExecution,
                 scope: MatrixScope::Core,
             },
             endpoint: None,
@@ -84,7 +84,7 @@ pub fn cases() -> Vec<CompatCaseDef> {
             id: CompatCaseId("ethereum.execution.light_client_proof.verify"),
             area: CompatArea::EthereumExecution,
             kind: CompatKind::LightClientProofVerify {
-                source: LightClientProofSource::EthereumExecutionFromSnapshot,
+                source: LightClientProofSource::EthereumExecution,
                 scope: MatrixScope::Core,
             },
             endpoint: None,

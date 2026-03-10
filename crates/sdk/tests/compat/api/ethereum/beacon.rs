@@ -74,7 +74,7 @@ pub fn cases() -> Vec<CompatCaseDef> {
             id: CompatCaseId("ethereum.beacon.mmr_proof.verify"),
             area: CompatArea::EthereumBeacon,
             kind: CompatKind::MmrProofVerify {
-                source: MmrProofSource::EthereumBeaconFromSnapshot,
+                source: MmrProofSource::EthereumBeacon,
                 scope: MatrixScope::Core,
             },
             endpoint: None,
@@ -84,7 +84,7 @@ pub fn cases() -> Vec<CompatCaseDef> {
             id: CompatCaseId("ethereum.beacon.light_client_proof.verify"),
             area: CompatArea::EthereumBeacon,
             kind: CompatKind::LightClientProofVerify {
-                source: LightClientProofSource::EthereumBeaconFromSnapshot,
+                source: LightClientProofSource::EthereumBeacon,
                 scope: MatrixScope::Core,
             },
             endpoint: None,

@@ -201,7 +201,7 @@ pub(super) async fn assemble_op_stack_proofs(
 
     let mut header_proofs = Vec::new();
     let mut op_header_hashes_by_chain: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for ((chain_name, header_hash), _) in &op_header_map {
+    for (chain_name, header_hash) in op_header_map.keys() {
         op_header_hashes_by_chain
             .entry(chain_name.clone())
             .or_default()
@@ -266,14 +266,12 @@ pub(super) async fn assemble_op_stack_proofs(
                 .get(&(chain_name.clone(), header_hash.clone()))
                 .ok_or_else(|| {
                     SdkError::NotFound(format!(
-                        "missing OP header for chain {} and hash {}",
-                        chain_name, header_hash
+                        "missing OP header for chain {chain_name} and hash {header_hash}"
                     ))
                 })?;
             let mmr_proof = mmr_by_hash.get(&header_hash).ok_or_else(|| {
                 SdkError::NotFound(format!(
-                    "missing OP MMR proof for chain {} and hash {}",
-                    chain_name, header_hash
+                    "missing OP MMR proof for chain {chain_name} and hash {header_hash}"
                 ))
             })?;
             header_proofs.push(OpStackHeaderProof {

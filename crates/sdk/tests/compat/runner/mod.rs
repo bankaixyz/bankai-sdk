@@ -200,44 +200,35 @@ pub fn assert_reports(suite_name: &str, reports: &[CaseReport]) {
         paint(color, "1;36", &format!("compat report ({suite_name})"))
     );
     eprintln!(
-        "{}",
-        format!(
-            "required: {}/{} passed, {} failed",
-            paint(color, "32", &required_passed.to_string()),
-            required_total,
-            if required_failed == 0 {
-                paint(color, "32", "0")
-            } else {
-                paint(color, "31", &required_failed.to_string())
-            }
-        )
+        "required: {}/{} passed, {} failed",
+        paint(color, "32", &required_passed.to_string()),
+        required_total,
+        if required_failed == 0 {
+            paint(color, "32", "0")
+        } else {
+            paint(color, "31", &required_failed.to_string())
+        }
     );
     eprintln!(
-        "{}",
-        format!(
-            "optional: {}/{} passed, {} skipped, {} failed",
-            paint(color, "32", &optional_passed.to_string()),
-            optional_total,
-            if optional_skipped == 0 {
-                paint(color, "32", "0")
-            } else {
-                paint(color, "33", &optional_skipped.to_string())
-            },
-            if optional_failed == 0 {
-                paint(color, "32", "0")
-            } else {
-                paint(color, "31", &optional_failed.to_string())
-            }
-        )
+        "optional: {}/{} passed, {} skipped, {} failed",
+        paint(color, "32", &optional_passed.to_string()),
+        optional_total,
+        if optional_skipped == 0 {
+            paint(color, "32", "0")
+        } else {
+            paint(color, "33", &optional_skipped.to_string())
+        },
+        if optional_failed == 0 {
+            paint(color, "32", "0")
+        } else {
+            paint(color, "31", &optional_failed.to_string())
+        }
     );
     eprintln!(
-        "{}",
-        format!(
-            "matrix variants (planned): {} total ({} required, {} optional)",
-            required_matrix_variants + optional_matrix_variants,
-            required_matrix_variants,
-            optional_matrix_variants
-        )
+        "matrix variants (planned): {} total ({} required, {} optional)",
+        required_matrix_variants + optional_matrix_variants,
+        required_matrix_variants,
+        optional_matrix_variants
     );
     eprintln!("{}", paint(color, "1", "by category:"));
 
@@ -482,7 +473,7 @@ pub(super) fn assert_bankai_mmr_proofs_equal(
     }
     for (index, (left, right)) in a.path.iter().zip(b.path.iter()).enumerate() {
         if !hex_eq(left, right) {
-            return Err(anyhow!("path[{index}] mismatch: {} != {}", left, right));
+            return Err(anyhow!("path[{index}] mismatch: {left} != {right}"));
         }
     }
     if a.peaks.len() != b.peaks.len() {
@@ -494,7 +485,7 @@ pub(super) fn assert_bankai_mmr_proofs_equal(
     }
     for (index, (left, right)) in a.peaks.iter().zip(b.peaks.iter()).enumerate() {
         if !hex_eq(left, right) {
-            return Err(anyhow!("peaks[{index}] mismatch: {} != {}", left, right));
+            return Err(anyhow!("peaks[{index}] mismatch: {left} != {right}"));
         }
     }
     Ok(())

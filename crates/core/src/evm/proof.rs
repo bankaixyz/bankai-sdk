@@ -135,7 +135,7 @@ where
 }
 
 fn ordered_trie_target_path(index: usize) -> Nibbles {
-    Nibbles::unpack(&alloy_rlp::encode_fixed_size(&index))
+    Nibbles::unpack(alloy_rlp::encode_fixed_size(&index))
 }
 
 #[cfg(test)]

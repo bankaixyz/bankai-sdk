@@ -255,7 +255,7 @@ pub(super) async fn run_mmr_verify(
             );
 
             let mmr: MmrProof = match source {
-                MmrProofSource::EthereumBeaconFromSnapshot => {
+                MmrProofSource::EthereumBeacon => {
                     let request = match scope {
                         MatrixScope::Core => {
                             ctx.beacon_mmr_proof_request_for(
@@ -294,7 +294,7 @@ pub(super) async fn run_mmr_verify(
                         format!("failed converting beacon mmr proof for {variant}")
                     })?
                 }
-                MmrProofSource::EthereumExecutionFromSnapshot => {
+                MmrProofSource::EthereumExecution => {
                     let request = match scope {
                         MatrixScope::Core => {
                             ctx.execution_mmr_proof_request_for(
@@ -335,7 +335,7 @@ pub(super) async fn run_mmr_verify(
                         format!("failed converting execution mmr proof for {variant}")
                     })?
                 }
-                MmrProofSource::OpStackFromSnapshot => {
+                MmrProofSource::OpStack => {
                     let name = ctx.op_chain_name().await?;
                     let snapshot = ctx
                         .sdk
@@ -520,7 +520,7 @@ pub(super) async fn run_light_client_proof_verify(
                 );
 
                 match source {
-                    LightClientProofSource::EthereumBeaconFromSnapshot => {
+                    LightClientProofSource::EthereumBeacon => {
                         let request = match scope {
                             MatrixScope::Core => {
                                 ctx.beacon_light_client_request_for(
@@ -573,7 +573,7 @@ pub(super) async fn run_light_client_proof_verify(
                             &variant,
                         )?;
                     }
-                    LightClientProofSource::EthereumExecutionFromSnapshot => {
+                    LightClientProofSource::EthereumExecution => {
                         let request = match scope {
                             MatrixScope::Core => {
                                 ctx.execution_light_client_request_for(
@@ -626,7 +626,7 @@ pub(super) async fn run_light_client_proof_verify(
                             &variant,
                         )?;
                     }
-                    LightClientProofSource::OpStackFromSnapshot => {
+                    LightClientProofSource::OpStack => {
                         let name = ctx.op_chain_name().await?;
                         let snapshot = ctx
                             .sdk
@@ -948,9 +948,7 @@ fn assert_block_proof_payload_matches(
         (ProofFormat::Bin, bankai_types::api::proofs::BlockProofPayloadDto::Bin(_)) => Ok(()),
         (ProofFormat::Json, bankai_types::api::proofs::BlockProofPayloadDto::Json(_)) => Ok(()),
         (expected, actual) => Err(anyhow!(
-            "proof payload format mismatch for {variant}: expected {:?}, got {:?}",
-            expected,
-            actual
+            "proof payload format mismatch for {variant}: expected {expected:?}, got {actual:?}"
         )),
     }
 }

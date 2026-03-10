@@ -65,7 +65,7 @@ impl MerkleHasher for PoseidonHasher {
     type Hash = Felt252;
 
     fn hash_pair(left: &Self::Hash, right: &Self::Hash) -> Self::Hash {
-        to_felt252(poseidon_hash(to_felt(left.clone()), to_felt(right.clone())))
+        to_felt252(poseidon_hash(to_felt(*left), to_felt(*right)))
     }
 
     fn zero() -> Self::Hash {

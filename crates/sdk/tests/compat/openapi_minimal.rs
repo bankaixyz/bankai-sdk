@@ -23,9 +23,7 @@ pub async fn run(ctx: &CompatContext) -> Result<()> {
 
     if !status.is_success() {
         return Err(anyhow!(
-            "openapi endpoint returned status {} with body: {}",
-            status,
-            body
+            "openapi endpoint returned status {status} with body: {body}"
         ));
     }
 
@@ -74,7 +72,7 @@ fn documented_endpoints(
         }
         let path_item = path_item
             .as_object()
-            .ok_or_else(|| anyhow!("openapi path '{}' is not an object", path))?;
+            .ok_or_else(|| anyhow!("openapi path '{path}' is not an object"))?;
         for method in path_item.keys() {
             if is_http_method(method) {
                 endpoints.insert((method.to_ascii_lowercase(), path.clone()));
@@ -105,7 +103,7 @@ fn diff_endpoints(
     right: &BTreeSet<(String, String)>,
 ) -> Vec<String> {
     left.difference(right)
-        .map(|(method, path)| format!("- {} {}", method, path))
+        .map(|(method, path)| format!("- {method} {path}"))
         .collect()
 }
 

@@ -76,10 +76,7 @@ async fn run_execution(rpc_url: &str, start_block: u64, count: u64) -> Result<()
         validate_execution_block(&provider, start_block + offset).await?;
     }
 
-    println!(
-        "validated {} execution blocks starting at {}",
-        count, start_block
-    );
+    println!("validated {count} execution blocks starting at {start_block}");
     Ok(())
 }
 
@@ -99,10 +96,7 @@ async fn run_op_stack(rpc_url: &str, start_block: u64, count: u64) -> Result<()>
         validate_op_stack_block(&provider, start_block + offset).await?;
     }
 
-    println!(
-        "validated {} OP Stack blocks starting at {}",
-        count, start_block
-    );
+    println!("validated {count} OP Stack blocks starting at {start_block}");
     Ok(())
 }
 

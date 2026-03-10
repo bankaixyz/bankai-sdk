@@ -62,9 +62,9 @@ pub enum SdkCallSpec {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MmrProofSource {
-    EthereumBeaconFromSnapshot,
-    EthereumExecutionFromSnapshot,
-    OpStackFromSnapshot,
+    EthereumBeacon,
+    EthereumExecution,
+    OpStack,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,9 +74,9 @@ pub enum BankaiMmrProofSource {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LightClientProofSource {
-    EthereumBeaconFromSnapshot,
-    EthereumExecutionFromSnapshot,
-    OpStackFromSnapshot,
+    EthereumBeacon,
+    EthereumExecution,
+    OpStack,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

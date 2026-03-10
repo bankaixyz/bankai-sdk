@@ -160,8 +160,10 @@ mod tests {
     #[test]
     fn verifies_snapshot_membership_and_mmr_proof() {
         let mut snapshot = snapshot();
-        let mut consensus_header = alloy_consensus::Header::default();
-        consensus_header.number = 42;
+        let consensus_header = alloy_consensus::Header {
+            number: 42,
+            ..Default::default()
+        };
         let header: alloy_rpc_types_eth::Header<alloy_consensus::Header> =
             alloy_rpc_types_eth::Header::from_consensus(consensus_header.seal_slow(), None, None);
         let header_hash = header.hash_slow();
@@ -229,7 +231,7 @@ mod tests {
     ) -> (FixedBytes<32>, Vec<Bytes>) {
         let account_key = Nibbles::unpack(keccak256(address));
         let expected_account = rlp_encode(account).to_vec();
-        let retainer = ProofRetainer::from_iter([account_key.clone()]);
+        let retainer = ProofRetainer::from_iter([account_key]);
         let mut hash_builder = HashBuilder::default().with_proof_retainer(retainer);
         hash_builder.add_leaf(account_key, &expected_account);
         let state_root = hash_builder.root();
@@ -245,7 +247,7 @@ mod tests {
         let slot_value = U256::from(7u64);
 
         let storage_key = Nibbles::unpack(keccak256(slot_key.to_be_bytes::<32>()));
-        let retainer = ProofRetainer::from_iter([storage_key.clone()]);
+        let retainer = ProofRetainer::from_iter([storage_key]);
         let mut storage_builder = HashBuilder::default().with_proof_retainer(retainer);
         storage_builder.add_leaf(storage_key, &rlp_encode(slot_value));
         let storage_root = storage_builder.root();
