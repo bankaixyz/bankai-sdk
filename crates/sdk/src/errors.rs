@@ -1,3 +1,4 @@
+use bankai_core::error::CoreError;
 use bankai_verify::VerifyError;
 use thiserror::Error;
 
@@ -54,6 +55,17 @@ impl From<ErrorResponse> for SdkError {
             code: e.code,
             message: e.message,
             error_id: e.error_id,
+        }
+    }
+}
+
+impl From<CoreError> for SdkError {
+    fn from(error: CoreError) -> Self {
+        match error {
+            CoreError::Provider(message) => Self::Provider(message),
+            CoreError::NotFound(message) => Self::NotFound(message),
+            CoreError::Unsupported(message) => Self::InvalidInput(message),
+            other => Self::Other(other.to_string()),
         }
     }
 }

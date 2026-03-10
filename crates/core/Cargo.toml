@@ -9,9 +9,21 @@ serde.workspace = true
 thiserror.workspace = true
 starknet-crypto.workspace = true
 alloy-primitives.workspace = true
+alloy-consensus.workspace = true
+alloy-eips.workspace = true
+alloy-provider.workspace = true
+alloy-rpc-types-eth.workspace = true
+alloy-trie = { workspace = true, features = ["ethereum"] }
+alloy-rlp.workspace = true
+op-alloy-network.workspace = true
+op-alloy-consensus.workspace = true
+op-alloy-rpc-types.workspace = true
 sha2.workspace = true
 tiny-keccak.workspace = true
 mmr.workspace = true
+url.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
 
 [dev-dependencies]
 bankai-types = { path = "../types" }

@@ -104,7 +104,10 @@ mod tests {
     use alloy_primitives::{keccak256, Address, Bloom, Bytes, Signature, TxKind, B256, U256};
     use alloy_rlp::encode as rlp_encode;
     use alloy_trie::{proof::ProofRetainer, HashBuilder, Nibbles};
-    use bankai_core::mmr;
+    use bankai_core::{
+        evm::{build_receipt_proof_from_items, build_tx_proof_from_items},
+        mmr,
+    };
     use bankai_types::block::OpChainClient;
     use bankai_types::common::HashingFunction;
     use bankai_types::inputs::evm::execution::{
@@ -113,11 +116,6 @@ mod tests {
     use bankai_types::inputs::evm::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
     use bankai_types::inputs::evm::MmrProof;
     use bankai_types::utils::mmr::hash_to_leaf;
-    use eth_trie_proofs::{
-        tx::ConsensusTx, tx_receipt::ConsensusTxReceipt, tx_receipt_trie::TxReceiptsMptHandler,
-        tx_trie::TxsMptHandler,
-    };
-    use url::Url;
 
     use super::*;
 
@@ -302,20 +300,22 @@ mod tests {
             B256::with_last_byte(0x44),
         ));
         let tx_root = calculate_transaction_root(&[tx.clone()]);
-
-        let mut trie = TxsMptHandler::new(Url::parse("http://localhost:8545").unwrap()).unwrap();
-        trie.build_trie(vec![ConsensusTx(tx.clone())], tx_root)
-            .unwrap();
-
-        let proof_nodes = trie.get_proof(0).unwrap();
-        let encoded_tx = trie.verify_proof(0, proof_nodes.clone()).unwrap();
-        let proof = TxProof {
-            network_id: 84532,
+        let built = build_tx_proof_from_items(
+            84532,
             block_number,
-            tx_hash: B256::with_last_byte(0x44),
-            tx_index: 0,
-            proof: proof_nodes.into_iter().map(Into::into).collect(),
-            encoded_tx,
+            *tx.tx_hash(),
+            0,
+            &[tx.clone()],
+            tx_root,
+        )
+        .unwrap();
+        let proof = TxProof {
+            network_id: built.network_id,
+            block_number: built.block_number,
+            tx_hash: built.tx_hash,
+            tx_index: built.tx_index,
+            proof: built.proof,
+            encoded_tx: built.encoded_tx,
         };
         let header = ExecutionHeader {
             number: block_number,
@@ -341,21 +341,22 @@ mod tests {
         });
         let receipts_root = calculate_receipt_root(&[receipt.clone()]);
         let block_number = 11;
-
-        let mut trie =
-            TxReceiptsMptHandler::new(Url::parse("http://localhost:8545").unwrap()).unwrap();
-        trie.build_trie(vec![ConsensusTxReceipt(receipt.clone())], receipts_root)
-            .unwrap();
-
-        let proof_nodes = trie.get_proof(0).unwrap();
-        let encoded_receipt = trie.verify_proof(0, proof_nodes.clone()).unwrap();
-        let proof = ReceiptProof {
-            network_id: 84532,
+        let built = build_receipt_proof_from_items(
+            84532,
             block_number,
-            tx_hash: FixedBytes::ZERO,
-            tx_index: 0,
-            proof: proof_nodes.into_iter().map(Into::into).collect(),
-            encoded_receipt,
+            FixedBytes::ZERO,
+            0,
+            &[receipt.clone()],
+            receipts_root,
+        )
+        .unwrap();
+        let proof = ReceiptProof {
+            network_id: built.network_id,
+            block_number: built.block_number,
+            tx_hash: built.tx_hash,
+            tx_index: built.tx_index,
+            proof: built.proof,
+            encoded_receipt: built.encoded_receipt,
         };
         let header = ExecutionHeader {
             number: block_number,

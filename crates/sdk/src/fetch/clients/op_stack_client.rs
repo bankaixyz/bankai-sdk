@@ -1,5 +1,6 @@
 use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_rpc_types_eth::{EIP1186AccountProofResponse, Header as ExecutionHeader};
+use bankai_core::evm::OpStackProofClient;
 use bankai_types::inputs::evm::execution::{ReceiptProof, TxProof};
 
 use crate::errors::SdkResult;
@@ -55,21 +56,37 @@ impl OpStackFetcher {
     pub async fn fetch_tx_proof(
         &self,
         tx_hash: FixedBytes<32>,
-        network_id: u64,
+        _network_id: u64,
     ) -> SdkResult<TxProof> {
-        self.execution_fetcher(network_id)
-            .fetch_tx_proof(tx_hash)
-            .await
+        let proof = OpStackProofClient::new(self.rpc_url.clone())
+            .tx_proof(tx_hash)
+            .await?;
+        Ok(TxProof {
+            network_id: proof.network_id,
+            block_number: proof.block_number,
+            tx_hash: proof.tx_hash,
+            tx_index: proof.tx_index,
+            proof: proof.proof,
+            encoded_tx: proof.encoded_tx,
+        })
     }
 
     pub async fn fetch_receipt_proof(
         &self,
         tx_hash: FixedBytes<32>,
-        network_id: u64,
+        _network_id: u64,
     ) -> SdkResult<ReceiptProof> {
-        self.execution_fetcher(network_id)
-            .fetch_receipt_proof(tx_hash)
-            .await
+        let proof = OpStackProofClient::new(self.rpc_url.clone())
+            .receipt_proof(tx_hash)
+            .await?;
+        Ok(ReceiptProof {
+            network_id: proof.network_id,
+            block_number: proof.block_number,
+            tx_hash: proof.tx_hash,
+            tx_index: proof.tx_index,
+            proof: proof.proof,
+            encoded_receipt: proof.encoded_receipt,
+        })
     }
 
     fn execution_fetcher(&self, network_id: u64) -> ExecutionFetcher {

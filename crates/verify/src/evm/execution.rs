@@ -366,8 +366,7 @@ mod tests {
         proofs::calculate_receipt_root, Receipt, ReceiptEnvelope, ReceiptWithBloom,
     };
     use alloy_primitives::{Bloom, FixedBytes};
-    use eth_trie_proofs::{tx_receipt::ConsensusTxReceipt, tx_receipt_trie::TxReceiptsMptHandler};
-    use url::Url;
+    use bankai_core::evm::build_receipt_proof_from_items;
 
     use super::*;
 
@@ -382,22 +381,23 @@ mod tests {
             logs_bloom: Bloom::ZERO,
         });
         let receipts_root = calculate_receipt_root(&[receipt.clone()]);
-
-        let mut trie =
-            TxReceiptsMptHandler::new(Url::parse("http://localhost:8545").unwrap()).unwrap();
-        trie.build_trie(vec![ConsensusTxReceipt(receipt.clone())], receipts_root)
-            .unwrap();
-
-        let proof_nodes = trie.get_proof(0).unwrap();
-        let encoded_receipt = trie.verify_proof(0, proof_nodes.clone()).unwrap();
+        let built = build_receipt_proof_from_items(
+            1,
+            7,
+            FixedBytes::ZERO,
+            0,
+            &[receipt.clone()],
+            receipts_root,
+        )
+        .unwrap();
 
         let proof = ReceiptProof {
-            network_id: 1,
-            block_number: 7,
-            tx_hash: FixedBytes::ZERO,
-            tx_index: 0,
-            proof: proof_nodes.into_iter().map(Into::into).collect(),
-            encoded_receipt: encoded_receipt.clone(),
+            network_id: built.network_id,
+            block_number: built.block_number,
+            tx_hash: built.tx_hash,
+            tx_index: built.tx_index,
+            proof: built.proof,
+            encoded_receipt: built.encoded_receipt,
         };
         let header = ExecutionHeader {
             number: 7,
