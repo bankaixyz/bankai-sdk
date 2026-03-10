@@ -9,6 +9,7 @@ async fn main() -> Result<(), SdkError> {
 
     let base_rpc =
         std::env::var("BASE_RPC").map_err(|_| SdkError::NotConfigured("BASE_RPC".to_string()))?;
+
     let mut op_rpc = std::collections::BTreeMap::new();
     op_rpc.insert("base".to_string(), base_rpc);
 
@@ -19,7 +20,7 @@ async fn main() -> Result<(), SdkError> {
         .await?
         .op_stack_account(
             "base",
-            38381200,
+            38509435,
             Address::from_hex("0xcF93D9de9965B960769aa9B28164D571cBbCE39C").unwrap(),
         )
         .execute()

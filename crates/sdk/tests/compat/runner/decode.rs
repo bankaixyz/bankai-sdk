@@ -60,7 +60,7 @@ pub(super) async fn run_sdk_decode(
                 .sdk
                 .api
                 .chains()
-                .by_id(chain.id)
+                .by_id(chain.chain_id)
                 .await
                 .context("chains by_id failed")?;
         }

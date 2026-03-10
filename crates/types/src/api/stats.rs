@@ -16,7 +16,7 @@ pub struct BlockDetailStatsDto {
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ChainOverviewDto {
-    pub network_id: u64,
+    pub chain_id: u64,
     pub name: String,
     pub total_headers: u64,
     pub first_header: u64,

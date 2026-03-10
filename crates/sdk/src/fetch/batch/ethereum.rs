@@ -31,76 +31,104 @@ pub(super) async fn assemble_ethereum_proofs(
     api: &ApiClient,
     filter: &BankaiBlockFilterDto,
 ) -> SdkResult<EthereumBatchData> {
+    let eth = &builder.ethereum;
+    let needs_exec = !eth.execution_header.is_empty()
+        || !eth.account.is_empty()
+        || !eth.storage_slot.is_empty()
+        || !eth.tx_proof.is_empty()
+        || !eth.receipt_proof.is_empty();
+    let needs_beacon = !eth.beacon_header.is_empty();
+
+    if !needs_exec && !needs_beacon {
+        return Ok(EthereumBatchData {
+            block_proof_value: None,
+            execution_header_proofs: Vec::new(),
+            beacon_header_proofs: Vec::new(),
+            account_proofs: Vec::new(),
+            storage_slot_proofs: Vec::new(),
+            tx_proofs: Vec::new(),
+            receipt_proofs: Vec::new(),
+        });
+    }
+
     let mut exec_headers = BTreeSet::new();
     let mut beacon_headers = BTreeSet::new();
 
-    for request in &builder.ethereum.execution_header {
+    for request in &eth.execution_header {
         exec_headers.insert((request.network_id, request.block_number));
     }
-    for request in &builder.ethereum.beacon_header {
+    for request in &eth.beacon_header {
         beacon_headers.insert((request.network_id, request.slot));
     }
-    for request in &builder.ethereum.account {
+    for request in &eth.account {
         exec_headers.insert((request.network_id, request.block_number));
     }
-    for request in &builder.ethereum.storage_slot {
+    for request in &eth.storage_slot {
         exec_headers.insert((request.network_id, request.block_number));
     }
 
-    let exec_fetcher = execution_fetcher(builder)?;
     let mut tx_proofs = Vec::new();
-    for request in &builder.ethereum.tx_proof {
-        if exec_fetcher.network_id() != request.network_id {
-            return Err(SdkError::InvalidInput(
-                "execution network_id mismatch".into(),
-            ));
-        }
-        tx_proofs.push(exec_fetcher.tx_proof(request.tx_hash).await?);
-    }
-
     let mut receipt_proofs = Vec::new();
-    for request in &builder.ethereum.receipt_proof {
-        if exec_fetcher.network_id() != request.network_id {
-            return Err(SdkError::InvalidInput(
-                "execution network_id mismatch".into(),
-            ));
-        }
-        receipt_proofs.push(exec_fetcher.receipt_proof(request.tx_hash).await?);
-    }
-
-    for proof in &tx_proofs {
-        exec_headers.insert((proof.network_id, proof.block_number));
-    }
-    for proof in &receipt_proofs {
-        exec_headers.insert((proof.network_id, proof.block_number));
-    }
-
     let mut exec_header_map: BTreeMap<(u64, u64), ExecutionHeader> = BTreeMap::new();
-    for (network_id, block_number) in &exec_headers {
-        if exec_fetcher.network_id() != *network_id {
-            return Err(SdkError::InvalidInput(format!(
-                "execution network_id mismatch: requested {}, configured {}",
-                network_id,
-                exec_fetcher.network_id()
-            )));
+
+    if needs_exec {
+        let exec_fetcher = execution_fetcher(builder)?;
+
+        for request in &eth.tx_proof {
+            if exec_fetcher.network_id() != request.network_id {
+                return Err(SdkError::InvalidInput(
+                    "execution network_id mismatch".into(),
+                ));
+            }
+            tx_proofs.push(exec_fetcher.tx_proof(request.tx_hash).await?);
         }
-        exec_header_map.insert(
-            (*network_id, *block_number),
-            exec_fetcher.header_only(*block_number).await?,
-        );
+
+        for request in &eth.receipt_proof {
+            if exec_fetcher.network_id() != request.network_id {
+                return Err(SdkError::InvalidInput(
+                    "execution network_id mismatch".into(),
+                ));
+            }
+            receipt_proofs.push(exec_fetcher.receipt_proof(request.tx_hash).await?);
+        }
+
+        for proof in &tx_proofs {
+            exec_headers.insert((proof.network_id, proof.block_number));
+        }
+        for proof in &receipt_proofs {
+            exec_headers.insert((proof.network_id, proof.block_number));
+        }
+
+        for (network_id, block_number) in &exec_headers {
+            if exec_fetcher.network_id() != *network_id {
+                return Err(SdkError::InvalidInput(format!(
+                    "execution network_id mismatch: requested {}, configured {}",
+                    network_id,
+                    exec_fetcher.network_id()
+                )));
+            }
+            exec_header_map.insert(
+                (*network_id, *block_number),
+                exec_fetcher.header_only(*block_number).await?,
+            );
+        }
     }
 
-    let beacon_fetcher = beacon_fetcher(builder)?;
     let mut beacon_header_map: BTreeMap<(u64, u64), HeaderResponse> = BTreeMap::new();
-    for (network_id, slot) in &beacon_headers {
-        if beacon_fetcher.network_id() != *network_id {
-            return Err(SdkError::InvalidInput(format!(
-                "beacon network_id mismatch: requested {}, configured {}",
-                network_id,
-                beacon_fetcher.network_id()
-            )));
+
+    if needs_beacon {
+        let beacon_fetcher = beacon_fetcher(builder)?;
+        for (network_id, slot) in &beacon_headers {
+            if beacon_fetcher.network_id() != *network_id {
+                return Err(SdkError::InvalidInput(format!(
+                    "beacon network_id mismatch: requested {}, configured {}",
+                    network_id,
+                    beacon_fetcher.network_id()
+                )));
+            }
+            beacon_header_map
+                .insert((*network_id, *slot), beacon_fetcher.header_only(*slot).await?);
         }
-        beacon_header_map.insert((*network_id, *slot), beacon_fetcher.header_only(*slot).await?);
     }
 
     let mut block_proof_value = None;
@@ -179,56 +207,61 @@ pub(super) async fn assemble_ethereum_proofs(
     }
 
     let mut account_proofs = Vec::new();
-    for request in &builder.ethereum.account {
-        if exec_fetcher.network_id() != request.network_id {
-            return Err(SdkError::InvalidInput(
-                "execution network_id mismatch".into(),
-            ));
-        }
-        let proof = exec_fetcher
-            .account(
-                request.block_number,
-                request.address,
-                builder.hashing,
-                builder.bankai_block_number,
-            )
-            .await?;
-        let header = exec_header_map
-            .get(&(request.network_id, request.block_number))
-            .ok_or_else(|| SdkError::NotFound("header not fetched for account".into()))?;
-        account_proofs.push(AccountProof {
-            account: AlloyAccount {
-                balance: proof.balance,
-                nonce: proof.nonce,
-                code_hash: proof.code_hash,
-                storage_root: proof.storage_hash,
-            },
-            address: request.address,
-            network_id: request.network_id,
-            block_number: request.block_number,
-            state_root: header.state_root,
-            mpt_proof: proof.account_proof,
-        });
-    }
-
     let mut storage_slot_proofs = Vec::new();
-    for request in &builder.ethereum.storage_slot {
-        if exec_fetcher.network_id() != request.network_id {
-            return Err(SdkError::InvalidInput(
-                "execution network_id mismatch".into(),
-            ));
-        }
-        storage_slot_proofs.push(
-            exec_fetcher
-                .storage_slot_proof(
+
+    if !eth.account.is_empty() || !eth.storage_slot.is_empty() {
+        let exec_fetcher = execution_fetcher(builder)?;
+
+        for request in &eth.account {
+            if exec_fetcher.network_id() != request.network_id {
+                return Err(SdkError::InvalidInput(
+                    "execution network_id mismatch".into(),
+                ));
+            }
+            let proof = exec_fetcher
+                .account(
                     request.block_number,
                     request.address,
-                    &request.slot_keys,
                     builder.hashing,
                     builder.bankai_block_number,
                 )
-                .await?,
-        );
+                .await?;
+            let header = exec_header_map
+                .get(&(request.network_id, request.block_number))
+                .ok_or_else(|| SdkError::NotFound("header not fetched for account".into()))?;
+            account_proofs.push(AccountProof {
+                account: AlloyAccount {
+                    balance: proof.balance,
+                    nonce: proof.nonce,
+                    code_hash: proof.code_hash,
+                    storage_root: proof.storage_hash,
+                },
+                address: request.address,
+                network_id: request.network_id,
+                block_number: request.block_number,
+                state_root: header.state_root,
+                mpt_proof: proof.account_proof,
+            });
+        }
+
+        for request in &eth.storage_slot {
+            if exec_fetcher.network_id() != request.network_id {
+                return Err(SdkError::InvalidInput(
+                    "execution network_id mismatch".into(),
+                ));
+            }
+            storage_slot_proofs.push(
+                exec_fetcher
+                    .storage_slot_proof(
+                        request.block_number,
+                        request.address,
+                        &request.slot_keys,
+                        builder.hashing,
+                        builder.bankai_block_number,
+                    )
+                    .await?,
+            );
+        }
     }
 
     Ok(EthereumBatchData {
