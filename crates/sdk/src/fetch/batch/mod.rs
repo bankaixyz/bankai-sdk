@@ -12,9 +12,7 @@ use crate::debug;
 use crate::errors::{SdkError, SdkResult};
 use crate::fetch::api::blocks::parse_block_proof_payload;
 use crate::fetch::api::ApiClient;
-use crate::fetch::evm::{
-    beacon::BeaconChainFetcher, execution::ExecutionChainFetcher,
-};
+use crate::fetch::evm::{beacon::BeaconChainFetcher, execution::ExecutionChainFetcher};
 use crate::fetch::requests::{
     AccountProofRequest, BeaconHeaderProofRequest, EvmProofsRequest, ExecutionHeaderProofRequest,
     OpStackAccountProofRequest, OpStackHeaderProofRequest, OpStackProofsRequest,
@@ -277,7 +275,10 @@ impl<'a> ProofBatchBuilder<'a> {
                         .await
                 };
                 debug::log_result(
-                    format!("api fetch shared Bankai block proof height={}", self.bankai_block_number),
+                    format!(
+                        "api fetch shared Bankai block proof height={}",
+                        self.bankai_block_number
+                    ),
                     proof_start,
                     &proof_result,
                 );

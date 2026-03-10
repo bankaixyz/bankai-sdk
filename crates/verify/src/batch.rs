@@ -130,7 +130,7 @@ pub fn verify_batch_proof(wrapper: ProofBundle) -> Result<BatchResults, VerifyEr
         for proof in &op_stack.account_proof {
             let header =
                 select_op_header(&verified_op_headers, proof.network_id, proof.block_number)?;
-            let result = ExecutionVerifier::verify_account_proof(proof, slice::from_ref(header))?;
+            let result = OpStackVerifier::verify_account_proof(proof, slice::from_ref(header))?;
             batch_results.op_stack.account.push(result);
         }
 
@@ -138,21 +138,21 @@ pub fn verify_batch_proof(wrapper: ProofBundle) -> Result<BatchResults, VerifyEr
             let header =
                 select_op_header(&verified_op_headers, proof.network_id, proof.block_number)?;
             let result =
-                ExecutionVerifier::verify_storage_slot_proof(proof, slice::from_ref(header))?;
+                OpStackVerifier::verify_storage_slot_proof(proof, slice::from_ref(header))?;
             batch_results.op_stack.storage_slot.push(result);
         }
 
         for proof in &op_stack.tx_proof {
             let header =
                 select_op_header(&verified_op_headers, proof.network_id, proof.block_number)?;
-            let result = ExecutionVerifier::verify_tx_proof(proof, slice::from_ref(header))?;
+            let result = OpStackVerifier::verify_tx_proof(proof, slice::from_ref(header))?;
             batch_results.op_stack.tx.push(result);
         }
 
         for proof in &op_stack.receipt_proof {
             let header =
                 select_op_header(&verified_op_headers, proof.network_id, proof.block_number)?;
-            let result = ExecutionVerifier::verify_receipt_proof(proof, slice::from_ref(header))?;
+            let result = OpStackVerifier::verify_receipt_proof(proof, slice::from_ref(header))?;
             batch_results.op_stack.receipt.push(result);
         }
     }

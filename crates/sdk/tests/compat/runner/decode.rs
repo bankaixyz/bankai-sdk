@@ -1040,7 +1040,8 @@ async fn run_beacon_light_client_decode(ctx: &CompatContext, scope: MatrixScope)
                             .with_context(|| {
                                 format!("beacon light_client_proof failed for {variant}")
                             })?;
-                        if proof.block_proof.block.block.block_number != proof.block_proof.block_number
+                        if proof.block_proof.block.block.block_number
+                            != proof.block_proof.block_number
                         {
                             return Err(anyhow!(
                                 "beacon light_client_proof embedded block mismatch for {variant}: proof={}, block={}",
@@ -1137,7 +1138,8 @@ async fn run_execution_light_client_decode(ctx: &CompatContext, scope: MatrixSco
                             .with_context(|| {
                                 format!("execution light_client_proof failed for {variant}")
                             })?;
-                        if proof.block_proof.block.block.block_number != proof.block_proof.block_number
+                        if proof.block_proof.block.block.block_number
+                            != proof.block_proof.block_number
                         {
                             return Err(anyhow!(
                                 "execution light_client_proof embedded block mismatch for {variant}: proof={}, block={}",

@@ -216,7 +216,10 @@ pub(super) async fn assemble_op_stack_proofs(
             proof_format: builder.proof_format,
         };
         let request_start = Instant::now();
-        let proof_result = api.op_stack().light_client_proof(&chain_name, &request).await;
+        let proof_result = api
+            .op_stack()
+            .light_client_proof(&chain_name, &request)
+            .await;
         debug::log_result(
             format!(
                 "api op-stack light_client_proof chain={} headers={}",
@@ -239,11 +242,9 @@ pub(super) async fn assemble_op_stack_proofs(
         }
 
         let snapshot = proof.snapshot.clone();
-        let expected_chain_id = get_or_fetch_op_chain_id(
-            &mut op_chain_ids,
-            builder.bankai.op_stack(&chain_name)?,
-        )
-        .await?;
+        let expected_chain_id =
+            get_or_fetch_op_chain_id(&mut op_chain_ids, builder.bankai.op_stack(&chain_name)?)
+                .await?;
         if snapshot.chain_id != expected_chain_id {
             return Err(SdkError::InvalidInput(format!(
                 "OP snapshot chain_id mismatch for {}: rpc returned {}, proof returned {}",

@@ -75,7 +75,10 @@ impl OpStackApi {
         }
         .await;
         debug::log_result(
-            format!("api POST /v1/op/{name}/light_client_proof headers={}", request.header_hashes.len()),
+            format!(
+                "api POST /v1/op/{name}/light_client_proof headers={}",
+                request.header_hashes.len()
+            ),
             start,
             &result,
         );

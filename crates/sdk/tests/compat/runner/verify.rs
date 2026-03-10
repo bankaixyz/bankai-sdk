@@ -682,7 +682,11 @@ fn verify_light_client_bundle(
     expected_hashing_function: HashingFunction,
     variant: &str,
 ) -> Result<()> {
-    verify_bankai_block_proof(&proof.block_proof, Some(proof.block_proof.block_number), variant)?;
+    verify_bankai_block_proof(
+        &proof.block_proof,
+        Some(proof.block_proof.block_number),
+        variant,
+    )?;
 
     if proof.mmr_proofs.is_empty() {
         return Err(anyhow!(

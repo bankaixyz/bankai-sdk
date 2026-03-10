@@ -36,7 +36,10 @@ pub(crate) fn log_result<T>(label: impl AsRef<str>, start: Instant, result: &Sdk
     let label = label.as_ref();
     match result {
         Ok(_) => log(format!("{label} ok in {} ms", elapsed_ms(start))),
-        Err(error) => log(format!("{label} failed in {} ms: {error}", elapsed_ms(start))),
+        Err(error) => log(format!(
+            "{label} failed in {} ms: {error}",
+            elapsed_ms(start)
+        )),
     }
 }
 
