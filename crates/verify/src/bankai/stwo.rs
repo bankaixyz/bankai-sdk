@@ -24,6 +24,7 @@ pub fn verify_block_proof(
     block: &BankaiBlock,
 ) -> Result<(), VerifyError> {
     let hash_output = verify_stwo_proof(proof)?;
+
     let expected_hash = block.compute_block_hash_keccak();
     if hash_output.block_hash != expected_hash {
         return Err(VerifyError::InvalidBlockHash);

@@ -1,3 +1,6 @@
+use std::time::Instant;
+
+use crate::debug;
 use crate::errors::{SdkError, SdkResult};
 use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_provider::{Provider, ProviderBuilder};
@@ -20,55 +23,87 @@ impl ExecutionFetcher {
     }
 
     pub async fn fetch_header(&self, block_number: u64) -> SdkResult<ExecutionHeader> {
-        let rpc_url: Url = self
-            .rpc_url
-            .parse()
-            .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
-        let provider = ProviderBuilder::new().connect_http(rpc_url);
+        let start = Instant::now();
+        let label = format!(
+            "rpc eth_getBlockByNumber endpoint={} block={}",
+            debug::endpoint_label(&self.rpc_url),
+            block_number
+        );
+        let result = async {
+            let rpc_url: Url = self
+                .rpc_url
+                .parse()
+                .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
+            let provider = ProviderBuilder::new().connect_http(rpc_url);
 
-        let block = provider
-            .get_block_by_number(block_number.into())
-            .await
-            .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
+            let block = provider
+                .get_block_by_number(block_number.into())
+                .await
+                .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
 
-        let block =
-            block.ok_or_else(|| SdkError::NotFound(format!("block {block_number} not found")))?;
+            let block =
+                block.ok_or_else(|| SdkError::NotFound(format!("block {block_number} not found")))?;
 
-        Ok(block.header)
+            Ok(block.header)
+        }
+        .await;
+        debug::log_result(label, start, &result);
+        result
     }
 
     pub async fn fetch_header_by_hash(
         &self,
         block_hash: FixedBytes<32>,
     ) -> SdkResult<ExecutionHeader> {
-        let rpc_url: Url = self
-            .rpc_url
-            .parse()
-            .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
-        let provider = ProviderBuilder::new().connect_http(rpc_url);
+        let start = Instant::now();
+        let label = format!(
+            "rpc eth_getBlockByHash endpoint={} hash={}",
+            debug::endpoint_label(&self.rpc_url),
+            block_hash
+        );
+        let result = async {
+            let rpc_url: Url = self
+                .rpc_url
+                .parse()
+                .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
+            let provider = ProviderBuilder::new().connect_http(rpc_url);
 
-        let block = provider
-            .get_block_by_hash(block_hash)
-            .await
-            .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
+            let block = provider
+                .get_block_by_hash(block_hash)
+                .await
+                .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
 
-        let block =
-            block.ok_or_else(|| SdkError::NotFound(format!("block {block_hash} not found")))?;
+            let block =
+                block.ok_or_else(|| SdkError::NotFound(format!("block {block_hash} not found")))?;
 
-        Ok(block.header)
+            Ok(block.header)
+        }
+        .await;
+        debug::log_result(label, start, &result);
+        result
     }
 
     pub async fn fetch_chain_id(&self) -> SdkResult<u64> {
-        let rpc_url: Url = self
-            .rpc_url
-            .parse()
-            .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
-        let provider = ProviderBuilder::new().connect_http(rpc_url);
+        let start = Instant::now();
+        let label = format!(
+            "rpc eth_chainId endpoint={}",
+            debug::endpoint_label(&self.rpc_url)
+        );
+        let result = async {
+            let rpc_url: Url = self
+                .rpc_url
+                .parse()
+                .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
+            let provider = ProviderBuilder::new().connect_http(rpc_url);
 
-        provider
-            .get_chain_id()
-            .await
-            .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))
+            provider
+                .get_chain_id()
+                .await
+                .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))
+        }
+        .await;
+        debug::log_result(label, start, &result);
+        result
     }
 
     pub async fn fetch_account_proof(
@@ -76,19 +111,31 @@ impl ExecutionFetcher {
         address: Address,
         block_number: u64,
     ) -> SdkResult<EIP1186AccountProofResponse> {
-        let rpc_url: Url = self
-            .rpc_url
-            .parse()
-            .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
-        let provider = ProviderBuilder::new().connect_http(rpc_url);
+        let start = Instant::now();
+        let label = format!(
+            "rpc eth_getProof endpoint={} address={} block={}",
+            debug::endpoint_label(&self.rpc_url),
+            address,
+            block_number
+        );
+        let result = async {
+            let rpc_url: Url = self
+                .rpc_url
+                .parse()
+                .map_err(|e| SdkError::Provider(format!("invalid rpc url: {e}")))?;
+            let provider = ProviderBuilder::new().connect_http(rpc_url);
 
-        let proof = provider
-            .get_proof(address, vec![])
-            .block_id(block_number.into())
-            .await
-            .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
+            let proof = provider
+                .get_proof(address, vec![])
+                .block_id(block_number.into())
+                .await
+                .map_err(|e| SdkError::Provider(format!("rpc error: {e}")))?;
 
-        Ok(proof)
+            Ok(proof)
+        }
+        .await;
+        debug::log_result(label, start, &result);
+        result
     }
 
     /// Fetches storage slot proofs for one or more slots from the same contract.

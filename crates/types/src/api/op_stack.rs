@@ -3,6 +3,7 @@ use utoipa::ToSchema;
 
 use crate::api::ethereum::BankaiBlockFilterDto;
 use crate::api::proofs::{BankaiBlockProofDto, MmrProofDto};
+use crate::block::OpChainClient;
 use crate::common::{HashingFunction, ProofFormat};
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -40,6 +41,8 @@ pub struct OpStackMmrProofDto {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct OpStackLightClientProofDto {
     pub block_proof: BankaiBlockProofDto,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Object))]
+    pub snapshot: OpChainClient,
     pub merkle_proof: OpMerkleProofDto,
     pub mmr_proofs: Vec<MmrProofDto>,
 }

@@ -4,9 +4,9 @@
 //! including hashing functions for both Keccak and Poseidon.
 
 extern crate alloc;
-use alloy_primitives::FixedBytes;
 use alloy_primitives::keccak256;
-use starknet_crypto::{Felt, poseidon_hash};
+use alloy_primitives::FixedBytes;
+use starknet_crypto::{poseidon_hash, Felt};
 
 use crate::common::HashingFunction;
 

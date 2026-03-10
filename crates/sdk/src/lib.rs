@@ -45,6 +45,8 @@
 /// SDK error types and result aliases.
 pub mod errors;
 
+mod debug;
+
 use std::collections::BTreeMap;
 
 // Re-export common types from bankai_types

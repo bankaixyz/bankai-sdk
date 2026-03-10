@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Instant;
 
 use bankai_types::api::ethereum::{BankaiBlockFilterDto, HeightDto};
 use bankai_types::api::op_stack::{
@@ -7,6 +8,7 @@ use bankai_types::api::op_stack::{
     OpStackMmrProofRequestDto,
 };
 
+use crate::debug;
 use crate::errors::SdkResult;
 use crate::fetch::api::{handle_response, ApiCore};
 
@@ -66,7 +68,17 @@ impl OpStackApi {
         request: &OpStackLightClientProofRequestDto,
     ) -> SdkResult<OpStackLightClientProofDto> {
         let url = format!("{}/v1/op/{}/light_client_proof", self.core.base_url, name);
-        let response = self.core.client.post(&url).json(request).send().await?;
-        handle_response(response).await
+        let start = Instant::now();
+        let result = async {
+            let response = self.core.client.post(&url).json(request).send().await?;
+            handle_response(response).await
+        }
+        .await;
+        debug::log_result(
+            format!("api POST /v1/op/{name}/light_client_proof headers={}", request.header_hashes.len()),
+            start,
+            &result,
+        );
+        result
     }
 }

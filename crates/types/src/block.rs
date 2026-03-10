@@ -2,7 +2,7 @@
 
 use alloc::vec::Vec;
 
-use alloy_primitives::{FixedBytes, Keccak256, keccak256};
+use alloy_primitives::{keccak256, FixedBytes, Keccak256};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

@@ -31,16 +31,12 @@ impl MmrVerifier {
         // ensure the peaks create the expected root
         let computed_root = with_hasher(
             proof.hashing_function,
-            |hasher| mmr::calculate_root_hash(
-                hasher,
-                proof.elements_count,
-                &mmr_proof.peaks_hashes,
-            ),
-            |hasher| mmr::calculate_root_hash(
-                hasher,
-                proof.elements_count,
-                &mmr_proof.peaks_hashes,
-            ),
+            |hasher| {
+                mmr::calculate_root_hash(hasher, proof.elements_count, &mmr_proof.peaks_hashes)
+            },
+            |hasher| {
+                mmr::calculate_root_hash(hasher, proof.elements_count, &mmr_proof.peaks_hashes)
+            },
         )
         .map_err(map_mmr_error)?;
 

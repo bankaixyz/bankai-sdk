@@ -6,9 +6,7 @@ use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
 use serde::{Deserialize, Serialize};
 
-use crate::inputs::evm::header_serde::{
-    deserialize_execution_header, serialize_execution_header,
-};
+use crate::inputs::evm::header_serde::{deserialize_execution_header, serialize_execution_header};
 use crate::inputs::evm::MmrProof;
 
 #[cfg_attr(feature = "std", derive(Debug))]

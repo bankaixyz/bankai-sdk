@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::api::{
-    ethereum::BankaiBlockFilterDto, op_stack::OpChainsSummaryDto, proofs::BankaiBlockProofDto,
-    stats::ChainSnapshotSummaryDto,
+    ethereum::BankaiBlockFilterDto, op_stack::OpChainsSummaryDto, stats::ChainSnapshotSummaryDto,
 };
 use crate::common::{HashingFunction, ProofFormat};
 
@@ -107,10 +106,3 @@ pub type BankaiBlockOutputDto = crate::block::BankaiBlockOutput;
 
 /// API envelope carrying canonical Bankai block hash + full block payload with OP chain clients.
 pub type BankaiBlockFullOutputDto = crate::block::BankaiBlockFullOutput;
-
-/// Compatibility payload used by `/v1/blocks/block_proof`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BankaiBlockProofWithBlockDto {
-    pub block: BankaiBlockOutputDto,
-    pub block_proof: BankaiBlockProofDto,
-}

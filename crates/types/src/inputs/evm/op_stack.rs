@@ -2,21 +2,19 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use alloy_primitives::FixedBytes;
 #[cfg(feature = "api")]
 use alloy_primitives::hex::FromHex;
+use alloy_primitives::FixedBytes;
 use alloy_rpc_types_eth::Header as ExecutionHeader;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "api")]
 use crate::api::op_stack::OpMerkleProofDto;
 use crate::block::OpChainClient;
-use crate::inputs::evm::header_serde::{
-    deserialize_execution_header, serialize_execution_header,
-};
+use crate::inputs::evm::header_serde::{deserialize_execution_header, serialize_execution_header};
 use crate::inputs::evm::{
-    MmrProof,
     execution::{AccountProof, ReceiptProof, StorageSlotProof, TxProof},
+    MmrProof,
 };
 
 #[cfg_attr(feature = "std", derive(Debug))]

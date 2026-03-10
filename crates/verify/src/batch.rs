@@ -84,8 +84,10 @@ pub fn verify_batch_proof(wrapper: ProofBundle) -> Result<BatchResults, VerifyEr
         }
 
         for account in &evm.account_proof {
-            let result =
-                ExecutionVerifier::verify_account_proof(account, &batch_results.evm.execution_header)?;
+            let result = ExecutionVerifier::verify_account_proof(
+                account,
+                &batch_results.evm.execution_header,
+            )?;
             batch_results.evm.account.push(result);
         }
 

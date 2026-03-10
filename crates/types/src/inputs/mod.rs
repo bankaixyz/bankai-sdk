@@ -6,7 +6,7 @@ use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 
 use crate::block::BankaiBlock;
 use crate::common::HashingFunction;
-use crate::inputs::evm::{EvmProofs, op_stack::OpStackProofs};
+use crate::inputs::evm::{op_stack::OpStackProofs, EvmProofs};
 
 pub mod evm;
 

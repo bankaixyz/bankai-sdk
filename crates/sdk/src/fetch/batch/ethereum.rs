@@ -4,7 +4,7 @@ use alloy_primitives::hex::ToHexExt;
 use alloy_rpc_types_beacon::header::HeaderResponse;
 use alloy_rpc_types_eth::{Account as AlloyAccount, Header as ExecutionHeader};
 use bankai_types::api::ethereum::{BankaiBlockFilterDto, EthereumLightClientProofRequestDto};
-use bankai_types::api::proofs::BlockProofPayloadDto;
+use bankai_types::api::proofs::BankaiBlockProofDto;
 use bankai_types::inputs::evm::beacon::BeaconHeaderProof;
 use bankai_types::inputs::evm::execution::{
     AccountProof, ExecutionHeaderProof, ReceiptProof, StorageSlotProof, TxProof,
@@ -12,12 +12,12 @@ use bankai_types::inputs::evm::execution::{
 use bankai_types::results::evm::beacon::BeaconHeader;
 use tree_hash::TreeHash;
 
-use super::{beacon_fetcher, execution_fetcher, ProofBatchBuilder};
+use super::{beacon_fetcher, execution_fetcher, validate_bankai_block_proof, ProofBatchBuilder};
 use crate::errors::{SdkError, SdkResult};
 use crate::fetch::api::ApiClient;
 
 pub(super) struct EthereumBatchData {
-    pub block_proof_value: Option<BlockProofPayloadDto>,
+    pub block_proof: Option<BankaiBlockProofDto>,
     pub execution_header_proofs: Vec<ExecutionHeaderProof>,
     pub beacon_header_proofs: Vec<BeaconHeaderProof>,
     pub account_proofs: Vec<AccountProof>,
@@ -41,7 +41,7 @@ pub(super) async fn assemble_ethereum_proofs(
 
     if !needs_exec && !needs_beacon {
         return Ok(EthereumBatchData {
-            block_proof_value: None,
+            block_proof: None,
             execution_header_proofs: Vec::new(),
             beacon_header_proofs: Vec::new(),
             account_proofs: Vec::new(),
@@ -126,12 +126,14 @@ pub(super) async fn assemble_ethereum_proofs(
                     beacon_fetcher.network_id()
                 )));
             }
-            beacon_header_map
-                .insert((*network_id, *slot), beacon_fetcher.header_only(*slot).await?);
+            beacon_header_map.insert(
+                (*network_id, *slot),
+                beacon_fetcher.header_only(*slot).await?,
+            );
         }
     }
 
-    let mut block_proof_value = None;
+    let mut block_proof = None;
     let mut exec_mmr_by_hash = BTreeMap::new();
     let mut beacon_mmr_by_hash = BTreeMap::new();
 
@@ -146,9 +148,14 @@ pub(super) async fn assemble_ethereum_proofs(
             header_hashes,
             proof_format: builder.proof_format,
         };
-        let proof = api.ethereum().execution().light_client_proof(&request).await?;
-        if block_proof_value.is_none() {
-            block_proof_value = Some(proof.block_proof.proof.clone());
+        let proof = api
+            .ethereum()
+            .execution()
+            .light_client_proof(&request)
+            .await?;
+        validate_bankai_block_proof(&proof.block_proof, builder.bankai_block_number)?;
+        if block_proof.is_none() {
+            block_proof = Some(proof.block_proof.clone());
         }
         for mmr_proof in proof.mmr_proofs {
             exec_mmr_by_hash.insert(mmr_proof.header_hash.clone(), mmr_proof);
@@ -170,8 +177,9 @@ pub(super) async fn assemble_ethereum_proofs(
             proof_format: builder.proof_format,
         };
         let proof = api.ethereum().beacon().light_client_proof(&request).await?;
-        if block_proof_value.is_none() {
-            block_proof_value = Some(proof.block_proof.proof.clone());
+        validate_bankai_block_proof(&proof.block_proof, builder.bankai_block_number)?;
+        if block_proof.is_none() {
+            block_proof = Some(proof.block_proof.clone());
         }
         for mmr_proof in proof.mmr_proofs {
             beacon_mmr_by_hash.insert(mmr_proof.header_hash.clone(), mmr_proof);
@@ -265,7 +273,7 @@ pub(super) async fn assemble_ethereum_proofs(
     }
 
     Ok(EthereumBatchData {
-        block_proof_value,
+        block_proof,
         execution_header_proofs,
         beacon_header_proofs,
         account_proofs,

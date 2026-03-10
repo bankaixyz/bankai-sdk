@@ -2,7 +2,6 @@ use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_rpc_types_eth::{Account as AlloyAccount, EIP1186AccountProofResponse};
 use bankai_types::api::ethereum::BankaiBlockFilterDto;
 use bankai_types::api::op_stack::{OpChainSnapshotSummaryDto, OpStackLightClientProofRequestDto};
-use bankai_types::block::OpChainClient;
 use bankai_types::common::HashingFunction;
 use bankai_types::inputs::evm::{
     execution::{ReceiptProof, StorageSlotEntry, StorageSlotProof, TxProof},
@@ -41,9 +40,8 @@ impl OpStackChainFetcher {
         hashing_function: HashingFunction,
         filter: BankaiBlockFilterDto,
     ) -> SdkResult<OpStackHeaderProof> {
-        let snapshot = self.validated_snapshot(filter.clone()).await?;
         let header = self.header_only(block_number).await?;
-        self.header_from_execution_header(header, snapshot, hashing_function, filter)
+        self.header_from_execution_header(header, hashing_function, filter)
             .await
     }
 
@@ -54,9 +52,8 @@ impl OpStackChainFetcher {
         hashing_function: HashingFunction,
         filter: BankaiBlockFilterDto,
     ) -> SdkResult<OpStackHeaderProof> {
-        let snapshot = self.validated_snapshot(filter.clone()).await?;
         let header = self.header_only_by_hash(header_hash).await?;
-        self.header_from_execution_header(header, snapshot, hashing_function, filter)
+        self.header_from_execution_header(header, hashing_function, filter)
             .await
     }
 
@@ -161,7 +158,6 @@ impl OpStackChainFetcher {
     async fn header_from_execution_header(
         &self,
         header: alloy_rpc_types_eth::Header,
-        snapshot: OpChainSnapshotSummaryDto,
         hashing_function: HashingFunction,
         filter: BankaiBlockFilterDto,
     ) -> SdkResult<OpStackHeaderProof> {
@@ -182,10 +178,17 @@ impl OpStackChainFetcher {
                 self.chain_name
             ))
         })?;
+        let rpc_chain_id = self.chain_id().await?;
+        if proof.snapshot.chain_id != rpc_chain_id {
+            return Err(SdkError::InvalidInput(format!(
+                "OP chain_id mismatch for {}: rpc returned {}, proof returned {}",
+                self.chain_name, rpc_chain_id, proof.snapshot.chain_id
+            )));
+        }
 
         Ok(OpStackHeaderProof {
             header,
-            snapshot: snapshot_to_witness(snapshot)?,
+            snapshot: proof.snapshot,
             merkle_proof: proof.merkle_proof.try_into().map_err(|e| {
                 SdkError::InvalidInput(format!("invalid OP merkle proof hex from API: {e}"))
             })?,
@@ -194,39 +197,4 @@ impl OpStackChainFetcher {
             })?,
         })
     }
-
-    async fn validated_snapshot(
-        &self,
-        filter: BankaiBlockFilterDto,
-    ) -> SdkResult<OpChainSnapshotSummaryDto> {
-        let snapshot = self.snapshot(filter).await?;
-        let rpc_chain_id = self.chain_id().await?;
-        if rpc_chain_id != snapshot.chain_id {
-            return Err(SdkError::InvalidInput(format!(
-                "OP chain_id mismatch for {}: rpc returned {}, snapshot returned {}",
-                self.chain_name, rpc_chain_id, snapshot.chain_id
-            )));
-        }
-        Ok(snapshot)
-    }
-}
-
-fn snapshot_to_witness(snapshot: OpChainSnapshotSummaryDto) -> SdkResult<OpChainClient> {
-    Ok(OpChainClient {
-        chain_id: snapshot.chain_id,
-        block_number: snapshot.end_height,
-        header_hash: snapshot
-            .header_hash
-            .parse()
-            .map_err(|e| SdkError::InvalidInput(format!("invalid OP snapshot header hash: {e}")))?,
-        l1_submission_block: snapshot.l1_submission_block,
-        mmr_root_keccak: snapshot
-            .mmr_roots
-            .keccak_root
-            .parse()
-            .map_err(|e| SdkError::InvalidInput(format!("invalid OP snapshot keccak root: {e}")))?,
-        mmr_root_poseidon: snapshot.mmr_roots.poseidon_root.parse().map_err(|e| {
-            SdkError::InvalidInput(format!("invalid OP snapshot poseidon root: {e}"))
-        })?,
-    })
 }

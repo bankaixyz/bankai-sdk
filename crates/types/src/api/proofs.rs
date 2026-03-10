@@ -3,6 +3,7 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::api::blocks::BankaiBlockOutputDto;
 use crate::common::HashingFunction;
 
 #[cfg(feature = "serde")]
@@ -55,6 +56,8 @@ pub struct MmrProofRequestDto {
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct BankaiBlockProofDto {
     pub block_number: u64,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Object))]
+    pub block: BankaiBlockOutputDto,
     pub proof: BlockProofPayloadDto,
 }
 
@@ -76,7 +79,7 @@ pub type BlakeCairoProof =
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
-pub struct LightClientProofDto {
+pub struct EthereumLightClientProofDto {
     pub block_proof: BankaiBlockProofDto,
     pub mmr_proofs: Vec<MmrProofDto>,
 }

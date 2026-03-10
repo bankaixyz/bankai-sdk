@@ -1,14 +1,13 @@
 use alloy_primitives::{hex::FromHex, FixedBytes};
 use anyhow::{anyhow, Context, Result};
 use bankai_sdk::parse_block_proof_payload;
-use bankai_types::api::blocks::BankaiBlockFullOutputDto;
 use bankai_types::api::ethereum::BankaiBlockFilterDto;
 use bankai_types::api::op_stack::{
-    OpChainSnapshotSummaryDto, OpMerkleProofDto, OpStackLightClientProofDto,
-    OpStackLightClientProofRequestDto, OpStackMerkleProofRequestDto, OpStackMmrProofRequestDto,
+    OpMerkleProofDto, OpStackLightClientProofDto, OpStackLightClientProofRequestDto,
+    OpStackMerkleProofRequestDto, OpStackMmrProofRequestDto,
 };
 use bankai_types::api::proofs::BankaiBlockProofDto;
-use bankai_types::api::proofs::LightClientProofDto;
+use bankai_types::api::proofs::EthereumLightClientProofDto;
 use bankai_types::block::OpChainClient;
 use bankai_types::common::{HashingFunction, ProofFormat};
 use bankai_types::inputs::evm::op_stack::OpStackMerkleProof;
@@ -659,11 +658,10 @@ pub(super) async fn run_light_client_proof_verify(
                             })?;
 
                         verify_op_stack_light_client_bundle(
-                            ctx,
                             &name,
-                            &snapshot,
                             &proof,
                             &request.header_hashes,
+                            proof.block_proof.block_number,
                             request.hashing_function,
                             &variant,
                         )
@@ -678,16 +676,13 @@ pub(super) async fn run_light_client_proof_verify(
 }
 
 fn verify_light_client_bundle(
-    proof: &LightClientProofDto,
+    proof: &EthereumLightClientProofDto,
     requested_header_hashes: &[String],
     expected_mmr_root: &str,
     expected_hashing_function: HashingFunction,
     variant: &str,
 ) -> Result<()> {
-    let stwo_proof = parse_block_proof_payload(proof.block_proof.proof.clone())
-        .with_context(|| format!("failed to parse block proof payload for {variant}"))?;
-    let _ = verify_stwo_proof(stwo_proof)
-        .with_context(|| format!("STWO proof hash-output verification failed for {variant}"))?;
+    verify_bankai_block_proof(&proof.block_proof, Some(proof.block_proof.block_number), variant)?;
 
     if proof.mmr_proofs.is_empty() {
         return Err(anyhow!(
@@ -731,11 +726,10 @@ fn verify_light_client_bundle(
 }
 
 async fn verify_op_stack_light_client_bundle(
-    ctx: &CompatContext,
     name: &str,
-    snapshot: &OpChainSnapshotSummaryDto,
     proof: &OpStackLightClientProofDto,
     requested_header_hashes: &[String],
+    expected_block_number: u64,
     expected_hashing_function: HashingFunction,
     variant: &str,
 ) -> Result<()> {
@@ -746,13 +740,7 @@ async fn verify_op_stack_light_client_bundle(
             proof.block_proof.block_number
         ));
     }
-    let _op_chains_root = trusted_op_chains_root_for_block(
-        ctx,
-        proof.block_proof.block_number,
-        Some(&proof.block_proof),
-        variant,
-    )
-    .await?;
+    verify_bankai_block_proof(&proof.block_proof, Some(expected_block_number), variant)?;
 
     if proof.mmr_proofs.len() != requested_header_hashes.len() {
         return Err(anyhow!(
@@ -762,7 +750,14 @@ async fn verify_op_stack_light_client_bundle(
         ));
     }
 
-    let trusted_snapshot = op_snapshot_summary_to_client(snapshot, name, variant)?;
+    let trusted_snapshot = proof.snapshot.clone();
+    if trusted_snapshot.chain_id != proof.merkle_proof.chain_id {
+        return Err(anyhow!(
+            "OP light_client_proof chain_id mismatch for chain={name}, {variant}: snapshot={}, merkle={}",
+            trusted_snapshot.chain_id,
+            proof.merkle_proof.chain_id
+        ));
+    }
 
     let merkle_proof = op_merkle_dto_to_input(&proof.merkle_proof)
         .with_context(|| format!("invalid OP merkle proof payload for {variant}"))?;
@@ -771,6 +766,13 @@ async fn verify_op_stack_light_client_bundle(
             "OP light_client_proof merkle leaf mismatch for chain={name}, {variant}: expected {}, got {}",
             trusted_snapshot.commitment_leaf_hash(),
             merkle_proof.leaf_hash
+        ));
+    }
+    if merkle_proof.root != proof.block_proof.block.block.op_chains.root {
+        return Err(anyhow!(
+            "OP light_client_proof merkle root mismatch for chain={name}, {variant}: expected {}, got {}",
+            proof.block_proof.block.block.op_chains.root,
+            merkle_proof.root
         ));
     }
 
@@ -812,20 +814,50 @@ async fn verify_op_stack_light_client_bundle(
     Ok(())
 }
 
+fn verify_bankai_block_proof(
+    block_proof: &BankaiBlockProofDto,
+    expected_block_number: Option<u64>,
+    variant: &str,
+) -> Result<()> {
+    if block_proof.block.block.block_number != block_proof.block_number {
+        return Err(anyhow!(
+            "block witness mismatch for {variant}: proof={}, block={}",
+            block_proof.block_number,
+            block_proof.block.block.block_number
+        ));
+    }
+    if let Some(expected) = expected_block_number {
+        if block_proof.block_number != expected {
+            return Err(anyhow!(
+                "block proof number mismatch for {variant}: expected {}, got {}",
+                expected,
+                block_proof.block_number
+            ));
+        }
+    }
+
+    let stwo_proof = parse_block_proof_payload(block_proof.proof.clone())
+        .with_context(|| format!("failed to parse block proof payload for {variant}"))?;
+    let hash_output = verify_stwo_proof(stwo_proof)
+        .with_context(|| format!("STWO proof hash-output verification failed for {variant}"))?;
+    let expected_block_hash = block_proof.block.block.compute_block_hash_keccak();
+    if hash_output.block_hash != expected_block_hash {
+        return Err(anyhow!(
+            "block hash mismatch for {variant}: expected {}, got {}",
+            expected_block_hash,
+            hash_output.block_hash
+        ));
+    }
+
+    Ok(())
+}
+
 async fn trusted_op_chains_root_for_block(
     ctx: &CompatContext,
     block_number: u64,
     block_proof: Option<&BankaiBlockProofDto>,
     variant: &str,
 ) -> Result<FixedBytes<32>> {
-    let full_block: BankaiBlockFullOutputDto = ctx
-        .sdk
-        .api
-        .blocks()
-        .full(block_number)
-        .await
-        .with_context(|| format!("failed to fetch full block {block_number} for {variant}"))?;
-    let trusted_block = full_block.block.to_block();
     let block_proof = match block_proof {
         Some(block_proof) => block_proof.clone(),
         None => ctx
@@ -837,28 +869,16 @@ async fn trusted_op_chains_root_for_block(
             .with_context(|| format!("failed to fetch block proof {block_number} for {variant}"))?,
     };
 
-    let stwo_proof = parse_block_proof_payload(block_proof.proof)
-        .with_context(|| format!("failed to parse block proof payload for {variant}"))?;
-    let hash_output = verify_stwo_proof(stwo_proof)
-        .with_context(|| format!("STWO proof hash-output verification failed for {variant}"))?;
-    let expected_block_hash = trusted_block.compute_block_hash_keccak();
-    if hash_output.block_hash != expected_block_hash {
-        return Err(anyhow!(
-            "block hash mismatch for {variant}: expected {}, got {}",
-            expected_block_hash,
-            hash_output.block_hash
-        ));
-    }
-
-    Ok(trusted_block.op_chains.root)
+    verify_bankai_block_proof(&block_proof, Some(block_number), variant)?;
+    Ok(block_proof.block.block.op_chains.root)
 }
 
 fn op_snapshot_summary_to_client(
-    snapshot: &OpChainSnapshotSummaryDto,
+    snapshot: &bankai_types::api::op_stack::OpChainSnapshotSummaryDto,
     name: &str,
     variant: &str,
-) -> Result<OpChainClient> {
-    Ok(OpChainClient {
+) -> Result<bankai_types::block::OpChainClient> {
+    Ok(bankai_types::block::OpChainClient {
         chain_id: snapshot.chain_id,
         block_number: snapshot.end_height,
         header_hash: FixedBytes::from_hex(&snapshot.header_hash).map_err(|_| {

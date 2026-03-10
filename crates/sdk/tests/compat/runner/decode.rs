@@ -825,11 +825,25 @@ async fn run_op_stack_light_client_proof_decode(
         .light_client_proof(&name, &request)
         .await
         .with_context(|| format!("op_stack light_client_proof failed for chain={name}"))?;
+    if proof.block_proof.block.block.block_number != proof.block_proof.block_number {
+        return Err(anyhow!(
+            "op_stack light_client_proof embedded block mismatch for chain={name}: proof={}, block={}",
+            proof.block_proof.block_number,
+            proof.block_proof.block.block.block_number
+        ));
+    }
     if proof.merkle_proof.chain_id != snapshot.chain_id {
         return Err(anyhow!(
             "op_stack light_client_proof merkle chain_id mismatch for chain={name}: expected {}, got {}",
             snapshot.chain_id,
             proof.merkle_proof.chain_id
+        ));
+    }
+    if proof.snapshot.chain_id != snapshot.chain_id {
+        return Err(anyhow!(
+            "op_stack light_client_proof snapshot chain_id mismatch for chain={name}: expected {}, got {}",
+            snapshot.chain_id,
+            proof.snapshot.chain_id
         ));
     }
     if proof.mmr_proofs.len() != request.header_hashes.len() {
@@ -1026,6 +1040,14 @@ async fn run_beacon_light_client_decode(ctx: &CompatContext, scope: MatrixScope)
                             .with_context(|| {
                                 format!("beacon light_client_proof failed for {variant}")
                             })?;
+                        if proof.block_proof.block.block.block_number != proof.block_proof.block_number
+                        {
+                            return Err(anyhow!(
+                                "beacon light_client_proof embedded block mismatch for {variant}: proof={}, block={}",
+                                proof.block_proof.block_number,
+                                proof.block_proof.block.block.block_number
+                            ));
+                        }
                         if proof.mmr_proofs.is_empty() {
                             return Err(anyhow!(
                                 "beacon light_client_proof returned no mmr_proofs for {variant}"
@@ -1115,6 +1137,14 @@ async fn run_execution_light_client_decode(ctx: &CompatContext, scope: MatrixSco
                             .with_context(|| {
                                 format!("execution light_client_proof failed for {variant}")
                             })?;
+                        if proof.block_proof.block.block.block_number != proof.block_proof.block_number
+                        {
+                            return Err(anyhow!(
+                                "execution light_client_proof embedded block mismatch for {variant}: proof={}, block={}",
+                                proof.block_proof.block_number,
+                                proof.block_proof.block.block.block_number
+                            ));
+                        }
                         if proof.mmr_proofs.is_empty() {
                             return Err(anyhow!(
                                 "execution light_client_proof returned no mmr_proofs for {variant}"

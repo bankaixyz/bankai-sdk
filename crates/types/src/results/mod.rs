@@ -1,6 +1,6 @@
 //! Verified outputs returned by the verification crate.
 
-use crate::results::evm::{EvmResults, op_stack::OpStackResults};
+use crate::results::evm::{op_stack::OpStackResults, EvmResults};
 
 pub mod evm;
 

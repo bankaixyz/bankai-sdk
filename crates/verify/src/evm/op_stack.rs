@@ -2,7 +2,6 @@ use alloy_primitives::FixedBytes;
 use bankai_core::merkle::KeccakHasher;
 use bankai_types::common::HashingFunction;
 use bankai_types::inputs::evm::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
-use bankai_types::inputs::evm::MmrProof;
 use bankai_types::results::evm::execution::ExecutionHeader;
 
 use crate::bankai::mmr::MmrVerifier;
@@ -20,7 +19,7 @@ impl OpStackVerifier {
             proof.leaf_hash,
             proof.merkle_leaf_index,
         );
-        if computed_root != op_chains_root || proof.root != op_chains_root {
+        if computed_root != op_chains_root {
             return Err(VerifyError::InvalidMerkleProof);
         }
         Ok(())
@@ -35,31 +34,32 @@ impl OpStackVerifier {
         if computed_leaf != proof.merkle_proof.leaf_hash {
             return Err(VerifyError::InvalidMerkleProof);
         }
-
+        
+        // verify the snapshopt via merkle proof
         Self::verify_merkle_proof(&proof.merkle_proof, op_chains_root)?;
 
+        // select the correct mmr root based on the hashing function
         let mmr_root = match hashing_function {
             HashingFunction::Keccak => proof.snapshot.mmr_root_keccak,
             HashingFunction::Poseidon => proof.snapshot.mmr_root_poseidon,
         };
 
-        verify_snapshot_mmr_root(&proof.mmr_proof, mmr_root)?;
+        // ensure the mmr proof, uses the correct root
+        if proof.mmr_proof.root != mmr_root {
+            return Err(VerifyError::InvalidMmrRoot);
+        }
+
+        // verify the mmr proof
         MmrVerifier::verify_mmr_proof(&proof.mmr_proof)?;
 
+        // verify the header hash
         let header_hash = proof.header.hash_slow();
-        if header_hash != proof.snapshot.header_hash || header_hash != proof.mmr_proof.header_hash {
+        if header_hash != proof.mmr_proof.header_hash {
             return Err(VerifyError::InvalidHeaderHash);
         }
 
         Ok(proof.header.clone().into())
     }
-}
-
-fn verify_snapshot_mmr_root(proof: &MmrProof, mmr_root: FixedBytes<32>) -> Result<(), VerifyError> {
-    if proof.root != mmr_root {
-        return Err(VerifyError::InvalidMmrRoot);
-    }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -69,7 +69,6 @@ mod tests {
     use bankai_types::block::OpChainClient;
     use bankai_types::common::HashingFunction;
     use bankai_types::inputs::evm::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
-    use bankai_types::inputs::evm::MmrProof;
     use bankai_types::utils::mmr::hash_to_leaf;
 
     use super::*;

@@ -2,9 +2,9 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use alloy_primitives::FixedBytes;
 #[cfg(feature = "api")]
 use alloy_primitives::hex::FromHex;
+use alloy_primitives::FixedBytes;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "api")]

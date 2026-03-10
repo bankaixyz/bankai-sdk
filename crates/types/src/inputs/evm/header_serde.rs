@@ -14,9 +14,7 @@ where
     json_str.serialize(serializer)
 }
 
-pub fn deserialize_execution_header<'de, D>(
-    deserializer: D,
-) -> Result<ExecutionHeader, D::Error>
+pub fn deserialize_execution_header<'de, D>(deserializer: D) -> Result<ExecutionHeader, D::Error>
 where
     D: Deserializer<'de>,
 {
