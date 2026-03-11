@@ -2,7 +2,7 @@
 
 use alloc::vec::Vec;
 
-use alloy_primitives::{keccak256, FixedBytes, Keccak256};
+use alloy_primitives::{FixedBytes, keccak256};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -116,12 +116,15 @@ pub struct ExecutionClient {
     pub mmr_root_poseidon: FixedBytes<32>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct OpChainsCommitment {
     pub root: FixedBytes<32>,
     pub n_clients: u64,
 }
+
+pub const OP_STACK_TREE_DEPTH: usize = 5;
+pub const OP_STACK_MAX_CLIENTS: usize = 1 << OP_STACK_TREE_DEPTH;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -160,13 +163,25 @@ pub struct BankaiBlockFull {
     pub op_chains: Vec<OpChainClient>,
 }
 
-fn compute_op_chains_merkle_root(leaves: &[FixedBytes<32>]) -> FixedBytes<32> {
+fn u64_to_word(value: u64) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    out[24..32].copy_from_slice(&value.to_be_bytes());
+    out
+}
+
+fn bytes32_to_word(value: &FixedBytes<32>) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    out.copy_from_slice(value.as_slice());
+    out
+}
+
+pub fn compute_op_chains_merkle_root(leaves: &[FixedBytes<32>]) -> FixedBytes<32> {
     if leaves.is_empty() {
         return FixedBytes::from([0u8; 32]);
     }
 
     let mut level = leaves.to_vec();
-    level.resize(level.len().next_power_of_two(), FixedBytes::from([0u8; 32]));
+    level.resize(level.len().next_power_of_two(), OpChainClient::empty_leaf_hash());
 
     while level.len() > 1 {
         let mut next = Vec::with_capacity(level.len() / 2);
@@ -182,23 +197,25 @@ fn compute_op_chains_merkle_root(leaves: &[FixedBytes<32>]) -> FixedBytes<32> {
     level[0]
 }
 
+pub fn empty_op_chains_root() -> FixedBytes<32> {
+    let leaves = vec![OpChainClient::empty_leaf_hash(); OP_STACK_MAX_CLIENTS];
+    compute_op_chains_merkle_root(&leaves)
+}
+
+impl Default for OpChainsCommitment {
+    fn default() -> Self {
+        Self {
+            root: empty_op_chains_root(),
+            n_clients: 0,
+        }
+    }
+}
+
 impl BankaiBlock {
     /// Compute the canonical Bankai block hash.
     ///
     /// Hash input is 22 ordered 32-byte big-endian words that match Cairo hints.
     pub fn compute_block_hash_keccak(&self) -> FixedBytes<32> {
-        fn u64_to_word(value: u64) -> [u8; 32] {
-            let mut out = [0u8; 32];
-            out[24..32].copy_from_slice(&value.to_be_bytes());
-            out
-        }
-
-        fn bytes32_to_word(value: &FixedBytes<32>) -> [u8; 32] {
-            let mut out = [0u8; 32];
-            out.copy_from_slice(value.as_slice());
-            out
-        }
-
         let words = [
             u64_to_word(self.version),
             bytes32_to_word(&self.program_hash),
@@ -237,16 +254,34 @@ impl BankaiBlock {
 }
 
 impl OpChainClient {
-    pub fn hash(&self) -> FixedBytes<32> {
-        let mut hasher = Keccak256::new();
-        hasher.update(self.chain_id.to_be_bytes());
-        hasher.update(self.block_number.to_be_bytes());
-        hasher.update(self.header_hash.as_slice());
-        hasher.update(self.l1_submission_block.to_be_bytes());
-        hasher.update(self.mmr_root_keccak.as_slice());
-        hasher.update(self.mmr_root_poseidon.as_slice());
+    pub fn empty_leaf_hash() -> FixedBytes<32> {
+        Self {
+            chain_id: 0,
+            block_number: 0,
+            header_hash: FixedBytes::from([0u8; 32]),
+            l1_submission_block: 0,
+            mmr_root_keccak: FixedBytes::from([0u8; 32]),
+            mmr_root_poseidon: FixedBytes::from([0u8; 32]),
+        }
+        .hash()
+    }
 
-        hasher.finalize()
+    pub fn hash(&self) -> FixedBytes<32> {
+        let words = [
+            u64_to_word(self.chain_id),
+            u64_to_word(self.block_number),
+            bytes32_to_word(&self.header_hash),
+            u64_to_word(self.l1_submission_block),
+            bytes32_to_word(&self.mmr_root_keccak),
+            bytes32_to_word(&self.mmr_root_poseidon),
+        ];
+
+        let mut preimage = Vec::with_capacity(words.len() * 32);
+        for word in words {
+            preimage.extend_from_slice(&word);
+        }
+
+        FixedBytes::from_slice(keccak256(preimage).as_slice())
     }
 
     pub fn commitment_leaf_hash(&self) -> FixedBytes<32> {
@@ -257,7 +292,7 @@ impl OpChainClient {
             && self.mmr_root_keccak == FixedBytes::from([0u8; 32])
             && self.mmr_root_poseidon == FixedBytes::from([0u8; 32])
         {
-            FixedBytes::from([0u8; 32])
+            Self::empty_leaf_hash()
         } else {
             self.hash()
         }
@@ -316,9 +351,16 @@ impl BankaiBlockHashOutput {
 #[cfg(test)]
 mod tests {
     use super::{
-        BankaiBlockFull, BeaconClient, ExecutionClient, OpChainClient, OpChainsCommitment,
+        BankaiBlockFull, BeaconClient, ExecutionClient, OP_STACK_MAX_CLIENTS, OpChainClient,
+        OpChainsCommitment, compute_op_chains_merkle_root, empty_op_chains_root,
     };
-    use alloy_primitives::FixedBytes;
+    use alloy_primitives::{FixedBytes, keccak256, hex::FromHex};
+
+    fn u64_word(value: u64) -> [u8; 32] {
+        let mut out = [0u8; 32];
+        out[24..32].copy_from_slice(&value.to_be_bytes());
+        out
+    }
 
     #[test]
     fn single_op_chain_round_trips_into_block_commitment() {
@@ -355,5 +397,90 @@ mod tests {
             block.compute_block_hash_keccak(),
             full.to_block().compute_block_hash_keccak()
         );
+    }
+
+    #[test]
+    fn op_chain_hash_uses_be_uint256_words() {
+        let op_chain = OpChainClient {
+            chain_id: 0x0102_0304_0506_0708,
+            block_number: 0x1112_1314_1516_1718,
+            header_hash: FixedBytes::from([0x22; 32]),
+            l1_submission_block: 0x2122_2324_2526_2728,
+            mmr_root_keccak: FixedBytes::from([0x33; 32]),
+            mmr_root_poseidon: FixedBytes::from([0x44; 32]),
+        };
+
+        let mut preimage = Vec::with_capacity(32 * 6);
+        preimage.extend_from_slice(&u64_word(op_chain.chain_id));
+        preimage.extend_from_slice(&u64_word(op_chain.block_number));
+        preimage.extend_from_slice(op_chain.header_hash.as_slice());
+        preimage.extend_from_slice(&u64_word(op_chain.l1_submission_block));
+        preimage.extend_from_slice(op_chain.mmr_root_keccak.as_slice());
+        preimage.extend_from_slice(op_chain.mmr_root_poseidon.as_slice());
+
+        assert_eq!(op_chain.hash(), FixedBytes::from_slice(keccak256(preimage).as_slice()));
+    }
+
+    #[test]
+    fn zero_op_chain_uses_hashed_empty_leaf() {
+        let empty = OpChainClient {
+            chain_id: 0,
+            block_number: 0,
+            header_hash: FixedBytes::ZERO,
+            l1_submission_block: 0,
+            mmr_root_keccak: FixedBytes::ZERO,
+            mmr_root_poseidon: FixedBytes::ZERO,
+        };
+
+        assert_eq!(empty.commitment_leaf_hash(), OpChainClient::empty_leaf_hash());
+        assert_ne!(OpChainClient::empty_leaf_hash(), FixedBytes::ZERO);
+    }
+
+    #[test]
+    fn op_chains_merkle_root_pads_with_hashed_empty_leaf() {
+        let leaves = [
+            FixedBytes::from([0x55; 32]),
+            FixedBytes::from([0x66; 32]),
+            FixedBytes::from([0x77; 32]),
+        ];
+        let empty_leaf = OpChainClient::empty_leaf_hash();
+        let mut left_preimage = [0u8; 64];
+        left_preimage[..32].copy_from_slice(leaves[0].as_slice());
+        left_preimage[32..].copy_from_slice(leaves[1].as_slice());
+        let left: FixedBytes<32> = FixedBytes::from_slice(keccak256(left_preimage).as_slice());
+
+        let mut right_preimage = [0u8; 64];
+        right_preimage[..32].copy_from_slice(leaves[2].as_slice());
+        right_preimage[32..].copy_from_slice(empty_leaf.as_slice());
+        let right: FixedBytes<32> = FixedBytes::from_slice(keccak256(right_preimage).as_slice());
+
+        let mut root_preimage = [0u8; 64];
+        root_preimage[..32].copy_from_slice(left.as_slice());
+        root_preimage[32..].copy_from_slice(right.as_slice());
+
+        assert_eq!(
+            compute_op_chains_merkle_root(&leaves),
+            FixedBytes::from_slice(keccak256(root_preimage).as_slice())
+        );
+    }
+
+    #[test]
+    fn op_chains_commitment_default_uses_fixed_empty_root() {
+        let leaves = vec![OpChainClient::empty_leaf_hash(); OP_STACK_MAX_CLIENTS];
+
+        assert_eq!(OpChainsCommitment::default().root, empty_op_chains_root());
+        assert_eq!(OpChainsCommitment::default().root, compute_op_chains_merkle_root(&leaves));
+        assert_ne!(OpChainsCommitment::default().root, FixedBytes::ZERO);
+        assert_eq!(OpChainsCommitment::default().n_clients, 0);
+    }
+
+    #[test]
+    fn empty_op_chains_root_matches_cairo_constant() {
+        let expected = FixedBytes::<32>::from_hex(
+            "0xd686d974150e54f427421b5805b6464c7736dcf70944067195505a19e433d326",
+        )
+        .unwrap();
+
+        assert_eq!(empty_op_chains_root(), expected);
     }
 }
