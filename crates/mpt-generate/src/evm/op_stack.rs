@@ -4,7 +4,7 @@ use op_alloy_network::Optimism;
 
 use alloy_primitives::B256;
 
-use crate::error::CoreError;
+use bankai_core::error::CoreError;
 
 use super::proof::{
     build_receipt_proof_from_items, build_tx_proof_from_items, ReceiptProof, TxProof,

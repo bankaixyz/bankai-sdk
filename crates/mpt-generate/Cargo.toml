@@ -1,0 +1,20 @@
+[package]
+name = "mpt-generate"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bankai-core = { path = "../core", features = ["std"] }
+alloy-primitives.workspace = true
+alloy-consensus.workspace = true
+alloy-eips.workspace = true
+alloy-provider.workspace = true
+alloy-rpc-types-eth.workspace = true
+alloy-trie = { workspace = true, features = ["ethereum"] }
+alloy-rlp.workspace = true
+op-alloy-network.workspace = true
+op-alloy-consensus.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

@@ -2,7 +2,8 @@
 
 use alloc::vec::Vec;
 
-use alloy_primitives::{FixedBytes, keccak256};
+use alloy_primitives::{keccak256, FixedBytes};
+use bankai_core::merkle::op_stack;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -139,6 +140,14 @@ pub struct OpChainClient {
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct IndexedOpChainClient {
+    pub merkle_index: u64,
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    pub client: OpChainClient,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BankaiBlockFull {
     /// Bankai program version
     pub version: u64,
@@ -160,7 +169,7 @@ pub struct BankaiBlockFull {
     /// Execution layer state at this Bankai block
     pub execution: ExecutionClient,
     /// OP chains full outputs committed by this block
-    pub op_chains: Vec<OpChainClient>,
+    pub op_chains: Vec<IndexedOpChainClient>,
 }
 
 fn u64_to_word(value: u64) -> [u8; 32] {
@@ -175,31 +184,8 @@ fn bytes32_to_word(value: &FixedBytes<32>) -> [u8; 32] {
     out
 }
 
-pub fn compute_op_chains_merkle_root(leaves: &[FixedBytes<32>]) -> FixedBytes<32> {
-    if leaves.is_empty() {
-        return FixedBytes::from([0u8; 32]);
-    }
-
-    let mut level = leaves.to_vec();
-    level.resize(level.len().next_power_of_two(), OpChainClient::empty_leaf_hash());
-
-    while level.len() > 1 {
-        let mut next = Vec::with_capacity(level.len() / 2);
-        for pair in level.chunks_exact(2) {
-            let mut preimage = [0u8; 64];
-            preimage[..32].copy_from_slice(pair[0].as_slice());
-            preimage[32..].copy_from_slice(pair[1].as_slice());
-            next.push(FixedBytes::from_slice(keccak256(preimage).as_slice()));
-        }
-        level = next;
-    }
-
-    level[0]
-}
-
 pub fn empty_op_chains_root() -> FixedBytes<32> {
-    let leaves = vec![OpChainClient::empty_leaf_hash(); OP_STACK_MAX_CLIENTS];
-    compute_op_chains_merkle_root(&leaves)
+    op_stack::empty_root()
 }
 
 impl Default for OpChainsCommitment {
@@ -255,58 +241,50 @@ impl BankaiBlock {
 
 impl OpChainClient {
     pub fn empty_leaf_hash() -> FixedBytes<32> {
-        Self {
-            chain_id: 0,
-            block_number: 0,
-            header_hash: FixedBytes::from([0u8; 32]),
-            l1_submission_block: 0,
-            mmr_root_keccak: FixedBytes::from([0u8; 32]),
-            mmr_root_poseidon: FixedBytes::from([0u8; 32]),
-        }
-        .hash()
+        op_stack::empty_leaf_hash()
     }
 
     pub fn hash(&self) -> FixedBytes<32> {
-        let words = [
-            u64_to_word(self.chain_id),
-            u64_to_word(self.block_number),
-            bytes32_to_word(&self.header_hash),
-            u64_to_word(self.l1_submission_block),
-            bytes32_to_word(&self.mmr_root_keccak),
-            bytes32_to_word(&self.mmr_root_poseidon),
-        ];
-
-        let mut preimage = Vec::with_capacity(words.len() * 32);
-        for word in words {
-            preimage.extend_from_slice(&word);
-        }
-
-        FixedBytes::from_slice(keccak256(preimage).as_slice())
+        op_stack::leaf_hash(
+            self.chain_id,
+            self.block_number,
+            self.header_hash,
+            self.l1_submission_block,
+            self.mmr_root_keccak,
+            self.mmr_root_poseidon,
+        )
     }
 
     pub fn commitment_leaf_hash(&self) -> FixedBytes<32> {
-        if self.chain_id == 0
-            && self.block_number == 0
-            && self.header_hash == FixedBytes::from([0u8; 32])
-            && self.l1_submission_block == 0
-            && self.mmr_root_keccak == FixedBytes::from([0u8; 32])
-            && self.mmr_root_poseidon == FixedBytes::from([0u8; 32])
-        {
-            Self::empty_leaf_hash()
-        } else {
-            self.hash()
-        }
+        op_stack::leaf_hash(
+            self.chain_id,
+            self.block_number,
+            self.header_hash,
+            self.l1_submission_block,
+            self.mmr_root_keccak,
+            self.mmr_root_poseidon,
+        )
     }
 }
 
 impl BankaiBlockFull {
     pub fn to_block(&self) -> BankaiBlock {
-        let leaves = self
+        let leaf_hashes = self
             .op_chains
             .iter()
-            .map(OpChainClient::commitment_leaf_hash)
+            .enumerate()
+            .map(|(index, entry)| {
+                assert_eq!(
+                    entry.merkle_index,
+                    index as u64,
+                    "invalid OP stack client payload in BankaiBlockFull"
+                );
+                entry.client.commitment_leaf_hash()
+            })
             .collect::<Vec<_>>();
-        let root = compute_op_chains_merkle_root(&leaves);
+        let root = op_stack::compute_root(&leaf_hashes)
+            .expect("invalid OP stack client payload in BankaiBlockFull");
+        let n_clients = leaf_hashes.len() as u64;
 
         BankaiBlock {
             version: self.version,
@@ -317,10 +295,7 @@ impl BankaiBlockFull {
             block_number: self.block_number,
             beacon: self.beacon.clone(),
             execution: self.execution.clone(),
-            op_chains: OpChainsCommitment {
-                root,
-                n_clients: self.op_chains.len() as u64,
-            },
+            op_chains: OpChainsCommitment { root, n_clients },
         }
     }
 }
@@ -351,10 +326,11 @@ impl BankaiBlockHashOutput {
 #[cfg(test)]
 mod tests {
     use super::{
-        BankaiBlockFull, BeaconClient, ExecutionClient, OP_STACK_MAX_CLIENTS, OpChainClient,
-        OpChainsCommitment, compute_op_chains_merkle_root, empty_op_chains_root,
+        empty_op_chains_root, BankaiBlockFull, BeaconClient, ExecutionClient,
+        IndexedOpChainClient, OpChainClient, OpChainsCommitment,
     };
-    use alloy_primitives::{FixedBytes, keccak256, hex::FromHex};
+    use bankai_core::merkle::op_stack;
+    use alloy_primitives::{hex::FromHex, keccak256, FixedBytes};
 
     fn u64_word(value: u64) -> [u8; 32] {
         let mut out = [0u8; 32];
@@ -381,15 +357,19 @@ mod tests {
             block_number: 5,
             beacon: BeaconClient::default(),
             execution: ExecutionClient::default(),
-            op_chains: vec![op_chain.clone()],
+            op_chains: vec![IndexedOpChainClient {
+                merkle_index: 0,
+                client: op_chain.clone(),
+            }],
         };
 
         let block = full.to_block();
+        let expected_leaves = vec![op_chain.commitment_leaf_hash()];
 
         assert_eq!(
             block.op_chains,
             OpChainsCommitment {
-                root: op_chain.commitment_leaf_hash(),
+                root: op_stack::compute_root(&expected_leaves).unwrap(),
                 n_clients: 1,
             }
         );
@@ -418,7 +398,10 @@ mod tests {
         preimage.extend_from_slice(op_chain.mmr_root_keccak.as_slice());
         preimage.extend_from_slice(op_chain.mmr_root_poseidon.as_slice());
 
-        assert_eq!(op_chain.hash(), FixedBytes::from_slice(keccak256(preimage).as_slice()));
+        assert_eq!(
+            op_chain.hash(),
+            FixedBytes::from_slice(keccak256(preimage).as_slice())
+        );
     }
 
     #[test]
@@ -432,44 +415,132 @@ mod tests {
             mmr_root_poseidon: FixedBytes::ZERO,
         };
 
-        assert_eq!(empty.commitment_leaf_hash(), OpChainClient::empty_leaf_hash());
+        assert_eq!(
+            empty.commitment_leaf_hash(),
+            OpChainClient::empty_leaf_hash()
+        );
         assert_ne!(OpChainClient::empty_leaf_hash(), FixedBytes::ZERO);
     }
 
     #[test]
     fn op_chains_merkle_root_pads_with_hashed_empty_leaf() {
-        let leaves = [
+        let leaves = vec![
             FixedBytes::from([0x55; 32]),
             FixedBytes::from([0x66; 32]),
             FixedBytes::from([0x77; 32]),
         ];
         let empty_leaf = OpChainClient::empty_leaf_hash();
-        let mut left_preimage = [0u8; 64];
-        left_preimage[..32].copy_from_slice(leaves[0].as_slice());
-        left_preimage[32..].copy_from_slice(leaves[1].as_slice());
-        let left: FixedBytes<32> = FixedBytes::from_slice(keccak256(left_preimage).as_slice());
+        let mut compact_level = vec![leaves[0], leaves[1], leaves[2], empty_leaf];
+        while compact_level.len() > 1 {
+            let mut next = Vec::with_capacity(compact_level.len() / 2);
+            for pair in compact_level.chunks_exact(2) {
+                let mut preimage = [0u8; 64];
+                preimage[..32].copy_from_slice(pair[0].as_slice());
+                preimage[32..].copy_from_slice(pair[1].as_slice());
+                next.push(FixedBytes::from_slice(keccak256(preimage).as_slice()));
+            }
+            compact_level = next;
+        }
 
-        let mut right_preimage = [0u8; 64];
-        right_preimage[..32].copy_from_slice(leaves[2].as_slice());
-        right_preimage[32..].copy_from_slice(empty_leaf.as_slice());
-        let right: FixedBytes<32> = FixedBytes::from_slice(keccak256(right_preimage).as_slice());
+        assert_ne!(op_stack::compute_root(&leaves).unwrap(), compact_level[0]);
+    }
 
-        let mut root_preimage = [0u8; 64];
-        root_preimage[..32].copy_from_slice(left.as_slice());
-        root_preimage[32..].copy_from_slice(right.as_slice());
+    #[test]
+    #[should_panic(expected = "invalid OP stack client payload in BankaiBlockFull")]
+    fn bankai_block_full_rejects_non_sequential_indices() {
+        let first = OpChainClient {
+            chain_id: 10,
+            block_number: 42,
+            header_hash: FixedBytes::from([7u8; 32]),
+            l1_submission_block: 99,
+            mmr_root_keccak: FixedBytes::from([8u8; 32]),
+            mmr_root_poseidon: FixedBytes::from([9u8; 32]),
+        };
+        let second = OpChainClient {
+            chain_id: 8453,
+            block_number: 100,
+            header_hash: FixedBytes::from([1u8; 32]),
+            l1_submission_block: 123,
+            mmr_root_keccak: FixedBytes::from([2u8; 32]),
+            mmr_root_poseidon: FixedBytes::from([3u8; 32]),
+        };
+        let full = BankaiBlockFull {
+            version: 1,
+            program_hash: FixedBytes::from([1u8; 32]),
+            prev_block_hash: FixedBytes::from([2u8; 32]),
+            bankai_mmr_root_keccak: FixedBytes::from([3u8; 32]),
+            bankai_mmr_root_poseidon: FixedBytes::from([4u8; 32]),
+            block_number: 5,
+            beacon: BeaconClient::default(),
+            execution: ExecutionClient::default(),
+            op_chains: vec![
+                IndexedOpChainClient {
+                    merkle_index: 1,
+                    client: second.clone(),
+                },
+                IndexedOpChainClient {
+                    merkle_index: 0,
+                    client: first.clone(),
+                },
+            ],
+        };
 
-        assert_eq!(
-            compute_op_chains_merkle_root(&leaves),
-            FixedBytes::from_slice(keccak256(root_preimage).as_slice())
-        );
+        full.to_block();
+    }
+
+    #[test]
+    fn bankai_block_full_reconstructs_contiguous_root() {
+        let first = OpChainClient {
+            chain_id: 10,
+            block_number: 42,
+            header_hash: FixedBytes::from([7u8; 32]),
+            l1_submission_block: 99,
+            mmr_root_keccak: FixedBytes::from([8u8; 32]),
+            mmr_root_poseidon: FixedBytes::from([9u8; 32]),
+        };
+        let second = OpChainClient {
+            chain_id: 8453,
+            block_number: 100,
+            header_hash: FixedBytes::from([1u8; 32]),
+            l1_submission_block: 123,
+            mmr_root_keccak: FixedBytes::from([2u8; 32]),
+            mmr_root_poseidon: FixedBytes::from([3u8; 32]),
+        };
+        let full = BankaiBlockFull {
+            version: 1,
+            program_hash: FixedBytes::from([1u8; 32]),
+            prev_block_hash: FixedBytes::from([2u8; 32]),
+            bankai_mmr_root_keccak: FixedBytes::from([3u8; 32]),
+            bankai_mmr_root_poseidon: FixedBytes::from([4u8; 32]),
+            block_number: 5,
+            beacon: BeaconClient::default(),
+            execution: ExecutionClient::default(),
+            op_chains: vec![
+                IndexedOpChainClient {
+                    merkle_index: 0,
+                    client: first.clone(),
+                },
+                IndexedOpChainClient {
+                    merkle_index: 1,
+                    client: second.clone(),
+                },
+            ],
+        };
+
+        let leaves = vec![first.commitment_leaf_hash(), second.commitment_leaf_hash()];
+
+        let block = full.to_block();
+        assert_eq!(block.op_chains.root, op_stack::compute_root(&leaves).unwrap());
+        assert_eq!(block.op_chains.n_clients, 2);
     }
 
     #[test]
     fn op_chains_commitment_default_uses_fixed_empty_root() {
-        let leaves = vec![OpChainClient::empty_leaf_hash(); OP_STACK_MAX_CLIENTS];
-
         assert_eq!(OpChainsCommitment::default().root, empty_op_chains_root());
-        assert_eq!(OpChainsCommitment::default().root, compute_op_chains_merkle_root(&leaves));
+        assert_eq!(
+            OpChainsCommitment::default().root,
+            op_stack::compute_root(&[]).unwrap()
+        );
         assert_ne!(OpChainsCommitment::default().root, FixedBytes::ZERO);
         assert_eq!(OpChainsCommitment::default().n_clients, 0);
     }

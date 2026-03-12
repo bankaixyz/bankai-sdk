@@ -3,9 +3,10 @@ use bankai_sdk::{errors::SdkError, Bankai, HashingFunction, Network};
 use bankai_verify::verify_batch_proof;
 use dotenv::from_filename;
 
-const BASE_BLOCK_NUMBER: u64 = 38_691_918;
+const BASE_BLOCK_NUMBER: u64 = 38764232;
 const BASE_CONTRACT_ADDRESS: &str = "0x2A7f20A455B35ea3cfF416F71dDB30E0eDF5c9fE";
-const BASE_TX_HASH: &str = "0xa6fc949201f67c79f9f627349a36c19d7760427e3196a57deaf0f270874690c3";
+// const BASE_TX_HASH: &str = "0xa6fc949201f67c79f9f627349a36c19d7760427e3196a57deaf0f270874690c3"; old one with err
+const BASE_TX_HASH: &str = "0x2932eb79df0313298bb2d49edff60855fdd76281006edc6c48f59cfe1f390cc9";
 const ETH_BLOCK_NUMBER: u64 = 10_421_675;
 const ETH_ACCOUNT_ADDRESS: &str = "0x0000006916a87b82333f4245046623b23794c65c";
 

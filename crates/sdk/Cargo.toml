@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bankai-core = { path = "../core" }
+mpt-generate = { path = "../mpt-generate" }
 bankai-types = { path = "../types", features = ["api", "inputs", "results"] }
 bankai-verify = { path = "../verify" }
 reqwest.workspace = true

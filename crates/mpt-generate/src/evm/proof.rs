@@ -7,7 +7,7 @@ use alloy_trie::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::error::CoreError;
+use bankai_core::error::CoreError;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TxProof {
@@ -258,7 +258,7 @@ mod tests {
             Some(1),
             Some(2),
         );
-        let receipts = vec![receipt.clone()];
+        let receipts = vec![receipt];
         let root = ordered_trie_root_with_encoder(&receipts, |item, buf| item.encode_2718(buf));
         let proof =
             build_receipt_proof_from_items(10, 12, FixedBytes::ZERO, 0, &receipts, root).unwrap();

@@ -5,8 +5,8 @@ use crate::errors::{SdkError, SdkResult};
 use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types_eth::{EIP1186AccountProofResponse, Header as ExecutionHeader};
-use bankai_core::evm::ExecutionProofClient;
 use bankai_types::inputs::evm::execution::{ReceiptProof, TxProof};
+use mpt_generate::ExecutionProofClient;
 
 pub struct ExecutionFetcher {
     pub rpc_url: String,

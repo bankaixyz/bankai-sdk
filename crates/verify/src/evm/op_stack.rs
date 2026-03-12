@@ -1,5 +1,7 @@
+use alloc::vec::Vec;
+
 use alloy_primitives::{FixedBytes, U256};
-use bankai_core::merkle::KeccakHasher;
+use bankai_core::merkle::op_stack;
 use bankai_types::common::HashingFunction;
 use bankai_types::inputs::evm::execution::{AccountProof, ReceiptProof, StorageSlotProof, TxProof};
 use bankai_types::inputs::evm::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
@@ -18,12 +20,17 @@ impl OpStackVerifier {
         proof: &OpStackMerkleProof,
         op_chains_root: FixedBytes<32>,
     ) -> Result<(), VerifyError> {
-        let computed_root = bankai_core::merkle::hash_path::<KeccakHasher>(
+        if proof.root != op_chains_root {
+            return Err(VerifyError::InvalidMerkleProof);
+        }
+        if op_stack::verify_proof(
             &proof.path,
             proof.leaf_hash,
             proof.merkle_leaf_index,
-        );
-        if computed_root != op_chains_root {
+            op_chains_root,
+        )
+        .is_err()
+        {
             return Err(VerifyError::InvalidMerkleProof);
         }
         Ok(())
@@ -104,10 +111,7 @@ mod tests {
     use alloy_primitives::{keccak256, Address, Bloom, Bytes, Signature, TxKind, B256, U256};
     use alloy_rlp::encode as rlp_encode;
     use alloy_trie::{proof::ProofRetainer, HashBuilder, Nibbles};
-    use bankai_core::{
-        evm::{build_receipt_proof_from_items, build_tx_proof_from_items},
-        mmr,
-    };
+    use mmr;
     use bankai_types::block::OpChainClient;
     use bankai_types::common::HashingFunction;
     use bankai_types::inputs::evm::execution::{
@@ -116,6 +120,7 @@ mod tests {
     use bankai_types::inputs::evm::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
     use bankai_types::inputs::evm::MmrProof;
     use bankai_types::utils::mmr::hash_to_leaf;
+    use mpt_generate::{build_receipt_proof_from_items, build_tx_proof_from_items};
 
     use super::*;
 

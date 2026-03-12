@@ -366,7 +366,7 @@ mod tests {
         proofs::calculate_receipt_root, Receipt, ReceiptEnvelope, ReceiptWithBloom,
     };
     use alloy_primitives::{Bloom, FixedBytes};
-    use bankai_core::evm::build_receipt_proof_from_items;
+    use mpt_generate::build_receipt_proof_from_items;
 
     use super::*;
 

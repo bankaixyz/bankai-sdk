@@ -13,6 +13,7 @@ starknet-crypto = { workspace = true, default-features = false }
 tree_hash = { workspace = true, default-features = false }
 tree_hash_derive = { workspace = true, default-features = false }
 ethereum_hashing = { workspace = true, default-features = false, features = ["portable"] }
+bankai-core = { path = "../core", default-features = false }
 
 # Optional dependencies for API/services
 serde = { workspace = true, optional = true }

@@ -1,7 +1,7 @@
 use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_rpc_types_eth::{EIP1186AccountProofResponse, Header as ExecutionHeader};
-use bankai_core::evm::OpStackProofClient;
 use bankai_types::inputs::evm::execution::{ReceiptProof, TxProof};
+use mpt_generate::OpStackProofClient;
 
 use crate::errors::SdkResult;
 use crate::fetch::clients::execution_client::ExecutionFetcher;
