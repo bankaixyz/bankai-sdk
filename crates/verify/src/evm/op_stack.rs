@@ -111,7 +111,6 @@ mod tests {
     use alloy_primitives::{keccak256, Address, Bloom, Bytes, Signature, TxKind, B256, U256};
     use alloy_rlp::encode as rlp_encode;
     use alloy_trie::{proof::ProofRetainer, HashBuilder, Nibbles};
-    use mmr;
     use bankai_types::block::OpChainClient;
     use bankai_types::common::HashingFunction;
     use bankai_types::inputs::evm::execution::{
@@ -120,6 +119,7 @@ mod tests {
     use bankai_types::inputs::evm::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
     use bankai_types::inputs::evm::MmrProof;
     use bankai_types::utils::mmr::hash_to_leaf;
+    use bankai_core::mmr;
     use mpt_generate::{build_receipt_proof_from_items, build_tx_proof_from_items};
 
     use super::*;

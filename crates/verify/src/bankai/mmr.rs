@@ -1,4 +1,4 @@
-use mmr;
+use bankai_core::mmr;
 use bankai_types::{common::HashingFunction, inputs::evm::MmrProof, utils::mmr::hash_to_leaf};
 
 use crate::VerifyError;

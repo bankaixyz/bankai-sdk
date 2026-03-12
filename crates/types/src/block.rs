@@ -275,8 +275,7 @@ impl BankaiBlockFull {
             .enumerate()
             .map(|(index, entry)| {
                 assert_eq!(
-                    entry.merkle_index,
-                    index as u64,
+                    entry.merkle_index, index as u64,
                     "invalid OP stack client payload in BankaiBlockFull"
                 );
                 entry.client.commitment_leaf_hash()
@@ -326,11 +325,11 @@ impl BankaiBlockHashOutput {
 #[cfg(test)]
 mod tests {
     use super::{
-        empty_op_chains_root, BankaiBlockFull, BeaconClient, ExecutionClient,
-        IndexedOpChainClient, OpChainClient, OpChainsCommitment,
+        empty_op_chains_root, BankaiBlockFull, BeaconClient, ExecutionClient, IndexedOpChainClient,
+        OpChainClient, OpChainsCommitment,
     };
-    use bankai_core::merkle::op_stack;
     use alloy_primitives::{hex::FromHex, keccak256, FixedBytes};
+    use bankai_core::merkle::op_stack;
 
     fn u64_word(value: u64) -> [u8; 32] {
         let mut out = [0u8; 32];
@@ -530,7 +529,10 @@ mod tests {
         let leaves = vec![first.commitment_leaf_hash(), second.commitment_leaf_hash()];
 
         let block = full.to_block();
-        assert_eq!(block.op_chains.root, op_stack::compute_root(&leaves).unwrap());
+        assert_eq!(
+            block.op_chains.root,
+            op_stack::compute_root(&leaves).unwrap()
+        );
         assert_eq!(block.op_chains.n_clients, 2);
     }
 

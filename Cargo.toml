@@ -2,7 +2,6 @@
 resolver = "3"
 members = [
     "crates/mpt-generate",
-    "crates/mmr",
     "crates/types",
     "crates/sdk",
     "crates/verify",
@@ -23,7 +22,7 @@ op-alloy-network = "0.19.1"
 op-alloy-consensus = "0.19.1"
 op-alloy-rpc-types = "0.19.1"
 
-mmr = { path = "crates/mmr", default-features = false }
+mmr = { git = "https://github.com/bankaixyz/mmr", rev = "9553d64", default-features = false }
 url = { version = "2.4.0" }
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.143" }

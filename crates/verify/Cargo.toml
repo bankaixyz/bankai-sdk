@@ -10,7 +10,6 @@ std = ["bankai-types/std"]
 [dependencies]
 bankai-core = { path = "../core", default-features = false }
 bankai-types = { path = "../types", default-features = false, features = ["inputs", "results"] }
-mmr.workspace = true
 cairo-air = { workspace = true, default-features = false }
 stwo = { workspace = true, default-features = false }
 alloy-rlp = { workspace = true, default-features = false }
@@ -22,6 +21,7 @@ starknet-crypto = { workspace = true, default-features = false }
 
 [dev-dependencies]
 mpt-generate = { path = "../mpt-generate" }
+mmr = { workspace = true, default-features = false, features = ["std"] }
 tokio.workspace = true
 alloy-consensus.workspace = true
 alloy-rpc-types-eth.workspace = true

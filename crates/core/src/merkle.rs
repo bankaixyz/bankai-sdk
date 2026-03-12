@@ -276,7 +276,9 @@ pub mod op_stack {
     }
 
     pub fn compute_root(leaves: &[FixedBytes<32>]) -> Result<FixedBytes<32>, CoreError> {
-        Ok(generic_compute_root::<KeccakHasher>(&padded_leaves(leaves)?))
+        Ok(generic_compute_root::<KeccakHasher>(&padded_leaves(
+            leaves,
+        )?))
     }
 
     pub fn generate_proof(
@@ -491,8 +493,8 @@ mod tests {
         use crate::{
             error::CoreError,
             merkle::op_stack::{
-                compute_root, empty_leaf_hash, empty_root, generate_proof, leaf_hash,
-                verify_proof, MAX_CLIENTS,
+                compute_root, empty_leaf_hash, empty_root, generate_proof, leaf_hash, verify_proof,
+                MAX_CLIENTS,
             },
         };
 
