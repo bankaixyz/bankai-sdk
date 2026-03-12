@@ -15,7 +15,6 @@ Most users should start with the batch builder, not the low-level API client.
 
 Depending on what you want to verify, you may need:
 
-- a Bankai API endpoint
 - an Ethereum execution RPC
 - an Ethereum beacon RPC
 - a map of OP Stack RPCs keyed by chain name, such as `"base"` or `"worldchain"`
