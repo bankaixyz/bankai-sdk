@@ -4,7 +4,7 @@ This is the fastest way to understand how Bankai fits together and what you need
 
 ## The Mental Model
 
-Bankai has two main jobs:
+The Bankai SDK has two main jobs:
 
 1. `bankai-sdk` fetches data and assembles a `ProofBundle`
 2. `bankai-verify` checks that bundle and returns trusted results
@@ -22,11 +22,9 @@ Depending on what you want to verify, you may need:
 
 You do not need to configure every RPC up front. Only provide the ones needed for the proofs you plan to request.
 
-## Hosted Vs Local
+## Configure The SDK
 
-`Network::Sepolia` is the normal starting point.
-
-Use it when you want the hosted Bankai API behavior and Sepolia-oriented Ethereum semantics:
+`Network::Sepolia` is the normal starting point:
 
 ```rust
 use bankai_sdk::{Bankai, Network};
@@ -39,23 +37,11 @@ let bankai = Bankai::new(
 );
 ```
 
-Use `Bankai::new_with_base_url(...)` when you want to point at a custom or local Bankai API but keep the rest of the SDK behavior aligned with Sepolia:
+For normal SDK usage, start here and add only the RPCs you need for the proofs you want to build.
 
-```rust
-use bankai_sdk::{Bankai, Network};
+`Network::Local` and custom API base URLs are mainly for development and local Bankai deployments, so they are intentionally left out of the main onboarding path.
 
-let bankai = Bankai::new_with_base_url(
-    Network::Sepolia,
-    "http://localhost:8080".to_string(),
-    Some("https://sepolia.infura.io/v3/YOUR_KEY".to_string()),
-    Some("https://sepolia.beacon-api.example.com".to_string()),
-    None,
-);
-```
-
-Use `Network::Local` only when you are intentionally working against a fully local Bankai deployment.
-
-## First Success
+## First Steps
 
 This is the smallest useful end-to-end flow:
 
@@ -93,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 What happens here:
 
 - `init_batch(...)` anchors the request to a Bankai block
-- the batch builder collects the exact proof requests you need
+- the batch builder collects the exact bankai proof requests you need
 - `.execute()` fetches one optimized `ProofBundle`
 - `verify_batch_proof(...)` checks the whole chain of trust and returns verified outputs
 
