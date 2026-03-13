@@ -1,0 +1,48 @@
+[package]
+name = "bankai-core"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "check-trie-roots"
+path = "src/bin/check-trie-roots.rs"
+required-features = ["bin"]
+
+[features]
+default = ["std", "poseidon"]
+std = ["mmr/std"]
+bin = [
+    "std",
+    "dep:alloy-consensus",
+    "dep:alloy-eips",
+    "dep:alloy-provider",
+    "dep:alloy-rpc-types-eth",
+    "dep:alloy-trie",
+    "dep:anyhow",
+    "dep:op-alloy-network",
+    "dep:op-alloy-consensus",
+    "dep:tokio",
+]
+poseidon = ["dep:cairo-vm-base", "dep:starknet-crypto"]
+
+[dependencies]
+cairo-vm-base = { git = "https://github.com/bankaixyz/cairo-vm-base.git", optional = true }
+serde.workspace = true
+thiserror.workspace = true
+starknet-crypto = { workspace = true, optional = true }
+alloy-primitives.workspace = true
+alloy-consensus = { workspace = true, optional = true }
+alloy-eips = { workspace = true, optional = true }
+alloy-provider = { workspace = true, optional = true }
+alloy-rpc-types-eth = { workspace = true, optional = true }
+alloy-trie = { workspace = true, optional = true, features = ["ethereum"] }
+sha2 = { version = "0.10.8", default-features = false }
+tiny-keccak.workspace = true
+mmr = { workspace = true, default-features = false, features = ["poseidon"] }
+op-alloy-network = { workspace = true, optional = true }
+op-alloy-consensus = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+
+[dev-dependencies]
+bankai-types = { path = "../types" }

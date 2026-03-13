@@ -4,12 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bankai-types = { path = "../types", features = ["api", "verifier-types"] }
+bankai-core = { path = "../core" }
+mpt-generate = { path = "../mpt-generate" }
+bankai-types = { path = "../types", features = ["api", "inputs", "results"] }
 bankai-verify = { path = "../verify" }
 reqwest.workspace = true
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+base64 = "0.22.1"
 thiserror.workspace = true
 anyhow.workspace = true
 cairo-air.workspace = true
@@ -27,4 +30,3 @@ tree_hash.workspace = true
 ethereum_hashing = { workspace = true, features = ["portable"] }
 stwo-cairo-serialize.workspace = true
 starknet-ff = "0.3.7"
-eth-trie-proofs.workspace = true

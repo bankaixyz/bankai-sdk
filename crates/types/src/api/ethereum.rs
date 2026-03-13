@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
-use crate::api::proofs::HashingFunctionDto;
+use crate::common::{HashingFunction, ProofFormat};
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, ToSchema, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -116,15 +116,23 @@ pub struct SyncCommitteeKeysDto {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct EthereumMmrProofRequestDto {
     pub filter: BankaiBlockFilterDto,
-    pub hashing_function: HashingFunctionDto,
+    pub hashing_function: HashingFunction,
     pub header_hash: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct EthereumLightClientProofRequestDto {
     pub filter: BankaiBlockFilterDto,
-    pub hashing_function: HashingFunctionDto,
+    pub hashing_function: HashingFunction,
     pub header_hashes: Vec<String>,
+    #[serde(default)]
+    pub proof_format: ProofFormat,
+}
+
+#[derive(Debug, Clone, Deserialize, ToSchema, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct SyncCommitteeQueryDto {
+    pub term_id: u64,
 }
 
 #[derive(Debug, Clone, Deserialize, ToSchema, IntoParams)]

@@ -1,6 +1,18 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use crate::api::{
+    ethereum::BankaiBlockFilterDto, op_stack::OpChainsSummaryDto, stats::ChainSnapshotSummaryDto,
+};
+use crate::common::{HashingFunction, ProofFormat};
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[schema(bound = "T: ToSchema")]
+pub struct BlockWithHashDto<T> {
+    pub block_hash: String,
+    pub block: T,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct BlockDetailDto {
     pub height: u64,
@@ -10,6 +22,8 @@ pub struct BlockDetailDto {
     pub program_hash: String,
     pub status: BlockStatusDto,
     pub ethereum: Option<EthereumConsensusSummaryDto>,
+    #[serde(default)]
+    pub op_chains: Option<OpChainsSummaryDto>,
     pub zk_proof_available: bool,
 }
 
@@ -41,6 +55,8 @@ pub struct BlockSummaryDto {
     pub program_hash: String,
     pub status: BlockStatusDto,
     pub ethereum: Option<EthereumConsensusSummaryDto>,
+    #[serde(default)]
+    pub op_chains: Option<OpChainsSummaryDto>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -53,16 +69,6 @@ pub struct EthereumConsensusSummaryDto {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct ChainSnapshotSummaryDto {
-    pub chain_id: u64,
-    pub start_height: u64,
-    pub end_height: u64,
-    pub justified_height: u64,
-    pub finalized_height: u64,
-    pub mmr_roots: MmrRootsDto,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct MmrRootsDto {
     pub keccak_root: String,   // 0x…32
     pub poseidon_root: String, // 0x…32
@@ -72,3 +78,31 @@ pub struct MmrRootsDto {
 pub struct LatestBlockQueryDto {
     pub status: Option<BlockStatusDto>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BankaiTargetBlockSelectorDto {
+    pub block_number: Option<u64>,
+    pub block_hash: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BankaiMmrProofRequestDto {
+    pub filter: BankaiBlockFilterDto,
+    pub target_block: BankaiTargetBlockSelectorDto,
+    pub hashing_function: HashingFunction,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BankaiBlockProofRequestDto {
+    pub filter: BankaiBlockFilterDto,
+    pub target_block: BankaiTargetBlockSelectorDto,
+    pub hashing_function: HashingFunction,
+    #[serde(default)]
+    pub proof_format: ProofFormat,
+}
+
+/// API envelope carrying canonical Bankai block hash + full block payload.
+pub type BankaiBlockOutputDto = crate::block::BankaiBlockOutput;
+
+/// API envelope carrying canonical Bankai block hash + full block payload with OP chain clients.
+pub type BankaiBlockFullOutputDto = crate::block::BankaiBlockFullOutput;

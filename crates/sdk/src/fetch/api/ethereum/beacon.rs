@@ -5,7 +5,7 @@ use bankai_types::api::ethereum::{
     BankaiBlockFilterDto, BeaconSnapshotDto, EthereumLightClientProofRequestDto,
     EthereumMmrProofRequestDto, HeightDto,
 };
-use bankai_types::api::proofs::{LightClientProofDto, MmrProofDto};
+use bankai_types::api::proofs::{EthereumLightClientProofDto, MmrProofDto};
 
 use crate::errors::SdkResult;
 use crate::fetch::api::{handle_response, ApiCore};
@@ -51,7 +51,7 @@ impl BeaconApi {
     pub async fn light_client_proof(
         &self,
         request: &EthereumLightClientProofRequestDto,
-    ) -> SdkResult<LightClientProofDto> {
+    ) -> SdkResult<EthereumLightClientProofDto> {
         let url = format!(
             "{}/v1/ethereum/beacon/light_client_proof",
             self.core.base_url

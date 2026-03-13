@@ -1,18 +1,19 @@
 [package]
 name = "bankai-types"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 # Core dependencies (always available)
 alloy-primitives = { workspace = true, default-features = false }
 alloy-consensus = { workspace = true, default-features = false, features = ["serde","serde-bincode-compat"] }
-cairo-air = { workspace = true, default-features = false }
-stwo = { workspace = true, default-features = false }
+cairo-air = { workspace = true, default-features = false, optional = true }
+stwo = { workspace = true, default-features = false, optional = true }
 starknet-crypto = { workspace = true, default-features = false }
 tree_hash = { workspace = true, default-features = false }
 tree_hash_derive = { workspace = true, default-features = false }
 ethereum_hashing = { workspace = true, default-features = false, features = ["portable"] }
+bankai-core = { path = "../core", default-features = false }
 
 # Optional dependencies for API/services
 serde = { workspace = true, optional = true }
@@ -23,7 +24,7 @@ alloy-rpc-types-eth = { workspace = true, default-features = false, optional = t
 alloy-rpc-types-beacon = { workspace = true, default-features = false, optional = true }
 
 [features]
-default = ["std"]
+default = ["std", "inputs", "results"]
 
 # Standard library support
 std = [
@@ -33,7 +34,17 @@ std = [
 ]
 
 # API types (requires std)
-api = ["std", "serde", "serde_json", "utoipa"]
+api = ["std", "serde", "serde_json", "utoipa", "dep:cairo-air", "dep:stwo"]
 
-# Verifier types for proof handling
-verifier-types = ["serde", "serde_json", "alloy-rpc-types-eth", "alloy-rpc-types-beacon"]
+# Typed proof inputs assembled by the SDK
+inputs = [
+    "serde",
+    "serde_json",
+    "dep:cairo-air",
+    "dep:stwo",
+    "dep:alloy-rpc-types-eth",
+    "dep:alloy-rpc-types-beacon",
+]
+
+# Verified outputs returned by the verifier
+results = []

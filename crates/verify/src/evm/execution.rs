@@ -2,8 +2,12 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use alloy_rlp::{Decodable, Encodable};
-use bankai_types::fetch::evm::execution::{AccountProof, ExecutionHeaderProof, TxProof};
-use bankai_types::verify::evm::execution::{Account, ExecutionHeader, TxEnvelope};
+use bankai_types::inputs::evm::execution::{
+    AccountProof, ExecutionHeaderProof, ReceiptProof, TxProof,
+};
+use bankai_types::results::evm::execution::{
+    Account, ExecutionHeader, ReceiptEnvelope, TxEnvelope,
+};
 
 use alloy_primitives::{keccak256, FixedBytes};
 use alloy_rlp::encode as rlp_encode;
@@ -50,7 +54,7 @@ impl ExecutionVerifier {
     ///
     /// ```no_run
     /// use bankai_verify::evm::execution::ExecutionVerifier;
-    /// use bankai_types::fetch::evm::execution::ExecutionHeaderProof;
+    /// use bankai_types::inputs::evm::execution::ExecutionHeaderProof;
     /// use alloy_primitives::FixedBytes;
     ///
     /// # fn example(proof: ExecutionHeaderProof, mmr_root: FixedBytes<32>) -> Result<(), Box<dyn std::error::Error>> {
@@ -68,8 +72,7 @@ impl ExecutionVerifier {
             return Err(VerifyError::InvalidMmrRoot);
         }
 
-        MmrVerifier::verify_mmr_proof(&proof.mmr_proof.clone())
-            .map_err(|_| VerifyError::InvalidMmrProof)?;
+        MmrVerifier::verify_mmr_proof(&proof.mmr_proof)?;
 
         let hash = proof.header.hash_slow();
         if hash != proof.mmr_proof.header_hash {
@@ -110,8 +113,8 @@ impl ExecutionVerifier {
     ///
     /// ```no_run
     /// use bankai_verify::evm::execution::ExecutionVerifier;
-    /// use bankai_types::fetch::evm::execution::AccountProof;
-    /// use bankai_types::verify::evm::execution::ExecutionHeader;
+    /// use bankai_types::inputs::evm::execution::AccountProof;
+    /// use bankai_types::results::evm::execution::ExecutionHeader;
     ///
     /// # fn example(
     /// #     account_proof: AccountProof,
@@ -127,10 +130,7 @@ impl ExecutionVerifier {
         account_proof: &AccountProof,
         headers: &[ExecutionHeader],
     ) -> Result<Account, VerifyError> {
-        let header = headers
-            .iter()
-            .find(|h| h.number == account_proof.block_number)
-            .ok_or(VerifyError::InvalidExecutionHeaderProof)?;
+        let header = Self::header_for_block(headers, account_proof.block_number)?;
 
         if header.state_root != account_proof.state_root {
             return Err(VerifyError::InvalidStateRoot);
@@ -182,8 +182,8 @@ impl ExecutionVerifier {
     ///
     /// ```no_run
     /// use bankai_verify::evm::execution::ExecutionVerifier;
-    /// use bankai_types::fetch::evm::execution::StorageSlotProof;
-    /// use bankai_types::verify::evm::execution::ExecutionHeader;
+    /// use bankai_types::inputs::evm::execution::StorageSlotProof;
+    /// use bankai_types::results::evm::execution::ExecutionHeader;
     ///
     /// # fn example(
     /// #     slot_proof: StorageSlotProof,
@@ -197,13 +197,10 @@ impl ExecutionVerifier {
     /// # }
     /// ```
     pub fn verify_storage_slot_proof(
-        slot_proof: &bankai_types::fetch::evm::execution::StorageSlotProof,
+        slot_proof: &bankai_types::inputs::evm::execution::StorageSlotProof,
         headers: &[ExecutionHeader],
     ) -> Result<Vec<(alloy_primitives::U256, alloy_primitives::U256)>, VerifyError> {
-        let header = headers
-            .iter()
-            .find(|h| h.number == slot_proof.block_number)
-            .ok_or(VerifyError::InvalidExecutionHeaderProof)?;
+        let header = Self::header_for_block(headers, slot_proof.block_number)?;
 
         if header.state_root != slot_proof.state_root {
             return Err(VerifyError::InvalidStateRoot);
@@ -292,8 +289,8 @@ impl ExecutionVerifier {
     ///
     /// ```no_run
     /// use bankai_verify::evm::execution::ExecutionVerifier;
-    /// use bankai_types::fetch::evm::execution::TxProof;
-    /// use bankai_types::verify::evm::execution::ExecutionHeader;
+    /// use bankai_types::inputs::evm::execution::TxProof;
+    /// use bankai_types::results::evm::execution::ExecutionHeader;
     ///
     /// # fn example(
     /// #     tx_proof: TxProof,
@@ -308,10 +305,7 @@ impl ExecutionVerifier {
         proof: &TxProof,
         headers: &[ExecutionHeader],
     ) -> Result<TxEnvelope, VerifyError> {
-        let header = headers
-            .iter()
-            .find(|h| h.number == proof.block_number)
-            .ok_or(VerifyError::InvalidExecutionHeaderProof)?;
+        let header = Self::header_for_block(headers, proof.block_number)?;
 
         let mut rlp_tx_index = Vec::new();
         proof.tx_index.encode(&mut rlp_tx_index);
@@ -329,5 +323,96 @@ impl ExecutionVerifier {
             .map_err(|_| VerifyError::InvalidRlpDecode)?;
 
         Ok(tx)
+    }
+
+    pub fn verify_receipt_proof(
+        proof: &ReceiptProof,
+        headers: &[ExecutionHeader],
+    ) -> Result<ReceiptEnvelope, VerifyError> {
+        let header = Self::header_for_block(headers, proof.block_number)?;
+
+        let mut rlp_tx_index = Vec::new();
+        proof.tx_index.encode(&mut rlp_tx_index);
+        let key = Nibbles::unpack(&rlp_tx_index);
+
+        mpt_verify(
+            header.receipts_root,
+            key,
+            Some(proof.encoded_receipt.clone()),
+            proof.proof.iter(),
+        )
+        .map_err(|_| VerifyError::InvalidReceiptProof)?;
+
+        let receipt = ReceiptEnvelope::decode(&mut proof.encoded_receipt.as_slice())
+            .map_err(|_| VerifyError::InvalidRlpDecode)?;
+
+        Ok(receipt)
+    }
+
+    fn header_for_block(
+        headers: &[ExecutionHeader],
+        block_number: u64,
+    ) -> Result<&ExecutionHeader, VerifyError> {
+        headers
+            .iter()
+            .find(|h| h.number == block_number)
+            .ok_or(VerifyError::InvalidExecutionHeaderProof)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloy_consensus::{
+        proofs::calculate_receipt_root, Receipt, ReceiptEnvelope, ReceiptWithBloom,
+    };
+    use alloy_primitives::{Bloom, FixedBytes};
+    use mpt_generate::build_receipt_proof_from_items;
+
+    use super::*;
+
+    #[test]
+    fn verifies_receipt_proof_against_receipts_root() {
+        let receipt = ReceiptEnvelope::Eip1559(ReceiptWithBloom {
+            receipt: Receipt {
+                status: true.into(),
+                cumulative_gas_used: 21_000,
+                logs: vec![],
+            },
+            logs_bloom: Bloom::ZERO,
+        });
+        let receipts_root = calculate_receipt_root(&[receipt.clone()]);
+        let built = build_receipt_proof_from_items(
+            1,
+            7,
+            FixedBytes::ZERO,
+            0,
+            &[receipt.clone()],
+            receipts_root,
+        )
+        .unwrap();
+
+        let proof = ReceiptProof {
+            network_id: built.network_id,
+            block_number: built.block_number,
+            tx_hash: built.tx_hash,
+            tx_index: built.tx_index,
+            proof: built.proof,
+            encoded_receipt: built.encoded_receipt,
+        };
+        let header = ExecutionHeader {
+            number: 7,
+            receipts_root,
+            ..Default::default()
+        };
+
+        let verified = ExecutionVerifier::verify_receipt_proof(&proof, &[header]).unwrap();
+        match verified {
+            ReceiptEnvelope::Eip1559(receipt) => {
+                assert_eq!(receipt.receipt.cumulative_gas_used, 21_000);
+                assert_eq!(receipt.receipt.status, true.into());
+                assert!(receipt.receipt.logs.is_empty());
+            }
+            other => panic!("expected EIP-1559 receipt, got {other:?}"),
+        }
     }
 }
