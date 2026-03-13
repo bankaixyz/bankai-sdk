@@ -11,6 +11,7 @@ flowchart TD
   A["Verified Bankai block"] --> B["Beacon client state"]
   A --> C["Execution client state"]
   A --> D["OP chains commitment"]
+  A --> I["Bankai MMR roots"]
   C --> E["Execution MMR root"]
   B --> F["Beacon MMR root"]
   D --> G["Committed OP client"]
