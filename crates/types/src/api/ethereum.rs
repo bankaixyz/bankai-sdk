@@ -134,9 +134,3 @@ pub struct EthereumLightClientProofRequestDto {
 pub struct SyncCommitteeQueryDto {
     pub term_id: u64,
 }
-
-#[derive(Debug, Clone, Deserialize, ToSchema, IntoParams)]
-#[into_params(parameter_in = Query)]
-pub struct SyncCommitteeQueryDto {
-    pub term_id: u64,
-}
