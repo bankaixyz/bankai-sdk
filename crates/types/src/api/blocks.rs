@@ -16,15 +16,18 @@ pub struct BlockWithHashDto<T> {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct BlockDetailDto {
     pub height: u64,
+    pub updated_at: String,
     #[serde(default)]
     pub version: u64,
     #[serde(default)]
     pub program_hash: String,
+    pub block_hash: String,
+    pub prev_block_hash: String,
+    pub bankai_mmr_roots: MmrRootsDto,
     pub status: BlockStatusDto,
     pub ethereum: Option<EthereumConsensusSummaryDto>,
     #[serde(default)]
     pub op_chains: Option<OpChainsSummaryDto>,
-    pub zk_proof_available: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -49,6 +52,7 @@ pub enum BlockStatusDto {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct BlockSummaryDto {
     pub height: u64,
+    pub updated_at: String,
     #[serde(default)]
     pub version: u64,
     #[serde(default)]

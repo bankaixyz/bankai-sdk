@@ -9,6 +9,9 @@ pub mod blocks;
 /// Chain configuration and metadata
 pub mod chains;
 
+/// Explorer-oriented aggregate API types
+pub mod explorer;
+
 /// API error types
 pub mod error;
 
