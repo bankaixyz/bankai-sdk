@@ -96,6 +96,6 @@ Once you understand this flow, try:
 
 ## Read Next
 
-- [Proof Bundles](../../docs/proof-bundles.md)
-- [Supported Surfaces](../../docs/supported-surfaces.md)
+- [Proof Bundles](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/proof-bundles.mdx)
+- [Supported Chains](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/supported-surfaces.mdx)
 - [World ID Root Example](../worldid-root/README.md)

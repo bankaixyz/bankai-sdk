@@ -92,6 +92,6 @@ That is more concrete than a generic zkVM paragraph.
 
 ## Read Next
 
-- [Verify Crate Guide](../../docs/verify.md)
-- [OP Stack Concepts](../../docs/concepts-op-stack.md)
+- [Verify a Proof](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/verify-a-proof.mdx)
+- [Supported Chains](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/supported-surfaces.mdx)
 - [World ID Root Example](../worldid-root/README.md)

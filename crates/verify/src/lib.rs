@@ -17,8 +17,8 @@
 //!
 //! Guides:
 //!
-//! - [Core flow](https://github.com/bankaixyz/bankai-sdk/blob/main/docs/core-flow.md)
-//! - [OP Stack integration](https://github.com/bankaixyz/bankai-sdk/blob/main/docs/op-stack.md)
+//! - [Verify a proof](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/verify-a-proof.mdx)
+//! - [Trust model](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/concepts/trust-model.mdx)
 
 #![cfg_attr(not(feature = "std"), no_std)]
 

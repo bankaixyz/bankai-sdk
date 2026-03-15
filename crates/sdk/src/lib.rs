@@ -38,9 +38,9 @@
 //!
 //! Guides:
 //!
-//! - [Core flow](https://github.com/bankaixyz/bankai-sdk/blob/main/docs/core-flow.md)
-//! - [OP Stack integration](https://github.com/bankaixyz/bankai-sdk/blob/main/docs/op-stack.md)
-//! - [API client overview](https://github.com/bankaixyz/bankai-sdk/blob/main/docs/api-client.md)
+//! - [SDK quickstart](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/quickstart.mdx)
+//! - [Proof bundles](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/proof-bundles.mdx)
+//! - [API client](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/api-client.mdx)
 
 /// SDK error types and result aliases.
 pub mod errors;

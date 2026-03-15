@@ -70,5 +70,5 @@ If you only want a local Bankai API endpoint but still want Sepolia semantics on
 ## Read Next
 
 - [Basic Bundle Example](../basic-bundle/README.md)
-- [OP Stack Concepts](../../docs/concepts-op-stack.md)
+- [Supported Chains](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/supported-surfaces.mdx)
 - [World ID Replicator Placeholder](../worldid-replicator/README.md)

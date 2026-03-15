@@ -79,6 +79,6 @@ The batch builder is best for:
 
 ## Read Next
 
-- [API Client Overview](../../docs/api-client.md)
-- [Getting Started](../../docs/getting-started.md)
+- [API Client](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/api-client.mdx)
+- [SDK Quickstart](https://github.com/bankaixyz/bankai-docs/blob/main/content/docs/sdk/quickstart.mdx)
 - [Basic Bundle Example](../basic-bundle/README.md)
