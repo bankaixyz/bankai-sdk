@@ -69,7 +69,6 @@ fn area_label(area: CompatArea) -> &'static str {
         CompatArea::Health => "health",
         CompatArea::Chains => "chains",
         CompatArea::Blocks => "blocks",
-        CompatArea::Stats => "stats",
         CompatArea::EthereumBeacon => "ethereum_beacon",
         CompatArea::EthereumExecution => "ethereum_execution",
         CompatArea::EthereumRoot => "ethereum_root",

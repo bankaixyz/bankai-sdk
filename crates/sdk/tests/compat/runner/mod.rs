@@ -288,7 +288,6 @@ pub(super) fn area_name(area: CompatArea) -> &'static str {
         CompatArea::Health => "health",
         CompatArea::Chains => "chains",
         CompatArea::Blocks => "blocks",
-        CompatArea::Stats => "stats",
         CompatArea::EthereumBeacon => "ethereum_beacon",
         CompatArea::EthereumExecution => "ethereum_execution",
         CompatArea::EthereumRoot => "ethereum_root",
@@ -520,13 +519,13 @@ fn planned_matrix_variants(case: &CompatCaseDef) -> usize {
             SdkCallSpec::HealthGet
             | SdkCallSpec::ChainsList
             | SdkCallSpec::ChainsByIdFromList
+            | SdkCallSpec::ChainsSummaryByIdFromList
+            | SdkCallSpec::ExplorerOverview
             | SdkCallSpec::BlocksList
             | SdkCallSpec::BlocksLatestCompleted
             | SdkCallSpec::BlocksByHeightFromLatest
             | SdkCallSpec::BlocksFullByHeightFromLatest
             | SdkCallSpec::BlocksProofByHeightFromLatest
-            | SdkCallSpec::StatsOverview
-            | SdkCallSpec::StatsBlockDetailFromLatest
             | SdkCallSpec::EthereumEpochByNumberFromEpoch
             | SdkCallSpec::EthereumSyncCommitteeFromEpoch
             | SdkCallSpec::OpStackHeightFinalized
