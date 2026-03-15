@@ -74,6 +74,7 @@ pub struct ChainSnapshotSummaryDto {
     pub chain_id: u64,
     pub start_height: u64,
     pub end_height: u64,
+    pub header_hash: String,
     pub justified_height: u64,
     pub finalized_height: u64,
     pub mmr_roots: MmrRootsDto,
@@ -83,4 +84,28 @@ pub struct ChainSnapshotSummaryDto {
 pub struct PageMetaDto {
     pub cursor: Option<String>,
     pub has_more: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ChainSnapshotSummaryDto;
+
+    #[test]
+    fn chain_snapshot_summary_decodes_header_hash() {
+        let dto: ChainSnapshotSummaryDto = serde_json::from_value(serde_json::json!({
+            "chain_id": 1,
+            "start_height": 10,
+            "end_height": 11,
+            "header_hash": "0x1234",
+            "justified_height": 9,
+            "finalized_height": 8,
+            "mmr_roots": {
+                "keccak_root": "0xabcd",
+                "poseidon_root": "0xef01"
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(dto.header_hash, "0x1234");
+    }
 }
