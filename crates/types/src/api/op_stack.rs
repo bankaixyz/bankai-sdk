@@ -15,6 +15,7 @@ pub struct OpChainsSummaryDto {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct OpChainSnapshotSummaryDto {
     pub chain_id: u64,
+    pub name: String,
     pub start_height: u64,
     pub end_height: u64,
     pub header_hash: String,
