@@ -3,11 +3,6 @@ name = "bankai-core"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "check-trie-roots"
-path = "src/bin/check-trie-roots.rs"
-required-features = ["bin"]
-
 [features]
 default = ["std", "poseidon"]
 std = ["mmr/std"]
