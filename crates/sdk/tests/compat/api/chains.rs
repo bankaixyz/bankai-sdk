@@ -31,5 +31,31 @@ pub fn cases() -> Vec<CompatCaseDef> {
             }),
             required: true,
         },
+        CompatCaseDef {
+            id: CompatCaseId("chains.summary.decode"),
+            area: CompatArea::Chains,
+            kind: CompatKind::SdkCallDecode {
+                call: SdkCallSpec::ChainsSummaryByIdFromList,
+                scope: MatrixScope::Core,
+            },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/chains/{chain_id}/summary",
+            }),
+            required: true,
+        },
+        CompatCaseDef {
+            id: CompatCaseId("explorer.overview.decode"),
+            area: CompatArea::Chains,
+            kind: CompatKind::SdkCallDecode {
+                call: SdkCallSpec::ExplorerOverview,
+                scope: MatrixScope::Core,
+            },
+            endpoint: Some(CompatEndpoint {
+                method: HttpMethod::Get,
+                path: "/v1/explorer/overview",
+            }),
+            required: true,
+        },
     ]
 }

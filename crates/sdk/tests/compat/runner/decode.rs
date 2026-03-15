@@ -64,6 +64,36 @@ pub(super) async fn run_sdk_decode(
                 .await
                 .context("chains by_id failed")?;
         }
+        SdkCallSpec::ChainsSummaryByIdFromList => {
+            ensure_core_only(scope, "chains.summary")?;
+            let chains = ctx
+                .sdk
+                .api
+                .chains()
+                .list()
+                .await
+                .context("chains list failed")?;
+            let chain = chains
+                .first()
+                .ok_or_else(|| anyhow!("chains list returned empty result"))?;
+            let _ = ctx
+                .sdk
+                .api
+                .chains()
+                .summary(chain.chain_id)
+                .await
+                .context("chains summary failed")?;
+        }
+        SdkCallSpec::ExplorerOverview => {
+            ensure_core_only(scope, "explorer.overview")?;
+            let _ = ctx
+                .sdk
+                .api
+                .explorer()
+                .overview()
+                .await
+                .context("explorer overview failed")?;
+        }
         SdkCallSpec::BlocksList => {
             ensure_core_only(scope, "blocks.list")?;
             let _ = ctx
@@ -151,33 +181,6 @@ pub(super) async fn run_sdk_decode(
         SdkCallSpec::BlocksMmrProofFromLatest => run_blocks_mmr_decode(ctx, scope).await?,
         SdkCallSpec::BlocksBlockProofFromLatest => {
             run_blocks_block_proof_decode(ctx, scope).await?
-        }
-        SdkCallSpec::StatsOverview => {
-            ensure_core_only(scope, "stats.overview")?;
-            let _ = ctx
-                .sdk
-                .api
-                .stats()
-                .overview()
-                .await
-                .context("stats overview failed")?;
-        }
-        SdkCallSpec::StatsBlockDetailFromLatest => {
-            ensure_core_only(scope, "stats.block_detail")?;
-            let latest = ctx
-                .sdk
-                .api
-                .blocks()
-                .latest_number()
-                .await
-                .context("latest block number failed")?;
-            let _ = ctx
-                .sdk
-                .api
-                .stats()
-                .block_detail(latest)
-                .await
-                .context("stats block_detail failed")?;
         }
         SdkCallSpec::EthereumEpochFinalized => run_epoch_decode(ctx, scope).await?,
         SdkCallSpec::EthereumEpochByNumberFromEpoch => {

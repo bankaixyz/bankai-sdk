@@ -48,6 +48,14 @@ async fn debug_curl_for_sdk_call(
             build_curl_command(HttpMethod::Get, &ctx.url("/v1/chains"), None),
             "curl -sS 'http://<api>/v1/chains/<chain_id>'"
         ),
+        SdkCallSpec::ChainsSummaryByIdFromList => format!(
+            "{}\n{}",
+            build_curl_command(HttpMethod::Get, &ctx.url("/v1/chains"), None),
+            "curl -sS 'http://<api>/v1/chains/<chain_id>/summary'"
+        ),
+        SdkCallSpec::ExplorerOverview => {
+            build_curl_command(HttpMethod::Get, &ctx.url("/v1/explorer/overview"), None)
+        }
         SdkCallSpec::BlocksList => build_curl_command(HttpMethod::Get, &ctx.url("/v1/blocks"), None),
         SdkCallSpec::BlocksLatestCompleted => build_curl_command(
             HttpMethod::Get,
@@ -85,18 +93,6 @@ async fn debug_curl_for_sdk_call(
         SdkCallSpec::BlocksBlockProofFromLatest => {
             debug_blocks_body_call(ctx, "/v1/blocks/block_proof", scope).await
         }
-        SdkCallSpec::StatsOverview => {
-            build_curl_command(HttpMethod::Get, &ctx.url("/v1/stats/overview"), None)
-        }
-        SdkCallSpec::StatsBlockDetailFromLatest => format!(
-            "{}\n{}",
-            build_curl_command(
-                HttpMethod::Get,
-                &format_url_with_query(ctx, "/v1/blocks/latest", &[("status", "completed")]),
-                None
-            ),
-            "curl -sS 'http://<api>/v1/stats/block/<height>'"
-        ),
         SdkCallSpec::EthereumEpochFinalized => build_curl_command(
             HttpMethod::Get,
             &format_url_with_query(ctx, "/v1/ethereum/epoch", &[("selector", "finalized")]),

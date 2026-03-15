@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bankai_types::api::chains::ChainInfoDto;
+use bankai_types::api::{chains::ChainInfoDto, explorer::ChainSummaryDto};
 
 use crate::errors::SdkResult;
 use crate::fetch::api::{handle_response, ApiCore};
@@ -24,6 +24,13 @@ impl ChainsApi {
     /// Fetch metadata for a single chain by id.
     pub async fn by_id(&self, chain_id: u64) -> SdkResult<ChainInfoDto> {
         let url = format!("{}/v1/chains/{}", self.core.base_url, chain_id);
+        let response = self.core.client.get(&url).send().await?;
+        handle_response(response).await
+    }
+
+    /// Fetch explorer summary data for a single chain by id.
+    pub async fn summary(&self, chain_id: u64) -> SdkResult<ChainSummaryDto> {
+        let url = format!("{}/v1/chains/{}/summary", self.core.base_url, chain_id);
         let response = self.core.client.get(&url).send().await?;
         handle_response(response).await
     }

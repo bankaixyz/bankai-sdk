@@ -8,6 +8,7 @@ use crate::Network;
 pub mod blocks;
 pub mod chains;
 pub mod ethereum;
+pub mod explorer;
 pub mod health;
 pub mod op_stack;
 pub mod stats;
@@ -50,6 +51,11 @@ impl ApiClient {
     /// Access chain metadata endpoints.
     pub fn chains(&self) -> chains::ChainsApi {
         chains::ChainsApi::new(Arc::clone(&self.core))
+    }
+
+    /// Access explorer overview endpoints.
+    pub fn explorer(&self) -> explorer::ExplorerApi {
+        explorer::ExplorerApi::new(Arc::clone(&self.core))
     }
 
     /// Access API health endpoints.
