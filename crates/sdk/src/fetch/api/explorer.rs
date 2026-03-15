@@ -3,7 +3,7 @@ use std::sync::Arc;
 use bankai_types::api::explorer::ExplorerOverviewDto;
 
 use crate::errors::SdkResult;
-use crate::fetch::api::{ApiCore, handle_response};
+use crate::fetch::api::{handle_response, ApiCore};
 
 pub struct ExplorerApi {
     core: Arc<ApiCore>,
