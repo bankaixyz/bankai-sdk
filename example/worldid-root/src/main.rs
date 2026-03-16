@@ -29,7 +29,7 @@ async fn main() -> Result<(), SdkError> {
     let tx_hash = FixedBytes::from_hex(BASE_TX_HASH).unwrap();
 
     let op_stack_proof_bundle = bankai
-        .init_batch(Network::Local, None, HashingFunction::Keccak)
+        .init_batch(None, HashingFunction::Keccak)
         .await?
         .op_stack_account(
             "base",
@@ -76,7 +76,7 @@ async fn main() -> Result<(), SdkError> {
     );
 
     let execution_proof_bundle = bankai
-        .init_batch(Network::Local, None, HashingFunction::Keccak)
+        .init_batch(None, HashingFunction::Keccak)
         .await?
         .ethereum_execution_header(ETH_BLOCK_NUMBER)
         .ethereum_account(ETH_BLOCK_NUMBER, execution_account)

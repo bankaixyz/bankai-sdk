@@ -22,7 +22,7 @@
 //!     );
 //!
 //!     let proof_bundle = bankai
-//!         .init_batch(Network::Sepolia, None, HashingFunction::Keccak)
+//!         .init_batch(None, HashingFunction::Keccak)
 //!         .await?
 //!         .ethereum_execution_header(9_231_247)
 //!         .ethereum_account(9_231_247, Address::ZERO)
@@ -207,10 +207,11 @@ impl Bankai {
 
     /// Starts a proof batch anchored to a Bankai block.
     ///
+    /// The batch inherits the network configured on this [`Bankai`] instance.
+    ///
     /// Pass `None` to use the latest completed Bankai block.
     pub async fn init_batch(
         &self,
-        network: Network,
         bankai_block_number: Option<u64>,
         hashing: HashingFunction,
     ) -> SdkResult<batch::ProofBatchBuilder<'_>> {
@@ -218,12 +219,7 @@ impl Bankai {
             Some(bn) => bn,
             None => self.api.blocks().latest_number().await?,
         };
-        Ok(batch::ProofBatchBuilder::new(
-            self,
-            network,
-            block_number,
-            hashing,
-        ))
+        Ok(batch::ProofBatchBuilder::new(self, block_number, hashing))
     }
 
     pub(crate) fn ethereum(&self) -> &EthereumNamespace {

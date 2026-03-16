@@ -58,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let proof_bundle = bankai
-        .init_batch(Network::Sepolia, None, HashingFunction::Keccak)
+        .init_batch(None, HashingFunction::Keccak)
         .await?
         .ethereum_execution_header(9_231_247)
         .ethereum_account(9_231_247, "0x0000006916a87b82333f4245046623b23794c65c".parse::<Address>()?)

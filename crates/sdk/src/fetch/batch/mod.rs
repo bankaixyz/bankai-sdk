@@ -19,7 +19,7 @@ use crate::fetch::requests::{
     OpStackReceiptProofRequest, OpStackStorageSlotProofRequest, OpStackTxProofRequest,
     ReceiptProofRequest, StorageSlotProofRequest, TxProofRequest,
 };
-use crate::{Bankai, Network};
+use crate::Bankai;
 
 mod ethereum;
 mod op_stack;
@@ -30,7 +30,6 @@ use self::op_stack::assemble_op_stack_proofs;
 /// Builder for the main SDK flow: collect requests, execute the batch, then verify the bundle.
 pub struct ProofBatchBuilder<'a> {
     bankai: &'a Bankai,
-    network: Network,
     bankai_block_number: u64,
     hashing: HashingFunction,
     proof_format: ProofFormat,
@@ -42,13 +41,11 @@ impl<'a> ProofBatchBuilder<'a> {
     /// Creates a new batch builder.
     pub fn new(
         bankai: &'a Bankai,
-        network: Network,
         bankai_block_number: u64,
         hashing: HashingFunction,
     ) -> Self {
         Self {
             bankai,
-            network,
             bankai_block_number,
             hashing,
             proof_format: ProofFormat::Bin,
@@ -62,7 +59,7 @@ impl<'a> ProofBatchBuilder<'a> {
         self.ethereum
             .execution_header
             .push(ExecutionHeaderProofRequest {
-                network_id: self.network.execution_network_id(),
+                network_id: self.bankai.network().execution_network_id(),
                 block_number,
             });
         self
@@ -71,7 +68,7 @@ impl<'a> ProofBatchBuilder<'a> {
     /// Adds an Ethereum beacon header proof request for `slot`.
     pub fn ethereum_beacon_header(mut self, slot: u64) -> Self {
         self.ethereum.beacon_header.push(BeaconHeaderProofRequest {
-            network_id: self.network.beacon_network_id(),
+            network_id: self.bankai.network().beacon_network_id(),
             slot,
         });
         self
@@ -80,7 +77,7 @@ impl<'a> ProofBatchBuilder<'a> {
     /// Adds an Ethereum account proof request.
     pub fn ethereum_account(mut self, block_number: u64, address: Address) -> Self {
         self.ethereum.account.push(AccountProofRequest {
-            network_id: self.network.execution_network_id(),
+            network_id: self.bankai.network().execution_network_id(),
             block_number,
             address,
         });
@@ -95,7 +92,7 @@ impl<'a> ProofBatchBuilder<'a> {
         slot_keys: Vec<U256>,
     ) -> Self {
         self.ethereum.storage_slot.push(StorageSlotProofRequest {
-            network_id: self.network.execution_network_id(),
+            network_id: self.bankai.network().execution_network_id(),
             block_number,
             address,
             slot_keys,
@@ -106,7 +103,7 @@ impl<'a> ProofBatchBuilder<'a> {
     /// Adds an Ethereum transaction proof request by transaction hash.
     pub fn ethereum_tx(mut self, tx_hash: FixedBytes<32>) -> Self {
         self.ethereum.tx_proof.push(TxProofRequest {
-            network_id: self.network.execution_network_id(),
+            network_id: self.bankai.network().execution_network_id(),
             tx_hash,
         });
         self
@@ -115,7 +112,7 @@ impl<'a> ProofBatchBuilder<'a> {
     /// Adds an Ethereum receipt proof request by transaction hash.
     pub fn ethereum_receipt(mut self, tx_hash: FixedBytes<32>) -> Self {
         self.ethereum.receipt_proof.push(ReceiptProofRequest {
-            network_id: self.network.execution_network_id(),
+            network_id: self.bankai.network().execution_network_id(),
             tx_hash,
         });
         self
@@ -408,7 +405,7 @@ mod tests {
     fn op_stack_builder_collects_requests() {
         let hash = FixedBytes::from([7u8; 32]);
         let sdk = Bankai::new(Network::Local, None, None, None);
-        let builder = ProofBatchBuilder::new(&sdk, Network::Local, 7, HashingFunction::Keccak)
+        let builder = ProofBatchBuilder::new(&sdk, 7, HashingFunction::Keccak)
             .op_stack_header("base", 12)
             .op_stack_latest_header("base")
             .op_stack_header_by_hash("base", hash)
