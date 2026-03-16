@@ -1,0 +1,52 @@
+name: Compat live
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "scripts/run-compat-tests.sh"
+      - "crates/**/*.rs"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "scripts/run-compat-tests.sh"
+      - "crates/**/*.rs"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Compat profile
+        required: true
+        default: coverage
+        type: choice
+        options:
+          - coverage
+          - full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compat-live-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  compat-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+      - uses: Swatinem/rust-cache@v2
+      - name: Run live compat suite
+        run: ./scripts/run-compat-tests.sh --profile "${{ github.event_name == 'workflow_dispatch' && inputs.profile || 'coverage' }}" --target sepolia

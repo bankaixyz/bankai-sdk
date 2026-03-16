@@ -52,9 +52,7 @@ impl EvmProofs {
 mod tests {
     use super::{EvmProofs, MmrProof};
     use crate::common::HashingFunction;
-    use crate::inputs::evm::execution::{
-        ExecutionHeaderProof, StorageSlotEntry, StorageSlotProof,
-    };
+    use crate::inputs::evm::execution::{ExecutionHeaderProof, StorageSlotEntry, StorageSlotProof};
     use alloy_primitives::{Address, Bytes, FixedBytes, U256};
     use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
 

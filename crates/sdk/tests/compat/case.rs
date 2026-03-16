@@ -126,6 +126,20 @@ pub enum CompatKind {
     },
 }
 
+impl CompatKind {
+    pub fn scope(self) -> MatrixScope {
+        match self {
+            CompatKind::SdkCallDecode { scope, .. }
+            | CompatKind::ProofHashConsistency { scope, .. }
+            | CompatKind::MmrProofVerify { scope, .. }
+            | CompatKind::MerkleProofVerify { scope, .. }
+            | CompatKind::BankaiMmrProofVerify { scope, .. }
+            | CompatKind::LightClientProofVerify { scope, .. }
+            | CompatKind::ApiErrorShape { scope, .. } => scope,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CompatEndpoint {
     pub method: HttpMethod,
@@ -139,4 +153,10 @@ pub struct CompatCaseDef {
     pub kind: CompatKind,
     pub endpoint: Option<CompatEndpoint>,
     pub required: bool,
+}
+
+impl CompatCaseDef {
+    pub fn scope(&self) -> MatrixScope {
+        self.kind.scope()
+    }
 }

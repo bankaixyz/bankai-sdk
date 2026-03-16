@@ -20,7 +20,7 @@ async fn run_suite(phase: SuitePhase, suite_name: &str) {
     let ctx = CompatContext::from_env();
     let cases: Vec<_> = compat::all_cases()
         .into_iter()
-        .filter(|case| case_in_phase(case, phase))
+        .filter(|case| case_in_phase(case, phase) && ctx.includes_scope(case.scope()))
         .collect();
     let total = cases.len();
     let verbose = std::env::var("COMPAT_VERBOSE")

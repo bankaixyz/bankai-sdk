@@ -91,9 +91,10 @@ Important details:
   - documented endpoint missing compat mapping.
   - stale compat mapping not present in OpenAPI.
 
-## Matrix Logic
+## Matrix logic
 
-Core matrix variants (required) and edge variants (optional) are generated from `context.rs`.
+The harness keeps one case registry and varies only the matrix inputs that feed
+those cases. `context.rs` generates the reusable inputs.
 
 Core variants include:
 
@@ -113,6 +114,20 @@ The report prints both case counts and planned matrix-variant counts:
 - `required/optional` case status
 - `matrix variants (planned): <total> total (<required> required, <optional> optional)`
 - per-category matrix variant breakdown
+
+## Profiles
+
+The harness supports two profiles through `COMPAT_PROFILE`.
+
+- `coverage`: use the reduced matrix intended for GitHub CI and deployed-API
+  checks. This profile runs only `Core` cases and uses one canonical request
+  shape per matrix dimension where possible:
+  - filter: `finalized`
+  - hashing: `keccak`
+  - target selector: `block_number`
+  - proof formats: `bin` and `json`
+- `full`: preserve the existing local matrix. This profile runs both `Core` and
+  `Edge` cases and keeps the broader filter and selector coverage.
 
 ## Logical Invariants Checked
 
@@ -144,44 +159,60 @@ Typical reasons a case is optional:
 - fixture-dependent API behavior (for example, sync committee availability for a specific term).
 - intentionally strict edge conflict checks.
 
-## How To Run
+## How to run
 
-### 1) Run full live compat suite (decode + verify + OpenAPI)
+Use the repo script as the canonical entrypoint. It sets the profile and target
+API, then runs the three live suites in order: decode, verify, and OpenAPI.
 
-From repo root:
+### Run the reduced CI-style profile
+
+Use this when you want broad endpoint coverage with lower API load.
 
 ```bash
-./scripts/run-compat-tests.sh
+./scripts/run-compat-tests.sh --profile coverage --target sepolia
 ```
 
-Defaults:
+### Run the full local matrix
 
-- `COMPAT_API_BASE_URL=http://127.0.0.1:8081`
-- `COMPAT_VERBOSE=0`
-- `COMPAT_COLOR=1`
-
-### 2) Run directly with cargo
+Use this when you want the current exhaustive local behavior.
 
 ```bash
-cargo test -p bankai-sdk --test compat_live -- --ignored --nocapture
+./scripts/run-compat-tests.sh --profile full --target localhost
 ```
 
-### 3) Run only OpenAPI coverage
+### Override the API URL directly
+
+Use this when you want to hit a custom deployment instead of the built-in
+targets.
 
 ```bash
-COMPAT_API_BASE_URL=http://127.0.0.1:8081 \
+./scripts/run-compat-tests.sh --profile coverage --api-base-url http://127.0.0.1:8081
+```
+
+### Run directly with cargo
+
+Use direct cargo invocations when you want to rerun one ignored test by name.
+
+```bash
+COMPAT_PROFILE=coverage \
+COMPAT_API_BASE_URL=https://sepolia.api.bankai.xyz \
 cargo test -p bankai-sdk --test compat_live compat_live_openapi_coverage -- --ignored --nocapture
 ```
 
-### 4) Helpful env knobs
+### Helpful environment variables
+
+These variables work for both the script and direct cargo runs.
 
 ```bash
+COMPAT_PROFILE=coverage
 COMPAT_API_BASE_URL=http://127.0.0.1:8081
 COMPAT_VERBOSE=1
 COMPAT_COLOR=0
 ```
 
-If local proxy settings interfere with localhost networking, run with:
+When you use `--target localhost`, the script clears proxy variables and sets
+`NO_PROXY` for loopback hosts automatically. If you run `cargo` directly and
+local proxy settings interfere with localhost networking, use:
 
 ```bash
 ALL_PROXY= HTTP_PROXY= HTTPS_PROXY= NO_PROXY=127.0.0.1,localhost
@@ -192,6 +223,15 @@ ALL_PROXY= HTTP_PROXY= HTTPS_PROXY= NO_PROXY=127.0.0.1,localhost
 - `openapi endpoint coverage check failed`: verify API is reachable and exposes `/v1/openapi.json`.
 - `required compatibility cases failed`: check the `repro:` curl emitted per failed case.
 - `target_out_of_range`: backend resolved reference/target relationship was invalid for the chosen selector; inspect the request payload in the repro output.
+
+## CI defaults
+
+GitHub Actions uses the reduced deployed-API configuration by default.
+
+- target: `sepolia`
+- profile: `coverage`
+- triggers: `pull_request`, `push` to `main`, and manual dispatch
+- manual override: `workflow_dispatch` can switch the profile to `full`
 
 ## Updating Coverage
 

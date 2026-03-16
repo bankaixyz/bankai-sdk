@@ -1,3 +1,4 @@
+use std::env;
 use std::sync::Arc;
 
 use bankai_types::api::error::ErrorResponse;
@@ -37,7 +38,7 @@ impl ApiClient {
         let base_url = base_url.into().trim_end_matches('/').to_string();
         Self {
             core: Arc::new(ApiCore {
-                client: reqwest::Client::new(),
+                client: build_http_client(),
                 base_url,
             }),
         }
@@ -77,6 +78,21 @@ impl ApiClient {
     pub fn op_stack(&self) -> op_stack::OpStackApi {
         op_stack::OpStackApi::new(Arc::clone(&self.core))
     }
+}
+
+fn build_http_client() -> reqwest::Client {
+    let mut builder = reqwest::Client::builder();
+    if env_requests_no_proxy() {
+        builder = builder.no_proxy();
+    }
+    builder.build().expect("failed to build Bankai API client")
+}
+
+fn env_requests_no_proxy() -> bool {
+    matches!(
+        env::var("BANKAI_SDK_NO_PROXY"),
+        Ok(value) if value == "1" || value.eq_ignore_ascii_case("true")
+    )
 }
 
 pub(crate) async fn handle_response<T: serde::de::DeserializeOwned>(

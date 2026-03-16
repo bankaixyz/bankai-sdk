@@ -12,6 +12,27 @@ use bankai_types::api::ethereum::{
 };
 use bankai_types::common::ProofFormat;
 
+use crate::compat::case::MatrixScope;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompatProfile {
+    Coverage,
+    Full,
+}
+
+impl CompatProfile {
+    fn from_env() -> Self {
+        match env::var("COMPAT_PROFILE") {
+            Ok(value) if value.eq_ignore_ascii_case("coverage") => Self::Coverage,
+            Ok(value) if value.eq_ignore_ascii_case("full") => Self::Full,
+            Ok(value) => {
+                panic!("invalid COMPAT_PROFILE={value:?}; expected \"coverage\" or \"full\"")
+            }
+            Err(_) => Self::Full,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct NamedFilterCase {
     pub label: String,
@@ -38,6 +59,7 @@ pub struct NamedHashingCase {
 
 pub struct CompatContext {
     pub api_base_url: String,
+    pub profile: CompatProfile,
     pub sdk: Bankai,
     pub http: reqwest::Client,
 }
@@ -52,7 +74,15 @@ impl CompatContext {
         Self {
             sdk: Bankai::new_with_base_url(Network::Local, api_base_url.clone(), None, None, None),
             api_base_url,
-            http: reqwest::Client::new(),
+            profile: CompatProfile::from_env(),
+            http: compat_http_client(),
+        }
+    }
+
+    pub fn includes_scope(&self, scope: MatrixScope) -> bool {
+        match self.profile {
+            CompatProfile::Coverage => scope == MatrixScope::Core,
+            CompatProfile::Full => true,
         }
     }
 
@@ -111,6 +141,13 @@ impl CompatContext {
     }
 
     pub async fn filter_cases_core(&self) -> Result<Vec<NamedFilterCase>> {
+        if self.profile == CompatProfile::Coverage {
+            return Ok(vec![NamedFilterCase {
+                label: "selector=finalized".to_string(),
+                filter: BankaiBlockFilterDto::finalized(),
+            }]);
+        }
+
         let latest_completed = self.latest_completed_height().await?;
         Ok(vec![
             NamedFilterCase {
@@ -203,6 +240,13 @@ impl CompatContext {
             block_number: Some(target_block),
             block_hash: None,
         };
+
+        if self.profile == CompatProfile::Coverage {
+            return Ok(vec![NamedTargetBlockCase {
+                label: format!("target_block.block_number={target_block}"),
+                target_block: number_selector,
+            }]);
+        }
 
         let hash_from_number = self
             .sdk
@@ -435,6 +479,17 @@ impl CompatContext {
         )?;
         Ok((reference_block, target_block))
     }
+}
+
+fn compat_http_client() -> reqwest::Client {
+    let mut builder = reqwest::Client::builder();
+    if matches!(
+        env::var("BANKAI_SDK_NO_PROXY"),
+        Ok(value) if value == "1" || value.eq_ignore_ascii_case("true")
+    ) {
+        builder = builder.no_proxy();
+    }
+    builder.build().expect("failed to build compat HTTP client")
 }
 
 fn is_probably_op_chain_name(name: &str) -> bool {
