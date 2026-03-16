@@ -8,7 +8,7 @@ Usage: ./scripts/run-compat-tests.sh [--profile coverage|full] [--target sepolia
 Examples:
   ./scripts/run-compat-tests.sh --profile coverage --target sepolia
   ./scripts/run-compat-tests.sh --profile full --target localhost
-  ./scripts/run-compat-tests.sh --profile coverage --api-base-url http://127.0.0.1:8081
+  ./scripts/run-compat-tests.sh --profile coverage --api-base-url http://127.0.0.1:8080
 EOF
 }
 
@@ -58,7 +58,7 @@ if [[ -z "$api_base_url" ]]; then
       api_base_url="https://sepolia.api.bankai.xyz"
       ;;
     localhost)
-      api_base_url="http://127.0.0.1:8081"
+      api_base_url="http://127.0.0.1:8080"
       ;;
     *)
       echo "Invalid target: $target" >&2
