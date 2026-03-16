@@ -14,9 +14,9 @@ also need the patched `ethereum_hashing` crate.
 
 ```toml
 [dependencies]
-bankai-sdk = { git = "https://github.com/bankaixyz/bankai-sdk", tag = "v0.1.2.1" }
-bankai-verify = { git = "https://github.com/bankaixyz/bankai-sdk", tag = "v0.1.2.1" }
-bankai-types = { git = "https://github.com/bankaixyz/bankai-sdk", tag = "v0.1.2.1" }
+bankai-sdk = { git = "https://github.com/bankaixyz/bankai-sdk", tag = "v0.1.2.3" }
+bankai-verify = { git = "https://github.com/bankaixyz/bankai-sdk", tag = "v0.1.2.3" }
+bankai-types = { git = "https://github.com/bankaixyz/bankai-sdk", tag = "v0.1.2.3" }
 ethereum_hashing = { git = "https://github.com/bankaixyz/ethereum_hashing", rev = "c457c3e927cc146d7bc91e944cf6d9c55b05d45e", default-features = false, features = ["portable"] }
 
 [patch.crates-io]
@@ -100,21 +100,21 @@ snapshots, or debug the Bankai surface before you build a bundle.
 use bankai_sdk::{Bankai, Network};
 use bankai_types::api::ethereum::BankaiBlockFilterDto;
 
-# async fn example() -> Result<(), Box<dyn std::error::Error>> {
-let bankai = Bankai::new(Network::Sepolia, None, None, None);
-let finalized = BankaiBlockFilterDto::finalized();
+async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    let bankai = Bankai::new(Network::Sepolia, None, None, None);
+    let finalized = BankaiBlockFilterDto::finalized();
 
-let chains = bankai.api.chains().list().await?;
-let latest_bankai = bankai.api.blocks().latest_number().await?;
-let execution = bankai.api.ethereum().execution().snapshot(&finalized).await?;
-let base = bankai.api.op_stack().snapshot("base", &finalized).await?;
+    let chains = bankai.api.chains().list().await?;
+    let latest_bankai = bankai.api.blocks().latest_number().await?;
+    let execution = bankai.api.ethereum().execution().snapshot(&finalized).await?;
+    let base = bankai.api.op_stack().snapshot("base", &finalized).await?;
 
-println!("Chains: {}", chains.len());
-println!("Latest Bankai block: {}", latest_bankai);
-println!("Execution height: {}", execution.end_height);
-println!("Base height: {}", base.end_height);
-# Ok(())
-# }
+    println!("Chains: {}", chains.len());
+    println!("Latest Bankai block: {}", latest_bankai);
+    println!("Execution height: {}", execution.end_height);
+    println!("Base height: {}", base.end_height);
+    Ok(())
+}
 ```
 
 For production data retrieval, prefer the batch builder. It assembles
