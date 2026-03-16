@@ -6,7 +6,7 @@ use bankai_types::common::HashingFunction;
 use bankai_types::inputs::evm::execution::{AccountProof, ReceiptProof, StorageSlotProof, TxProof};
 use bankai_types::inputs::evm::op_stack::{OpStackHeaderProof, OpStackMerkleProof};
 use bankai_types::results::evm::execution::{
-    Account, ExecutionHeader, ReceiptEnvelope, TxEnvelope,
+    ExecutionHeader, ReceiptEnvelope, TrieAccount, TxEnvelope,
 };
 
 use crate::bankai::mmr::MmrVerifier;
@@ -75,7 +75,7 @@ impl OpStackVerifier {
     pub fn verify_account_proof(
         proof: &AccountProof,
         headers: &[ExecutionHeader],
-    ) -> Result<Account, VerifyError> {
+    ) -> Result<TrieAccount, VerifyError> {
         ExecutionVerifier::verify_account_proof(proof, headers)
     }
 
