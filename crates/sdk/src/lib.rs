@@ -31,7 +31,11 @@
 //!
 //!     let results = verify_batch_proof(proof_bundle)?;
 //!     println!("Verified block {}", results.evm.execution_header[0].number);
-//!     println!("Verified balance {}", results.evm.account[0].balance);
+//!     println!(
+//!         "Verified balance {} at block {}",
+//!         results.evm.account[0].account.balance,
+//!         results.evm.account[0].block.block_number
+//!     );
 //!     Ok(())
 //! }
 //! ```

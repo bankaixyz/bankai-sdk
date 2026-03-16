@@ -53,26 +53,33 @@ async fn main() -> Result<(), SdkError> {
 
     let op_stack_header = &op_stack_results.op_stack.header[0];
     let op_stack_account = &op_stack_results.op_stack.account[0];
-    let (op_stack_slot_key, op_stack_slot_value) = op_stack_results.op_stack.storage_slot[0][0];
+    let op_stack_storage = &op_stack_results.op_stack.storage_slot[0];
+    let (op_stack_slot_key, op_stack_slot_value) = op_stack_storage.slots[0];
     let tx = &op_stack_results.op_stack.tx[0];
     let receipt = &op_stack_results.op_stack.receipt[0];
 
     println!("Verified Base OP Stack block {}", op_stack_header.number);
     println!(
-        "Verified Base account {} balance {}",
-        contract, op_stack_account.balance
+        "Verified Base account {} balance {} at block {}",
+        op_stack_account.address, op_stack_account.account.balance, op_stack_account.block.block_number
     );
-    println!("Verified Base storage slot {op_stack_slot_key} = {op_stack_slot_value}");
     println!(
-        "Verified tx {} at index {} with type {:?}",
-        BASE_TX_HASH,
-        tx_index,
+        "Verified Base storage slot {} at block {}: {op_stack_slot_key} = {op_stack_slot_value}",
+        op_stack_storage.address, op_stack_storage.block.block_number
+    );
+    println!(
+        "Verified tx {} at block {} index {} with type {:?}",
+        tx.tx_hash,
+        tx.block.block_number,
+        tx.tx_index,
         tx.tx_type()
     );
     println!(
-        "Verified receipt status={} cumulative_gas_used={}",
-        receipt.status(),
-        receipt.cumulative_gas_used()
+        "Verified receipt {} at block {} status={} cumulative_gas_used={}",
+        receipt.tx_hash,
+        receipt.block.block_number,
+        receipt.receipt.status(),
+        receipt.receipt.cumulative_gas_used()
     );
 
     let execution_proof_bundle = bankai
@@ -88,17 +95,23 @@ async fn main() -> Result<(), SdkError> {
 
     let execution_header = &execution_results.evm.execution_header[0];
     let execution_account_result = &execution_results.evm.account[0];
-    let (execution_slot_key, execution_slot_value) = execution_results.evm.storage_slot[0][0];
+    let execution_storage = &execution_results.evm.storage_slot[0];
+    let (execution_slot_key, execution_slot_value) = execution_storage.slots[0];
 
     println!(
         "Verified Sepolia execution block {}",
         execution_header.number
     );
     println!(
-        "Verified execution account {} balance {}",
-        execution_account, execution_account_result.balance
+        "Verified execution account {} balance {} at block {}",
+        execution_account_result.address,
+        execution_account_result.account.balance,
+        execution_account_result.block.block_number
     );
-    println!("Verified execution storage slot {execution_slot_key} = {execution_slot_value}");
+    println!(
+        "Verified execution storage slot {} at block {}: {execution_slot_key} = {execution_slot_value}",
+        execution_storage.address, execution_storage.block.block_number
+    );
 
     Ok(())
 }
