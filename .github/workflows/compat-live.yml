@@ -50,5 +50,8 @@ jobs:
         with:
           toolchain: nightly-2025-05-02
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-${{ runner.os }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Run live compat suite
         run: ./scripts/run-compat-tests.sh --profile "${{ github.event_name == 'workflow_dispatch' && inputs.profile || 'coverage' }}" --target sepolia

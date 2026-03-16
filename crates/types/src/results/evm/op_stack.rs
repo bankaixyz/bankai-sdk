@@ -2,22 +2,22 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use alloy_consensus::{ReceiptEnvelope, TxEnvelope};
-use alloy_primitives::U256;
-
-use crate::results::evm::execution::{ExecutionHeader, TrieAccount};
+use crate::results::evm::{
+    execution::ExecutionHeader, VerifiedAccount, VerifiedReceipt, VerifiedStorageSlots,
+    VerifiedTransaction,
+};
 
 /// Verified OP Stack data returned from batch verification.
 #[cfg_attr(feature = "std", derive(Debug, Default))]
 pub struct OpStackResults {
     /// Verified OP Stack headers.
     pub header: Vec<ExecutionHeader>,
-    /// Verified OP Stack accounts.
-    pub account: Vec<TrieAccount>,
-    /// Verified OP Stack storage slot values grouped by request.
-    pub storage_slot: Vec<Vec<(U256, U256)>>,
-    /// Verified OP Stack transactions.
-    pub tx: Vec<TxEnvelope>,
-    /// Verified OP Stack receipts.
-    pub receipt: Vec<ReceiptEnvelope>,
+    /// Verified OP Stack accounts with block and address identity.
+    pub account: Vec<VerifiedAccount>,
+    /// Verified OP Stack storage slot values grouped by request with block and address identity.
+    pub storage_slot: Vec<VerifiedStorageSlots>,
+    /// Verified OP Stack transactions with block and transaction identity.
+    pub tx: Vec<VerifiedTransaction>,
+    /// Verified OP Stack receipts with block and transaction identity.
+    pub receipt: Vec<VerifiedReceipt>,
 }
