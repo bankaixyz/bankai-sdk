@@ -213,7 +213,7 @@ impl Bankai {
         network: Network,
         bankai_block_number: Option<u64>,
         hashing: HashingFunction,
-    ) -> SdkResult<batch::ProofBatchBuilder> {
+    ) -> SdkResult<batch::ProofBatchBuilder<'_>> {
         let block_number = match bankai_block_number {
             Some(bn) => bn,
             None => self.api.blocks().latest_number().await?,
