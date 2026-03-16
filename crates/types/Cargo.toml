@@ -23,6 +23,10 @@ utoipa = { workspace = true, optional = true }
 alloy-rpc-types-eth = { workspace = true, default-features = false, optional = true, features = ["serde","serde-bincode-compat"] }
 alloy-rpc-types-beacon = { workspace = true, default-features = false, optional = true }
 
+[dev-dependencies]
+bincode = "1.3.3"
+
+
 [features]
 default = ["std", "inputs", "results"]
 

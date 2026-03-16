@@ -20,15 +20,15 @@ use crate::inputs::evm::{
 #[cfg_attr(feature = "std", derive(Debug))]
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct OpStackProofs {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub header_proof: Vec<OpStackHeaderProof>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub account_proof: Vec<AccountProof>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub storage_slot_proof: Vec<StorageSlotProof>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub tx_proof: Vec<TxProof>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub receipt_proof: Vec<ReceiptProof>,
 }
 
@@ -39,6 +39,88 @@ impl OpStackProofs {
             && self.storage_slot_proof.is_empty()
             && self.tx_proof.is_empty()
             && self.receipt_proof.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod roundtrip_tests {
+    use super::{OpStackHeaderProof, OpStackMerkleProof, OpStackProofs};
+    use crate::block::OpChainClient;
+    use crate::common::HashingFunction;
+    use crate::inputs::evm::execution::{StorageSlotEntry, StorageSlotProof};
+    use crate::inputs::evm::MmrProof;
+    use alloy_primitives::{Address, Bytes, FixedBytes, U256};
+    use alloy_rpc_types_eth::{Account, Header as ExecutionHeader};
+
+    fn sample_mmr_proof() -> MmrProof {
+        MmrProof {
+            network_id: 10,
+            block_number: 99,
+            hashing_function: HashingFunction::Keccak,
+            header_hash: FixedBytes::from([1u8; 32]),
+            root: FixedBytes::from([2u8; 32]),
+            elements_index: 3,
+            elements_count: 4,
+            path: vec![FixedBytes::from([5u8; 32])],
+            peaks: vec![FixedBytes::from([6u8; 32])],
+        }
+    }
+
+    fn sample_header_proof() -> OpStackHeaderProof {
+        OpStackHeaderProof {
+            header: ExecutionHeader::default(),
+            snapshot: OpChainClient {
+                chain_id: 10,
+                block_number: 99,
+                header_hash: FixedBytes::from([7u8; 32]),
+                l1_submission_block: 123,
+                mmr_root_keccak: FixedBytes::from([8u8; 32]),
+                mmr_root_poseidon: FixedBytes::from([9u8; 32]),
+            },
+            merkle_proof: OpStackMerkleProof {
+                chain_id: 10,
+                merkle_leaf_index: 0,
+                leaf_hash: FixedBytes::from([10u8; 32]),
+                root: FixedBytes::from([11u8; 32]),
+                path: vec![FixedBytes::from([12u8; 32])],
+            },
+            mmr_proof: sample_mmr_proof(),
+        }
+    }
+
+    fn sample_storage_slot_proof() -> StorageSlotProof {
+        StorageSlotProof {
+            account: Account::default(),
+            address: Address::repeat_byte(0x22),
+            network_id: 10,
+            block_number: 99,
+            state_root: FixedBytes::from([13u8; 32]),
+            account_mpt_proof: vec![Bytes::from(vec![1u8, 2, 3])],
+            slots: vec![StorageSlotEntry {
+                slot_key: U256::from(3u64),
+                slot_value: U256::from(4u64),
+                storage_mpt_proof: vec![Bytes::from(vec![4u8, 5, 6])],
+            }],
+        }
+    }
+
+    #[test]
+    fn op_stack_proofs_bincode_roundtrip_with_empty_middle_fields() {
+        let proofs = OpStackProofs {
+            header_proof: vec![sample_header_proof()],
+            storage_slot_proof: vec![sample_storage_slot_proof()],
+            ..Default::default()
+        };
+
+        let bytes = bincode::serialize(&proofs).expect("failed to serialize OpStackProofs");
+        let decoded: OpStackProofs =
+            bincode::deserialize(&bytes).expect("failed to deserialize OpStackProofs");
+
+        assert_eq!(decoded.header_proof.len(), 1);
+        assert!(decoded.account_proof.is_empty());
+        assert_eq!(decoded.storage_slot_proof.len(), 1);
+        assert!(decoded.tx_proof.is_empty());
+        assert!(decoded.receipt_proof.is_empty());
     }
 }
 
