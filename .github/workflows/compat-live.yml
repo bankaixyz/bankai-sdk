@@ -47,6 +47,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2025-05-02
       - uses: Swatinem/rust-cache@v2
       - name: Run live compat suite
         run: ./scripts/run-compat-tests.sh --profile "${{ github.event_name == 'workflow_dispatch' && inputs.profile || 'coverage' }}" --target sepolia
