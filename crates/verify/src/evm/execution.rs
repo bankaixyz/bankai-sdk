@@ -6,7 +6,7 @@ use bankai_types::inputs::evm::execution::{
     AccountProof, ExecutionHeaderProof, ReceiptProof, TxProof,
 };
 use bankai_types::results::evm::execution::{
-    Account, ExecutionHeader, ReceiptEnvelope, TxEnvelope,
+    ExecutionHeader, ReceiptEnvelope, TrieAccount, TxEnvelope,
 };
 
 use alloy_primitives::{keccak256, FixedBytes};
@@ -96,7 +96,7 @@ impl ExecutionVerifier {
     ///
     /// # Returns
     ///
-    /// Returns the verified `Account` containing:
+    /// Returns the verified `TrieAccount` containing:
     /// - Balance (in wei)
     /// - Nonce (transaction count)
     /// - Code hash (contract code hash, or empty for EOAs)
@@ -129,7 +129,7 @@ impl ExecutionVerifier {
     pub fn verify_account_proof(
         account_proof: &AccountProof,
         headers: &[ExecutionHeader],
-    ) -> Result<Account, VerifyError> {
+    ) -> Result<TrieAccount, VerifyError> {
         let header = Self::header_for_block(headers, account_proof.block_number)?;
 
         if header.state_root != account_proof.state_root {

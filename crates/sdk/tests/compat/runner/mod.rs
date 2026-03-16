@@ -15,7 +15,7 @@ use bankai_types::inputs::evm::MmrProof;
 use crate::compat::case::{
     ApiErrorSource, CompatArea, CompatCaseDef, CompatCaseId, CompatKind, MatrixScope, SdkCallSpec,
 };
-use crate::compat::context::CompatContext;
+use crate::compat::context::{CompatContext, CompatProfile};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SuitePhase {
@@ -41,7 +41,7 @@ pub struct CaseReport {
 }
 
 pub async fn run_case(ctx: &CompatContext, case: CompatCaseDef) -> CaseReport {
-    let matrix_variants = planned_matrix_variants(&case);
+    let matrix_variants = planned_matrix_variants(ctx.profile, &case);
     let result = run_case_inner(ctx, case).await;
 
     match result {
@@ -199,6 +199,7 @@ pub fn assert_reports(suite_name: &str, reports: &[CaseReport]) {
         "{}",
         paint(color, "1;36", &format!("compat report ({suite_name})"))
     );
+    eprintln!("profile: {}", profile_name());
     eprintln!(
         "required: {}/{} passed, {} failed",
         paint(color, "32", &required_passed.to_string()),
@@ -505,14 +506,29 @@ pub(super) fn normalize_hex(value: &str) -> String {
     value.trim_start_matches("0x").to_ascii_lowercase()
 }
 
-fn planned_matrix_variants(case: &CompatCaseDef) -> usize {
-    const FILTERS_CORE: usize = 4;
+fn planned_matrix_variants(profile: CompatProfile, case: &CompatCaseDef) -> usize {
+    const FILTERS_CORE_FULL: usize = 4;
+    const FILTERS_CORE_COVERAGE: usize = 1;
     const FILTERS_EDGE: usize = 1;
-    const TARGETS_CORE: usize = 2;
+    const TARGETS_CORE_FULL: usize = 2;
+    const TARGETS_CORE_COVERAGE: usize = 1;
     const TARGETS_EDGE: usize = 1;
     const HASHINGS_CORE: usize = 1;
     const HASHINGS_EDGE: usize = 1;
     const PROOF_FORMATS_CORE: usize = 2;
+
+    if profile == CompatProfile::Coverage && case.scope() == MatrixScope::Edge {
+        return 0;
+    }
+
+    let filters_core = match profile {
+        CompatProfile::Coverage => FILTERS_CORE_COVERAGE,
+        CompatProfile::Full => FILTERS_CORE_FULL,
+    };
+    let targets_core = match profile {
+        CompatProfile::Coverage => TARGETS_CORE_COVERAGE,
+        CompatProfile::Full => TARGETS_CORE_FULL,
+    };
 
     match case.kind {
         CompatKind::SdkCallDecode { call, scope } => match call {
@@ -535,7 +551,7 @@ fn planned_matrix_variants(case: &CompatCaseDef) -> usize {
             | SdkCallSpec::OpStackLightClientProofFromSnapshot => 1,
             SdkCallSpec::BlocksProofByQueryFromLatest => PROOF_FORMATS_CORE,
             SdkCallSpec::EthereumEpochFinalized => match scope {
-                MatrixScope::Core => FILTERS_CORE,
+                MatrixScope::Core => filters_core,
                 MatrixScope::Edge => FILTERS_EDGE,
             },
             SdkCallSpec::EthereumBeaconHeightFinalized
@@ -544,16 +560,16 @@ fn planned_matrix_variants(case: &CompatCaseDef) -> usize {
             | SdkCallSpec::EthereumExecutionHeightFinalized
             | SdkCallSpec::EthereumExecutionSnapshotFinalized
             | SdkCallSpec::EthereumExecutionMmrRootFinalized => match scope {
-                MatrixScope::Core => FILTERS_CORE,
+                MatrixScope::Core => filters_core,
                 MatrixScope::Edge => FILTERS_EDGE,
             },
             SdkCallSpec::BlocksMmrProofFromLatest => match scope {
-                MatrixScope::Core => FILTERS_CORE * TARGETS_CORE * HASHINGS_CORE,
+                MatrixScope::Core => filters_core * targets_core * HASHINGS_CORE,
                 MatrixScope::Edge => FILTERS_EDGE * TARGETS_EDGE * HASHINGS_EDGE,
             },
             SdkCallSpec::BlocksBlockProofFromLatest => match scope {
                 MatrixScope::Core => {
-                    FILTERS_CORE * TARGETS_CORE * HASHINGS_CORE * PROOF_FORMATS_CORE
+                    filters_core * targets_core * HASHINGS_CORE * PROOF_FORMATS_CORE
                 }
                 MatrixScope::Edge => {
                     FILTERS_EDGE * TARGETS_EDGE * HASHINGS_EDGE * PROOF_FORMATS_CORE
@@ -561,39 +577,46 @@ fn planned_matrix_variants(case: &CompatCaseDef) -> usize {
             },
             SdkCallSpec::EthereumBeaconMmrProofFromSnapshot
             | SdkCallSpec::EthereumExecutionMmrProofFromSnapshot => match scope {
-                MatrixScope::Core => FILTERS_CORE * HASHINGS_CORE,
+                MatrixScope::Core => filters_core * HASHINGS_CORE,
                 MatrixScope::Edge => FILTERS_EDGE * HASHINGS_EDGE,
             },
             SdkCallSpec::EthereumBeaconLightClientProofFromSnapshot
             | SdkCallSpec::EthereumExecutionLightClientProofFromSnapshot => match scope {
-                MatrixScope::Core => FILTERS_CORE * HASHINGS_CORE * PROOF_FORMATS_CORE,
+                MatrixScope::Core => filters_core * HASHINGS_CORE * PROOF_FORMATS_CORE,
                 MatrixScope::Edge => FILTERS_EDGE * HASHINGS_EDGE * PROOF_FORMATS_CORE,
             },
         },
         CompatKind::ProofHashConsistency { scope, .. } => match scope {
-            MatrixScope::Core => FILTERS_CORE * TARGETS_CORE * HASHINGS_CORE * PROOF_FORMATS_CORE,
+            MatrixScope::Core => filters_core * targets_core * HASHINGS_CORE * PROOF_FORMATS_CORE,
             MatrixScope::Edge => FILTERS_EDGE * TARGETS_EDGE * HASHINGS_EDGE * PROOF_FORMATS_CORE,
         },
         CompatKind::MmrProofVerify { scope, .. } => match scope {
-            MatrixScope::Core => FILTERS_CORE * HASHINGS_CORE,
+            MatrixScope::Core => filters_core * HASHINGS_CORE,
             MatrixScope::Edge => FILTERS_EDGE * HASHINGS_EDGE,
         },
         CompatKind::MerkleProofVerify { scope, .. } => match scope {
-            MatrixScope::Core => FILTERS_CORE,
+            MatrixScope::Core => filters_core,
             MatrixScope::Edge => FILTERS_EDGE,
         },
         CompatKind::BankaiMmrProofVerify { scope, .. } => match scope {
-            MatrixScope::Core => FILTERS_CORE * TARGETS_CORE * HASHINGS_CORE,
+            MatrixScope::Core => filters_core * targets_core * HASHINGS_CORE,
             MatrixScope::Edge => FILTERS_EDGE * TARGETS_EDGE * HASHINGS_EDGE,
         },
         CompatKind::LightClientProofVerify { scope, .. } => match scope {
-            MatrixScope::Core => FILTERS_CORE * HASHINGS_CORE * PROOF_FORMATS_CORE,
+            MatrixScope::Core => filters_core * HASHINGS_CORE * PROOF_FORMATS_CORE,
             MatrixScope::Edge => FILTERS_EDGE * HASHINGS_EDGE * PROOF_FORMATS_CORE,
         },
         CompatKind::ApiErrorShape { source, .. } => match source {
             ApiErrorSource::SyncCommitteeFromEpoch => 1,
             ApiErrorSource::FilterConflict => 1,
         },
+    }
+}
+
+fn profile_name() -> &'static str {
+    match std::env::var("COMPAT_PROFILE") {
+        Ok(value) if value.eq_ignore_ascii_case("coverage") => "coverage",
+        _ => "full",
     }
 }
 

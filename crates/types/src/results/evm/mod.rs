@@ -6,7 +6,7 @@ use alloy_consensus::{ReceiptEnvelope, TxEnvelope};
 use alloy_primitives::U256;
 
 use crate::results::evm::beacon::BeaconHeader;
-use crate::results::evm::execution::{Account, ExecutionHeader};
+use crate::results::evm::execution::{ExecutionHeader, TrieAccount};
 
 pub mod beacon;
 pub mod execution;
@@ -20,7 +20,7 @@ pub struct EvmResults {
     /// Verified beacon headers.
     pub beacon_header: Vec<BeaconHeader>,
     /// Verified accounts.
-    pub account: Vec<Account>,
+    pub account: Vec<TrieAccount>,
     /// Verified storage slot values grouped by request.
     pub storage_slot: Vec<Vec<(U256, U256)>>,
     /// Verified transactions.

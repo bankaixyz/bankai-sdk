@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use alloy_consensus::{ReceiptEnvelope, TxEnvelope};
 use alloy_primitives::U256;
 
-use crate::results::evm::execution::{Account, ExecutionHeader};
+use crate::results::evm::execution::{ExecutionHeader, TrieAccount};
 
 /// Verified OP Stack data returned from batch verification.
 #[cfg_attr(feature = "std", derive(Debug, Default))]
@@ -13,7 +13,7 @@ pub struct OpStackResults {
     /// Verified OP Stack headers.
     pub header: Vec<ExecutionHeader>,
     /// Verified OP Stack accounts.
-    pub account: Vec<Account>,
+    pub account: Vec<TrieAccount>,
     /// Verified OP Stack storage slot values grouped by request.
     pub storage_slot: Vec<Vec<(U256, U256)>>,
     /// Verified OP Stack transactions.
