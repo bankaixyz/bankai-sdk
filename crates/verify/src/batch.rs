@@ -94,7 +94,10 @@ pub fn verify_batch_proof(wrapper: ProofBundle) -> Result<BatchResults, VerifyEr
                 account,
                 &batch_results.evm.execution_header,
             )?;
-            batch_results.evm.account.push(verified_account(account, result));
+            batch_results
+                .evm
+                .account
+                .push(verified_account(account, result));
         }
 
         for proof in &evm.storage_slot_proof {
@@ -111,7 +114,10 @@ pub fn verify_batch_proof(wrapper: ProofBundle) -> Result<BatchResults, VerifyEr
         for proof in &evm.tx_proof {
             let result =
                 ExecutionVerifier::verify_tx_proof(proof, &batch_results.evm.execution_header)?;
-            batch_results.evm.tx.push(verified_transaction(proof, result));
+            batch_results
+                .evm
+                .tx
+                .push(verified_transaction(proof, result));
         }
 
         for proof in &evm.receipt_proof {

@@ -39,11 +39,7 @@ pub struct ProofBatchBuilder<'a> {
 
 impl<'a> ProofBatchBuilder<'a> {
     /// Creates a new batch builder.
-    pub fn new(
-        bankai: &'a Bankai,
-        bankai_block_number: u64,
-        hashing: HashingFunction,
-    ) -> Self {
+    pub fn new(bankai: &'a Bankai, bankai_block_number: u64, hashing: HashingFunction) -> Self {
         Self {
             bankai,
             bankai_block_number,
